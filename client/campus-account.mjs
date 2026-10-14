@@ -19,8 +19,8 @@ export class CampusAccount {
     try { return this.current = await this.request('auth/me'); }
     catch (error) { if (error.status === 401) return null; throw error; }
   }
-  async login(studentNumber, password) {
-    return this.current = await this.request('auth/login', { method: 'POST', body: JSON.stringify({ studentNumber, password }) });
+  async login(studentNumber, password, signal) {
+    return this.current = await this.request('auth/login', { method: 'POST', signal, body: JSON.stringify({ studentNumber, password }) });
   }
   async connections() { return (await this.request('connections')).connections; }
   async logout(allDevices = false) {

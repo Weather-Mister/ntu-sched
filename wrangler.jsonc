@@ -4,17 +4,31 @@
   "account_id": "56ed116482d3c27b6980d1d13dff17c8",
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "campus-week",
-    "database_id": "REPLACE_WITH_CREATED_D1_DATABASE_ID",
-    "migrations_dir": "migrations"
-  }],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "campus-week",
+      "database_id": "5a1827e5-152d-42d4-bb93-23c4705fa4f6",
+      "migrations_dir": "migrations"
+    }
+  ],
   "vars": {
-    "APP_ORIGIN": "https://REPLACE_WITH_CAMPUS_WEEK_HOST",
+    "APP_ORIGIN": "https://campus-week-api.s20gamingfake.workers.dev",
     "NTU_LOGIN_ENABLED": "false"
   },
-  "triggers": { "crons": ["17 */6 * * *"] },
-  "observability": { "enabled": false }
+  "triggers": {
+    "crons": [
+      "17 */6 * * *"
+    ]
+  },
+  "observability": {
+    "enabled": false
+  }
 }
