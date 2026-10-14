@@ -1,0 +1,4 @@
+// NTU's official 0–10 / A–D period timetable, in Taipei minutes after midnight.
+export const NTU_PERIODS=[['0',430,480],['1',490,540],['2',550,600],['3',620,670],['4',680,730],['5',740,790],['6',800,850],['7',860,910],['8',930,980],['9',990,1040],['10',1050,1100],['A',1105,1155],['B',1160,1210],['C',1215,1265],['D',1270,1320]];
+export function periodsFor(start,end){const first=NTU_PERIODS.findIndex(period=>period[1]===start),last=NTU_PERIODS.findIndex(period=>period[2]===end);return first>=0&&last>=first?NTU_PERIODS.slice(first,last+1).map(period=>period[0]):[];}
+export function formatPeriods(start,end,language='en',short=false){const periods=periodsFor(start,end);if(!periods.length)return '';const range=periods.length===1?periods[0]:`${periods[0]}–${periods.at(-1)}`;return language==='zh-TW'?(short?`${range}節`:`第 ${range} 節`):(short?`P${range}`:`${periods.length===1?'Period':'Periods'} ${range}`);}

@@ -1,0 +1,10 @@
+const OFFSET=8*60*60*1000;
+export function taipeiNow(now=Date.now()){const date=new Date(now+OFFSET);return {date:date.toISOString().slice(0,10),day:(date.getUTCDay()+6)%7,minutes:date.getUTCHours()*60+date.getUTCMinutes()};}
+export function parseDate(key){if(!/^\d{4}-\d{2}-\d{2}$/.test(key))throw new Error('Choose a valid date.');const [year,month,day]=key.split('-').map(Number),date=new Date(0);date.setUTCFullYear(year,month-1,day);date.setUTCHours(12,0,0,0);if(date.toISOString().slice(0,10)!==key)throw new Error('Choose a valid date.');return date;}
+export function offsetDate(key,days){const date=parseDate(key);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10);}
+export function dayForDate(key){return (parseDate(key).getUTCDay()+6)%7;}
+export function mondayForDate(key){return offsetDate(key,-dayForDate(key));}
+export function atTaipeiTime(key,minutes){const date=parseDate(key);date.setUTCHours(0,0,0,0);return date.getTime()+minutes*60000-OFFSET;}
+export function lessonState(session,key,now=Date.now()){const today=taipeiNow(now);if(key<today.date)return 'completed';if(key>today.date)return 'scheduled';if(today.minutes>=session.end)return 'completed';if(today.minutes>=session.start)return 'live';return 'upcoming';}
+export function nextLesson(sessions,now=Date.now()){const today=taipeiNow(now);for(let offset=0;offset<=7;offset++){const key=offsetDate(today.date,offset),day=dayForDate(key),items=sessions.map((session,index)=>({session,index})).filter(({session})=>session.day===day&&(offset>0||session.end>today.minutes)).sort((a,b)=>a.session.start-b.session.start||a.session.end-b.session.end);if(items.length){const {session,index}=items[0];return {session,index,date:key,state:lessonState(session,key,now),startAt:atTaipeiTime(key,session.start),endAt:atTaipeiTime(key,session.end)};}}return null;}
+export function countdown(timestamp,now=Date.now()){const mins=Math.max(0,Math.ceil((timestamp-now)/60000));if(mins<60)return `${mins} min`;const hours=Math.floor(mins/60),rest=mins%60;return `${hours} hr${rest?' '+rest+' min':''}`;}
