@@ -8,7 +8,7 @@ The current frontend was recovered byte-for-byte from the localhost app on 15 Oc
 
 The account foundation verifies a student number and NTU Mail password against the same Roundcube endpoint used by the personal mail clients before provisioning an account. It encrypts retained NTU authorization using AES-GCM with account/provider-bound authenticated data. Only hashes of random session tokens enter D1; the browser receives a Secure, HttpOnly, SameSite login cookie valid for 30 days.
 
-**Infrastructure:** Cloudflare D1 database `campus-week` is created in account `56ed116482d3c27b6980d1d13dff17c8`, with Asia Pacific placement and all four account tables verified. Its actual ID is recorded in `wrangler.jsonc`. The Worker deployment and encryption secret still need setup, and real NTU verification needs an end-to-end deployment test. COOL and academic timetable providers, recurring live refresh, the real mail client, and Gemini calls are later stages. Mail authorization does not imply COOL or academic-system authorization. Existing localhost login/import frontend files are preserved; their original local trial server was not available in this checkout.
+**Infrastructure:** Cloudflare D1 database `campus-week` is created in account `56ed116482d3c27b6980d1d13dff17c8`, with Asia Pacific placement and all four account tables verified. Its actual ID is recorded in `wrangler.jsonc`. The `ntu-sched` Worker is deployed with both `ASSETS` and `DB` bindings and is connected to this GitHub repository. Its canonical address is `https://ntu-sched.s20gamingfake.workers.dev`. The account-origin correction is committed; encryption-secret setup and a real NTU sign-in test remain before student login is enabled. COOL and academic timetable providers, recurring live refresh, the real mail client, and Gemini calls are later stages. Mail authorization does not imply COOL or academic-system authorization. Existing localhost login/import frontend files are preserved; their original local trial server was not available in this checkout.
 
 `NTU_LOGIN_ENABLED` defaults to `false`. There is no fallback that creates real accounts through a demo login.
 
@@ -31,7 +31,7 @@ Use the official Wrangler CLI and account `56ed116482d3c27b6980d1d13dff17c8`:
 3. Run `wrangler d1 migrations apply DB --remote`.
 4. Set `APP_ORIGIN` to the exact HTTPS origin serving both the frontend and `/api`. The GitHub repository owns source; the app is served by Cloudflare. Cross-site cookie authentication from a separate GitHub Pages origin is intentionally unsupported.
 5. Generate a random 32-byte encryption key locally and set the 64-character hex value through `wrangler secret put NTU_CREDENTIAL_KEY`. Never store it in tracked files, logs, or frontend bundles. Retain the key in a password manager; changing it without migrating encrypted rows makes retained connections unreadable.
-6. Run `wrangler deploy`. Verify `/api/health` and the empty database, then enable `NTU_LOGIN_ENABLED=true` for a controlled real sign-in test before inviting students.
+6. The existing Worker is connected to the repository and rebuilds from `main`. Verify the latest deployment's `/api/health` and the empty database. After setting the encryption secret, enable `NTU_LOGIN_ENABLED=true` in the tracked configuration for a controlled real sign-in test before inviting students.
 
 Do not commit `.env`, `.dev.vars`, `.wrangler`, node_modules, local SQLite data, passwords, cookies, or tokens.
 
