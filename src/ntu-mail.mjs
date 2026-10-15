@@ -38,6 +38,8 @@ export async function verifyNtuMail(studentNumber, password) {
     for (let redirects = 0; redirects < 5; redirects++) {
       if (url.origin !== ROOT.origin || !url.pathname.startsWith(ROOT.pathname)) throw new ApiError(502, 'ntu_unavailable', 'NTU Mail returned an unexpected redirect.');
       const headers = new Headers(initial.headers);
+      // NTU closes requests without an application User-Agent before serving the login form.
+      headers.set('User-Agent', 'Campus-Week/1.0');
       if (cookies.size) headers.set('Cookie', [...cookies].map(([k, v]) => `${k}=${v}`).join('; '));
       const response = await fetch(url, { method, body, headers, redirect: 'manual', signal: controller.signal });
       for (const raw of response.headers.getSetCookie()) {

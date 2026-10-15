@@ -12,6 +12,7 @@ let providerCalls = [], failProvider = false, redirectOutside = false, wrongIden
 globalThis.fetch = async (url, options = {}) => {
   const parsed = new URL(url);
   assert.equal(parsed.origin, 'https://wmail1.cc.ntu.edu.tw');
+  assert.equal(options.headers.get('User-Agent'), 'Campus-Week/1.0');
   providerCalls.push({ url: parsed.href, method: options.method });
   if (failProvider) throw new Error('provider exception must never be returned');
   if (redirectOutside) return new Response('', { status: 302, headers: { Location: 'https://untrusted.example/password' } });
