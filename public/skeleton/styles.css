@@ -504,3 +504,51 @@ body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--le
   .live-entry-actions{grid-template-columns:1fr}
   .live-login-form{padding:19px 17px}
 }
+
+/* COOL completion is a local checklist, never an NTU submission. */
+.cool-list .cool-item.cool-checkable{
+  display:grid;grid-template-columns:minmax(0,1fr) 31px;
+  align-items:center;gap:6px;padding:6px 7px;
+}
+.cool-list .cool-item.cool-nonassignment{display:block;padding:6px 7px}
+.cool-list .cool-main{
+  min-width:0;display:grid;grid-template-columns:39px minmax(0,1fr);
+  align-items:center;column-gap:8px;row-gap:3px;
+  color:inherit;text-decoration:none;
+}
+.cool-list .cool-main .cool-date{grid-column:1;grid-row:1 / span 2;min-width:0}
+.cool-list .cool-main .cool-copy{grid-column:2;grid-row:1;min-width:0}
+.cool-list .cool-main .cool-due{
+  grid-column:2;grid-row:2;justify-self:start;
+  min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;
+}
+.cool-list .cool-main:focus-visible{border-radius:7px;outline:3px solid #829bd1;outline-offset:-2px}
+.cool-list a.cool-main:hover .cool-copy strong{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
+.cool-list .cool-done-button{
+  display:grid;place-items:center;flex:none;
+  width:29px;height:29px;padding:0;
+  border:1px solid var(--line);border-radius:50%;
+  background:var(--panel);color:var(--muted);
+  font-size:14px;font-weight:850;cursor:pointer;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.cool-list .cool-done-button.is-done{
+  background:#47796b;border-color:#47796b;color:white;
+}
+.cool-list .cool-item.done .cool-main{opacity:.56}
+.cool-list .cool-item.done .cool-copy strong{text-decoration:line-through}
+.cool-list .cool-item.done .cool-due{background:#e6f0ec;color:#47796b}
+@media (hover:hover) and (pointer:fine) {
+  .cool-list .cool-done-button:hover{transform:scale(1.08);border-color:#9a9b92}
+  .cool-list .cool-done-button.is-done:hover{background:#3d725f;color:white}
+}
+body[data-theme=dark] .cool-list .cool-item.done .cool-due{
+  background:#305044;color:#d1f3da;
+}
+.lesson-time .lesson-period{
+  display:block;font-size:9px;line-height:1.12;font-weight:750;
+  letter-spacing:.015em;color:var(--muted);
+}
+@media(prefers-reduced-motion:reduce){
+  .cool-list .cool-done-button{transition:none!important;transform:none!important}
+}
