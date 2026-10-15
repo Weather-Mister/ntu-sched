@@ -336,7 +336,7 @@
 }
 
 /* Keep every section usable when desktop columns are resized. */
-@media (min-width:1101px) {
+@media (min-width:791px) {
   .workspace .schedule-column {container:schedule-panel / inline-size}
   .workspace .cool-column {container:cool-panel / inline-size}
   .workspace .shortcuts-panel {container:shortcuts-panel / inline-size}
