@@ -1,6 +1,6 @@
 import { ApiError, digest, encryptAuthorization, decryptAuthorization } from './security.mjs';
 import { Roundcube, roundcubeEnvironment, roundcubeFormInputs, roundcubeSendResult } from './mail-roundcube.mjs';
-import { mailReference, mailText, messageFromPage, sanitizeMail, rootHeaders, validateSend, buildMime } from './mail-content.mjs';
+import { mailReference, mailText, mailListText, messageFromPage, sanitizeMail, rootHeaders, validateSend, buildMime } from './mail-content.mjs';
 import { pushConfiguration,sendPush } from './mail-push.mjs';
 const clock=()=>Date.now();
 const MAIL_SESSION_TTL_MS=3*60*1000;
@@ -81,8 +81,8 @@ export async function listMail(env,owner,url){
  return withMailbox(env,owner,async s=>{
   const mailbox=['inbox','unread','starred'].includes(folder)?'INBOX':s.folders[folder==='archived'?'archive':folder];
   const filter=folder==='unread'?'UNSEEN':folder==='starred'?'FLAGGED':'';
-  const mapped=rows=>rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailText(r.columns.subject).replace(/\s*open in (?:a )?new window\s*$/i,'')||'(No subject)',from:mailText(r.columns.from||r.columns.fromto||r.columns.sender||r.columns.to),
-   date:mailText(r.columns.date),snippet:mailText(r.columns.snippet||r.columns.preview||r.columns.text||''),unread:!r.flags.seen,
+  const mapped=rows=>rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailListText(r.columns.subject,{subject:true})||'(No subject)',from:mailListText(r.columns.from||r.columns.fromto||r.columns.sender||r.columns.to),
+   date:mailListText(r.columns.date),snippet:mailListText(r.columns.snippet||r.columns.preview||r.columns.text||''),unread:!r.flags.seen,
    starred:!!r.flags.flagged,attachment:!!(r.flags.attachment||r.columns.attachment)}));
   let result;
   if(!progressive){
