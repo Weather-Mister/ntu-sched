@@ -232,12 +232,14 @@
   .cool-list .cool-date strong{font-size:12px}
   .cool-list .cool-due{font-size:10px;padding:4px 6px}
   .cool-column .preview-footnote{flex:none;margin:8px 0 0;font-size:10px}
-  .tasks-column .todo-list{order:1;display:flex;flex-direction:column;gap:7px;padding:12px 9px 18px;scroll-padding-top:12px;scroll-padding-bottom:18px}
-  .tasks-column .todo-row{flex:0 0 auto;min-height:40px;border-radius:11px;padding:6px 8px}
-  .tasks-column .todo-label{font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+  /* Keep hover room at the top while drawing task rows nearer the panel's left edge. */
+  .tasks-column .todo-list{order:1;display:flex;flex-direction:column;gap:5px;padding:9px 5px 14px 3px;scroll-padding-top:9px;scroll-padding-bottom:14px}
+  .tasks-column .todo-row{flex:0 0 auto;min-height:36px;grid-template-columns:25px minmax(0,1fr) 25px;gap:6px;border-radius:10px;padding:5px 6px 5px 5px}
+  .tasks-column .todo-label{font-size:11.5px;line-height:1.3;overflow-wrap:anywhere}
+  .tasks-column .todo-check,.tasks-column .todo-remove{width:25px;height:25px}
   .tasks-column .todo-form{
     order:2;display:grid;grid-template-columns:minmax(0,1fr) auto;
-    flex:none;gap:6px;margin:9px 0 0;
+    flex:none;gap:6px;margin:7px 0 0;
   }
   .tasks-column .todo-form input{height:37px;min-width:0;border-radius:10px}
   .tasks-column .preview-footnote{order:3;flex:none;margin:6px 0 0;font-size:9px}
