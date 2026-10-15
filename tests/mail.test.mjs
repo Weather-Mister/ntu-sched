@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
 import worker from '../src/worker.mjs';
 import {digest,randomToken,encryptAuthorization,decryptAuthorization,base64url} from '../src/security.mjs';
-import {sanitizeMail,buildMime,validateSend,rootHeaders} from '../src/mail-content.mjs';
+import {sanitizeMail,buildMime,validateSend,rootHeaders,mailListText} from '../src/mail-content.mjs';
 import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
 import {encryptedPush,validateSubscription} from '../src/mail-push.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
@@ -96,6 +96,21 @@ test('rejected mail mutations discard the faulty session without replaying the o
  assert.equal(calls.filter(c=>c.action==='login').length,2);
  assert.equal(calls.filter(c=>c.action==='mark').length,2);
  e.sqlite.close();
+});
+test('Roundcube external-window suffix is removed from plain, nested HTML, and cached-style subjects',()=>{
+ const cases=[
+  ['Physics homework Open in new window','Physics homework'],
+  ['Physics homeworkOpen in new window','Physics homework'],
+  ['Physics homework\\u00a0Open in new window','Physics homework'],
+  ['Physics homework\\u200bOpen in new window','Physics homework'],
+  ['<a href="?">Physics homework</a><span>Open in new window</span>','Physics homework'],
+  ['<a href="?">Physics homework</a><span class="sr-only">Open in new window</span>','Physics homework'],
+  ['<span>Physics homework</span> Open in new tab','Physics homework'],
+  ['The class is open in new window access','The class is open in new window access'],
+  ['Open in new window','Open in new window']
+ ];
+ for(const [html,expected] of cases)assert.equal(mailListText(html,{subject:true}),expected,html);
+ assert.equal(mailListText('Sender open in new window'),'Sender open in new window');
 });
 test('Roundcube subject controls are removed and sender is read from the fromto column',async()=>{
  const e=env(),a=await identity(e);
