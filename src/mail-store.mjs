@@ -4,12 +4,26 @@ import { mailReference, mailText, mailListText, messageFromPage, sanitizeMail, r
 import { pushConfiguration,sendPush } from './mail-push.mjs';
 const clock=()=>Date.now();
 const MAIL_SESSION_TTL_MS=3*60*1000;
-function retryError(){const e=new ApiError(429,'mail_busy','Mail is updating. Please try again in a few seconds.');e.retryAfterSeconds=5;return e;}
+const MAIL_LEASE_WAIT_MS=7000;
+const MAIL_LEASE_POLL_MS=350;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function retryError(){const e=new ApiError(429,'mail_busy','Mail is updating. Please try again in a few seconds.');e.retryAfterSeconds=2;return e;}
+async function claimMailbox(env,id,lease){
+ // The scheduled notification check and an opened mailbox share a Roundcube
+ // session. Wait for its fenced lease instead of failing the first page load.
+ const deadline=clock()+MAIL_LEASE_WAIT_MS;
+ for(;;){
+  const now=clock();
+  const row=await env.DB.prepare('UPDATE mail_state SET lease=?,lease_until=? WHERE student_id=? AND lease_until<? RETURNING *').bind(lease,now+180000,id,now).first();
+  if(row)return row;
+  if(now>=deadline)throw retryError();
+  await wait(Math.min(MAIL_LEASE_POLL_MS,Math.max(1,deadline-now)));
+ }
+}
 export async function withMailbox(env,owner,work,{retryRead=false}={}){
- const id=owner.student_id,lease=crypto.randomUUID(),time=clock();
+ const id=owner.student_id,lease=crypto.randomUUID();
  await env.DB.prepare('INSERT OR IGNORE INTO mail_state(student_id) VALUES(?)').bind(id).run();
- const row=await env.DB.prepare('UPDATE mail_state SET lease=?,lease_until=? WHERE student_id=? AND lease_until<? RETURNING *').bind(lease,time+180000,id,time).first();
- if(!row)throw retryError();
+ const row=await claimMailbox(env,id,lease),time=clock();
  let s,issuedAt=0,success=false;
  try{
   const auth=await env.DB.prepare("SELECT encrypted_authorization FROM student_connections WHERE student_id=? AND provider='ntu_mail' AND status='authorized'").bind(id).first();
