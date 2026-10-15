@@ -48,3 +48,15 @@ test('a hidden callback is posted only to fixed SSO endpoints, never to account 
   try { await assert.rejects(readNtuTimetable('b12345678', 'synthetic-password')); assert.equal(posts, 1); }
   finally { globalThis.fetch = original; }
 });
+test('blocked destination diagnostics exclude ticket query strings and secret values', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response(null, { status: 302, headers: { Location: 'https://portal.aca.ntu.edu.tw/eportfolio/unknown-route?ticket=private-synthetic-ticket#private-fragment' } });
+  try {
+    await assert.rejects(readNtuTimetable('b12345678', 'synthetic-password'), error => {
+      assert.equal(error.code, 'timetable_redirect');
+      assert.match(error.message, /eportfolio\/unknown-route/);
+      assert.doesNotMatch(error.message, /private-synthetic-ticket|private-fragment|synthetic-password/);
+      return true;
+    });
+  } finally { globalThis.fetch = original; }
+});

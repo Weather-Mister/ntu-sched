@@ -252,7 +252,9 @@ function mockPortfolio(url, options) {
     return redirect('https://portal.aca.ntu.edu.tw/sso-gateway/sso-callback?student='+options.body.get('user'));
   }
   if (url.pathname === '/sso-gateway/sso-callback') return redirect('/eportfolio/login-sso', { 'Set-Cookie': 'portfolio_session='+url.searchParams.get('student')+'; Path=/; Secure; HttpOnly' });
-  if (url.pathname === '/eportfolio/login-sso') return redirect(portfolioTarget);
+  if (url.pathname === '/eportfolio/login-sso') return redirect(portfolioMode === 'canonical' ? '/eportfolio' : portfolioTarget);
+  if (url.pathname === '/eportfolio') return redirect('/eportfolio/');
+  if (url.pathname === '/eportfolio/') return new Response('<a href="/eportfolio/course-overview">Courses</a>');
   throw new Error('Unexpected synthetic endpoint');
 }
 async function sync(e, auth, body = {}) {
@@ -277,6 +279,14 @@ test('timetable sync uses saved authorization, keeps cookies scoped, and restore
   const again = await sync(e, auth); assert.equal((await again.json()).changed, false); assert.equal(portfolioPosts, before + 1);
   const connections = (await (await request(e, 'connections', { cookie: auth.cookie })).json()).connections;
   assert.equal(connections.find(c => c.provider === 'timetable').syncReady, true);
+});
+test('successful SSO can return through the ePortfolio root with or without a trailing slash', async () => {
+  const e = env(), auth = await login(e); portfolioMode = 'canonical';
+  try {
+    const response = await sync(e, auth);
+    assert.equal(response.status, 200, await response.clone().text());
+    assert.equal((await response.json()).timetable.sessions[0].title, 'b12345678 課程 1');
+  } finally { portfolioMode = 'ok'; }
 });
 test('timetables belong only to the session owner, with CSRF and no supplied student override', async () => {
   const e = env(), a = await login(e), b = await login(e, 'r23456789');

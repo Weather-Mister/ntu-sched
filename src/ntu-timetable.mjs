@@ -4,12 +4,22 @@ import { documentFrom, parsePortfolioTimetable, combineNames } from './portfolio
 export const TIMETABLE_URL = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
 const LOGIN_ORIGIN = 'https://web2.cc.ntu.edu.tw';
 const PORTAL_ORIGIN = 'https://portal.aca.ntu.edu.tw';
+const canonicalPath = url => url.pathname.replace(/\/+$/, '') || '/';
 function allowed(url) {
   return url.protocol === 'https:' && !url.username && !url.password && !url.port &&
-    ((url.origin === PORTAL_ORIGIN && ['/eportfolio/', '/eportfolio/course-overview', '/eportfolio/login-sso', '/sso-gateway/login', '/sso-gateway/sso-callback'].includes(url.pathname)) ||
+    ((url.origin === PORTAL_ORIGIN && ['/eportfolio', '/eportfolio/course-overview', '/eportfolio/login-sso', '/sso-gateway/login', '/sso-gateway/sso-callback'].includes(canonicalPath(url))) ||
      (url.origin === LOGIN_ORIGIN && url.pathname.startsWith('/p/s/login2/')));
 }
-const stopped = () => new ApiError(502, 'timetable_redirect', 'NTU returned an unexpected sign-in destination. Your saved timetable has not changed.');
+function stopped(url) {
+  // Only known public route segments enter the owner's error message. Never
+  // include query strings, fragments, user info, tickets or a provider body.
+  let route = '';
+  if (url?.hostname === new URL(PORTAL_ORIGIN).hostname) {
+    const parts = url.pathname.split('/').filter(Boolean);
+    if (['eportfolio', 'sso-gateway'].includes(parts[0])) route = ` (${url.protocol}//${url.hostname}/${parts[0]}${parts[1] && /^[a-z-]{1,32}$/.test(parts[1]) ? '/'+parts[1] : ''})`;
+  } else if (url?.hostname === new URL(LOGIN_ORIGIN).hostname) route = ` (${url.protocol}//${url.hostname}/p/s/login2)`;
+  return new ApiError(502, 'timetable_redirect', `NTU returned an unexpected sign-in destination${route}. Your saved timetable has not changed.`);
+}
 
 // This cookie jar exists only for one sync and never leaves the Worker.
 class CookieJar {
@@ -40,7 +50,7 @@ function fields(form) {
 }
 function target(form, url) {
   const destination = new URL(form.getAttribute('action') || url.href, url);
-  if (!allowed(destination)) throw stopped();
+  if (!allowed(destination)) throw stopped(destination);
   return destination;
 }
 function challenge(document) {
@@ -65,7 +75,8 @@ export async function readNtuTimetable(studentNumber, password) {
   async function request(destination, initial = {}) {
     let url = new URL(destination), method = initial.method || 'GET', body = initial.body;
     for (;;) {
-      if (!allowed(url) || ++requests > 24) throw stopped();
+      if (!allowed(url)) throw stopped(url);
+      if (++requests > 24) throw new ApiError(502, 'timetable_redirect_loop', 'NTU sign-in did not finish within the supported number of steps. Your saved timetable has not changed.');
       const headers = new Headers({ 'User-Agent': 'Campus-Week/1.0', Accept: 'text/html,application/xhtml+xml' });
       const cookie = jar.header(url); if (cookie) headers.set('Cookie', cookie);
       if (method === 'POST') { headers.set('Content-Type', 'application/x-www-form-urlencoded'); headers.set('Origin', initial.source.origin); headers.set('Referer', initial.source.href); }
@@ -75,7 +86,7 @@ export async function readNtuTimetable(studentNumber, password) {
         const location = response.headers.get('Location'); await response.body?.cancel();
         if (!location) throw stopped();
         const next = new URL(location, url);
-        if (!allowed(next) || (method === 'POST' && [307, 308].includes(response.status) && next.origin !== url.origin)) throw stopped();
+        if (!allowed(next) || (method === 'POST' && [307, 308].includes(response.status) && next.origin !== url.origin)) throw stopped(next);
         if (response.status === 303 || method === 'POST' && [301, 302].includes(response.status)) { method = 'GET'; body = undefined; }
         url = next; continue;
       }
@@ -98,7 +109,7 @@ export async function readNtuTimetable(studentNumber, password) {
     const candidates = forms(page.document).filter(form => inputs(form).length && inputs(form).every(n => (n.getAttribute('type') || '').toLowerCase() === 'hidden'));
     if (candidates.length !== 1) return null;
     const form = candidates[0], destination = target(form, page.url), method = (form.getAttribute('method') || 'get').toUpperCase();
-    const callback = destination.origin === PORTAL_ORIGIN && ['/sso-gateway/sso-callback', '/eportfolio/login-sso'].includes(destination.pathname);
+    const callback = destination.origin === PORTAL_ORIGIN && ['/sso-gateway/sso-callback', '/eportfolio/login-sso'].includes(canonicalPath(destination));
     if (method !== 'POST' || !callback) return null;
     return request(destination, { method, body: fields(form), source: page.url });
   }
@@ -119,7 +130,7 @@ export async function readNtuTimetable(studentNumber, password) {
       const next = await advance(page); if (!next) break; page = next;
     }
     page = await request(TIMETABLE_URL);
-    if (page.url.origin !== PORTAL_ORIGIN || page.url.pathname !== '/eportfolio/course-overview' || page.document.querySelector('input[type="password"]')) throw new ApiError(409, 'timetable_credentials_required', 'NTU did not complete ePortfolio sign-in. Enter your myNTU password to connect your timetable.');
+    if (page.url.origin !== PORTAL_ORIGIN || canonicalPath(page.url) !== '/eportfolio/course-overview' || page.document.querySelector('input[type="password"]')) throw new ApiError(409, 'timetable_credentials_required', 'NTU did not complete ePortfolio sign-in. Enter your myNTU password to connect your timetable.');
     const result = parsePortfolioTimetable(page.html);
     // Read another language only if ePortfolio itself supplies that exact link.
     for (const language of ['en', 'zh']) {
@@ -130,7 +141,7 @@ export async function readNtuTimetable(studentNumber, password) {
         const href = control.getAttribute('href') || control.getAttribute('onclick')?.match(/^\s*(?:window\.)?location(?:\.href)?\s*=\s*(["'])([^"']+)\1\s*;?\s*$/)?.[2];
         if (!href) continue;
         const alternate = new URL(href, page.url);
-        if (alternate.origin !== PORTAL_ORIGIN || alternate.pathname !== '/eportfolio/course-overview' || alternate.href === page.url.href) continue;
+        if (alternate.origin !== PORTAL_ORIGIN || canonicalPath(alternate) !== '/eportfolio/course-overview' || alternate.href === page.url.href) continue;
         try { const view = await request(alternate); if (view.url.origin === PORTAL_ORIGIN && view.url.pathname === alternate.pathname) result.sessions = combineNames(result.sessions, parsePortfolioTimetable(view.html).sessions); } catch { /* The successfully read timetable remains usable without alternate names. */ }
         break;
       }
