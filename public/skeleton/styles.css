@@ -561,3 +561,60 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
   .cool-list .cool-done-button{transition:none!important;transform:none!important}
 }
 .event-dialog{width:min(520px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;border-radius:21px}.event-form{padding:25px}.event-form h2{margin:0 35px 18px 0}.event-form label,.event-form legend{display:block;font-size:12px;font-weight:750;margin:11px 0 5px}.event-form input:not([type=checkbox]),.event-form select,.event-form textarea{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:14px;padding:8px 10px;box-sizing:border-box}.event-form input:focus,.event-form select:focus,.event-form textarea:focus{outline:2px solid var(--accent);outline-offset:2px}.event-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.event-form fieldset{border:0;margin:12px 0;padding:0}.event-form legend{margin:0 0 7px}.event-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.event-days label{margin:0;position:relative;text-align:center;cursor:pointer}.event-days input{position:absolute;opacity:0;width:1px;height:1px}.event-days span{display:block;padding:10px 1px;border:1px solid var(--line);border-radius:9px;background:var(--panel);font-size:11px}.event-days input:checked+span{background:var(--accent);color:#fff;border-color:var(--accent)}.event-days input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}.event-form details{margin-top:14px;font-size:12px}.event-form textarea{margin-top:8px;resize:vertical}.event-footer{display:flex;align-items:center;gap:8px;margin-top:18px;flex-wrap:wrap}.event-footer>span{flex:1}.event-footer .button{min-height:39px}.event-error{font-size:12px;color:#b0453f;margin:12px 0 0;line-height:1.5}.event-kind{font-size:9px;font-weight:800;color:#47796b;letter-spacing:.04em}.lesson.custom-event .lesson-card{--course-color:#47796b;background:color-mix(in srgb,var(--card) 95%,#47796b)}.timetable-lesson.custom-event{--course-color:#47796b;border-left-color:#47796b;background:color-mix(in srgb,var(--card) 88%,#47796b)}.personal-event-status{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:7px 0}.personal-event-status p:empty{display:none}.personal-event-status .preview-footnote{margin:0}.schedule-column>.section-head>.section-action{flex-wrap:wrap;justify-content:flex-end}.event-form .preview-footnote{line-height:1.5}@media(max-width:400px){.event-form{padding:20px 16px}.event-footer{gap:6px}.event-footer .button{font-size:11px;padding:8px 10px}.event-fields{gap:8px}.event-days span{font-size:10px}}
+
+
+/* Campus Mail: message cards styled like the personal inbox, without inheriting its theme. */
+.mailx-list-pane .mailx-list-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:12px 14px}
+.mailx-list-pane .mailx-list-tools h3{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mailx-list-pane .mailx-list-tools .mailx-count{font-size:11px;color:#929588}
+.campus-mail-mark-all{padding:8px 10px;white-space:nowrap;font:inherit;font-size:11px;border:1px solid #dfe4d6;border-radius:11px;background:#fffefa;color:#596e50;cursor:pointer;transition:background .16s ease,box-shadow .16s ease,transform .16s ease}
+.campus-mail-mark-all:hover{background:#edf3e9;box-shadow:0 2px 9px #54614a18;transform:translateY(-1px)}
+.campus-mail-mark-all:focus-visible{outline:2px solid #678961;outline-offset:2px}
+.campus-mail-mark-all:disabled{opacity:.55;cursor:wait;transform:none}
+.campus-mail-mark-all[hidden],.mail-pager[hidden]{display:none!important}
+.mailx-list{scrollbar-gutter:stable}
+.campus-mail-item{position:relative;min-width:0;background:#fffefa;border-bottom:1px solid #ecece5;isolation:isolate;transition:background .17s ease,box-shadow .17s ease}
+.campus-mail-item:hover,.campus-mail-item:focus-within{background:#f5f6f0}
+.campus-mail-item.is-unread{background:#f8faf5}
+.campus-mail-item.is-unread:hover{background:#eef3e9}
+.campus-mail-item.is-active,.campus-mail-item.is-active:hover{background:#eff1e9;box-shadow:inset 3px 0 0 #8ba280}
+.campus-mail-open{box-sizing:border-box;width:100%;min-height:114px;display:grid;grid-template-columns:42px minmax(0,1fr);gap:13px;align-items:start;padding:16px 14px 14px;background:none;border:0;border-radius:0;text-align:left;color:#2e392c;font:inherit;cursor:pointer}
+.campus-mail-open:focus-visible{outline:2px solid #6b8a61;outline-offset:-3px;border-radius:8px}
+.campus-mail-avatar{width:42px;height:42px;display:grid;place-items:center;border-radius:15px;font-size:15px;font-weight:700;flex:none;color:#5d6659;background:#e9ede5;user-select:none}
+.campus-mail-tone-0{background:#e6ede2;color:#596d58}
+.campus-mail-tone-1{background:#eee6dd;color:#7a6651}
+.campus-mail-tone-2{background:#e5ebef;color:#586c79}
+.campus-mail-tone-3{background:#f0e8e9;color:#825c66}
+.campus-mail-tone-4{background:#eceadd;color:#746c4e}
+.campus-mail-info,.campus-mail-head,.campus-mail-subject,.campus-mail-snippet,.campus-mail-provider,.campus-mail-sender,.campus-mail-date{min-width:0;display:block}
+.campus-mail-info{display:flex;flex-direction:column;gap:4px}
+.campus-mail-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-height:19px}
+.campus-mail-sender{color:#253124;font-size:14px;font-weight:630;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.campus-mail-date{color:#999e94;font-size:10px;font-weight:400;line-height:1.4;flex:none;white-space:nowrap;max-width:93px;overflow:hidden;text-overflow:ellipsis;transition:opacity .15s ease}
+.campus-mail-subject{font-size:13px;line-height:1.45;color:#364635;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.campus-mail-snippet{color:#858a80;font-size:12px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.campus-mail-provider{color:#acb0a2;font-size:10px;line-height:1.35;margin-top:4px}
+.campus-mail-item.is-unread .campus-mail-sender,.campus-mail-item.is-unread .campus-mail-subject{font-weight:750;color:#233223}
+.campus-mail-actions{position:absolute;top:11px;right:10px;z-index:2;display:flex;gap:2px;align-items:center;padding:5px 6px;border:1px solid #dce3d8;border-radius:12px;background:#fffefa;box-shadow:0 5px 16px #3a4f3020;opacity:0;transform:translateY(2px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}
+.campus-mail-item:hover .campus-mail-actions,.campus-mail-item:focus-within .campus-mail-actions,.campus-mail-item.is-active .campus-mail-actions{opacity:1;transform:translateY(0);pointer-events:auto}
+.campus-mail-item:hover .campus-mail-date,.campus-mail-item:focus-within .campus-mail-date,.campus-mail-item.is-active .campus-mail-date{opacity:0}
+.campus-mail-icon{width:29px;height:29px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#859282;cursor:pointer;transition:background .15s ease,color .15s ease,transform .15s ease}
+.campus-mail-icon svg{width:17px;height:17px;stroke:currentColor}
+.campus-mail-icon:hover{background:#ecf1e6;color:#425c3a;transform:translateY(-1px)}
+.campus-mail-icon:active{transform:translateY(0)}
+.campus-mail-icon.is-on{color:#667f49}
+.campus-mail-icon:focus-visible{outline:2px solid #72906a;outline-offset:-2px}
+.mailx-list-pane .mail-pager{flex:none;justify-content:center;padding:13px;background:#fffefa}
+.mailx-list-pane .mail-pager button{padding:9px 18px;border-radius:10px;background:#f2f5ef;border:1px solid #dce5d8;font-size:12px;font-weight:620;transition:background .16s ease,transform .16s ease}
+.mailx-list-pane .mail-pager button:not(:disabled):hover{background:#e6efe3;transform:translateY(-1px)}
+@media(hover:none){
+ .campus-mail-actions{position:static;opacity:1;transform:none;pointer-events:auto;margin:-8px 12px 12px auto;width:max-content;box-shadow:none;padding:3px}
+ .campus-mail-item .campus-mail-date,.campus-mail-item.is-active .campus-mail-date{opacity:1}
+}
+@media(max-width:430px){
+ .mailx-list-pane .mailx-list-tools{gap:6px;padding:10px 12px}
+ .campus-mail-mark-all{font-size:10px;padding:7px}
+ .campus-mail-open{grid-template-columns:38px minmax(0,1fr);gap:11px;min-height:104px;padding:14px 12px}
+ .campus-mail-avatar{width:38px;height:38px;border-radius:13px}
+ .campus-mail-date{max-width:76px}
+}
