@@ -2,7 +2,7 @@
 const normalized = value => String(value || '').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
 export function courseIdentity(timetable, session) {
   const code=normalized(session.code);
-  return JSON.stringify([normalized(timetable.term), code ? 'code' : 'title', code || normalized(session.titleZh || session.title)]);
+  return JSON.stringify([normalized(timetable.term), code ? 'code' : session.courseIdentifier ? 'identifier' : 'title', code || normalized(session.courseIdentifier || session.titleZh || session.title), ...(session.serial || session.section ? [normalized(session.serial || ''),normalized(session.section || '')] : [])]);
 }
 export function applyCourseOverrides(rows, overrides = {}) {
   return rows.map(source => {

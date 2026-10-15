@@ -9,7 +9,7 @@ export function formatTime(n) { return `${String(Math.floor(n/60)).padStart(2,'0
 const periodBoundaries = new Set(NTU_PERIODS.slice(1).map((period,index)=>`${NTU_PERIODS[index][2]}:${period[1]}`));
 export function groupLessons(items) {
  const groups=new Map();
- items.forEach((session,index)=>{const key=JSON.stringify([session.day,session.title,session.code,session.room]);if(!groups.has(key))groups.set(key,[]);groups.get(key).push({...session,index});});
+ items.forEach((session,index)=>{const key=JSON.stringify([session.day,session.title,session.code,session.room,session.serial||'',session.section||'']);if(!groups.has(key))groups.set(key,[]);groups.get(key).push({...session,index});});
  const merged=[];
  for(const group of groups.values()){
   group.sort((a,b)=>a.start-b.start||a.end-b.end);let current;
