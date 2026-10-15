@@ -136,7 +136,17 @@ export function createMailUI({account,isLive,language}){
   try{
    const params=new URLSearchParams({folder,q:query,limit:String(append?50:25)});
    if(cursor)params.set('cursor',cursor);
-   const result=await request('list?'+params);
+   let result;
+   // A background NTU notification check can momentarily own the mailbox.
+   // Retry just this read without making the user reload the whole website.
+   for(let attempt=0;;attempt++){
+    try{result=await request('list?'+params);break;}
+    catch(error){
+     if(error.code!=='mail_busy'||attempt>=2)throw error;
+     await new Promise(resolve=>setTimeout(resolve,900+attempt*900));
+     if(seq!==sequence||startEpoch!==epoch||location!==folder+'\u0000'+query)return;
+    }
+   }
    if(seq!==sequence||startEpoch!==epoch||location!==folder+'\u0000'+query)return;
    const previous=append?messages:[],known=new Set(previous.map(keyOf));
    messages=previous.concat(result.messages.filter(m=>!known.has(keyOf(m))));
