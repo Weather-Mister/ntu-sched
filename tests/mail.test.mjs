@@ -9,8 +9,8 @@ import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
 import {encryptedPush,validateSubscription} from '../src/mail-push.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
 const APP='https://campus.example',KEY='ab'.repeat(32),realFetch=globalThis.fetch;
-let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0;
-beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;});
+let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0;
+beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;});
 after(()=>{globalThis.fetch=realFetch;});
 globalThis.fetch=async(url,init={})=>{
  const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams,action=fields.get('_action')||u.searchParams.get('_action');calls.push({url:u.href,action,init});
@@ -20,6 +20,12 @@ globalThis.fetch=async(url,init={})=>{
  if(!action)return new Response('<input type="hidden" name="_token" value="nonce">');
  if(['list','search'].includes(action)){
   if(failListOnce>0){failListOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
+  if(virtualMessages&&action==='list'){
+   const page=Number(fields.get('_page')||1),perPage=40,rows=[];
+   const start=(page-1)*perPage,end=Math.min(virtualMessages,start+perPage);
+   for(let i=start;i<end;i++)rows.push('this.add_message_row('+JSON.stringify(String(virtualMessages-i))+','+JSON.stringify({subject:'Message '+(virtualMessages-i),from:'Professor',date:'Today 12:00',snippet:'Sample message preview'})+','+JSON.stringify({seen:false})+');');
+   return Response.json({action,env:{pagecount:Math.ceil(virtualMessages/perPage),messagecount:virtualMessages},exec:rows.join('')});
+  }
   const uid=fields.get('_mbox')==='Drafts'?'88':String(latest),subject=fields.get('_mbox')==='Drafts'?'Draft':'Hello <b>student</b>';
   return Response.json({action,env:{pagecount:1,messagecount:1},exec:'this.add_message_row('+JSON.stringify(uid)+','+JSON.stringify({subject,from:'Professor &lt;prof@ntu.edu.tw&gt;',date:'Today 12:00'})+','+JSON.stringify({seen:false})+');'});
  }
@@ -89,6 +95,31 @@ test('rejected mail mutations discard the faulty session without replaying the o
  assert.equal((await request(e,a,'action','POST',body)).status,200);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
  assert.equal(calls.filter(c=>c.action==='mark').length,2);
+ e.sqlite.close();
+});
+test('progressive mailbox batches return newest 25 then 50 then 50 without duplicate UIDs',async()=>{
+ const e=env(),a=await identity(e);virtualMessages=125;
+ const first=await(await request(e,a,'list?folder=sent&limit=25')).json();
+ assert.equal(first.messages.length,25);assert.equal(first.count,125);assert.equal(first.messages[0].uid,'125');assert.equal(first.messages.at(-1).uid,'101');
+ assert.equal(first.messages[0].snippet,'Sample message preview');assert.ok(first.nextCursor);assert.equal(first.hasMore,true);
+ const second=await(await request(e,a,'list?folder=sent&limit=50&cursor='+encodeURIComponent(first.nextCursor))).json();
+ assert.equal(second.messages.length,50);assert.equal(second.messages[0].uid,'100');assert.equal(second.messages.at(-1).uid,'51');assert.ok(second.nextCursor);
+ const third=await(await request(e,a,'list?folder=sent&limit=50&cursor='+encodeURIComponent(second.nextCursor))).json();
+ assert.equal(third.messages.length,50);assert.equal(third.messages[0].uid,'50');assert.equal(third.messages.at(-1).uid,'1');
+ assert.equal(third.hasMore,false);assert.equal(third.nextCursor,null);
+ const ids=[...first.messages,...second.messages,...third.messages].map(m=>m.uid);
+ assert.equal(new Set(ids).size,125);
+ assert.equal((await request(e,a,'list?folder=sent&limit=50&cursor=broken')).status,400);
+ assert.equal((await request(e,a,'list?folder=sent&limit=250')).status,400);
+ e.sqlite.close();
+});
+test('mark all read is scoped to the current NTU mailbox without a message UID',async()=>{
+ const e=env(),a=await identity(e);
+ const result=await request(e,a,'action','POST',{action:'read-all'});
+ assert.equal(result.status,200);
+ const mark=calls.find(c=>c.action==='mark');
+ assert.equal(mark.init.body.get('_mbox'),'INBOX');assert.equal(mark.init.body.get('_uid'),'*');
+ assert.equal(mark.init.body.get('_flag'),'read');assert.equal(mark.init.body.get('_folders'),'cur');
  e.sqlite.close();
 });
 test('mail routes require login, same origin and CSRF before contacting NTU',async()=>{
