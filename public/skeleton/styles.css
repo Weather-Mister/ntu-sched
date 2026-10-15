@@ -365,3 +365,12 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,3vw,31px);line-height:1.05;lette
  .tasks-column .todo-list{display:flex;flex-direction:column}
  .tasks-column .todo-form{margin:0 0 10px}
 }
+
+/* On phones, retain the original add-first manual task form. */
+@media(max-width:790px){
+ .workspace .tasks-column{display:flex;flex-direction:column}
+ .workspace .tasks-column .section-head{order:0}
+ .workspace .tasks-column .todo-form{order:1}
+ .workspace .tasks-column .todo-list{order:2}
+ .workspace .tasks-column .preview-footnote{order:3}
+}
