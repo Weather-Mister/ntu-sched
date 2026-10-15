@@ -240,7 +240,7 @@ function renderCalendar(){
   $('selected-date').textContent=timetableView==='week'?t('calendarLabel'):pretty(selectedDate);
   $('class-count').textContent=numberOfClasses+' '+(numberOfClasses===1?t('singleClass'):t('classes'));
   const list=$('schedule-list');list.replaceChildren();
-  if(!items.length){const empty=node('div','empty-card');empty.append(node('strong','',t('noClasses')),node('span','',t('noClassesDesc')));list.append(empty);}
+  if(!items.length){const empty=node('div','empty-card');empty.append(node('strong','',liveMode&&!student.courses.length?t('liveNoTimetable'):t('noClasses')),node('span','',liveMode&&!student.courses.length?'':t('noClassesDesc')));list.append(empty);}
   for(const c of items){
     const btn=node('button','lesson');btn.type='button';
     if(selectedDate===today){btn.classList.toggle('live',lessonState(c,selectedDate)===t('live'));btn.classList.toggle('completed',lessonState(c,selectedDate)===t('completed'));}
@@ -357,7 +357,7 @@ function showPanel(which){
   document.querySelector('.settings-main').scrollTop=0;
 }
 function renderAll(){
-  renderTranslations();if(!student)return;renderBanner();renderCalendar();renderDeadlines();renderTasks();showPanel(activePanel);
+  renderTranslations();if(!student)return;renderBanner();renderCalendar();renderDeadlines();renderTasks();updateLiveStatus();showPanel(activePanel);
   if(opened&&$('lesson-dialog').open)populateLesson(opened.c,opened.key);
 }
 function populateLesson(c,key){
@@ -367,12 +367,14 @@ function populateLesson(c,key){
 }
 function showLesson(c,key){opened={c,key};populateLesson(c,key);$('lesson-dialog').showModal();}
 function leavePreview(){
+  liveEpoch++;liveMode=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveTimetableInfo='';liveCoolInfo='';
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
+  for(const id of ['live-timetable-status','live-cool-status'])$(id).hidden=true;
   $('app-screen').hidden=true;$('login-screen').hidden=false;$('preview-profile').focus();
 }
 /* Desktop panel resizing: widths are ratios, so they still adapt to window size.
@@ -459,7 +461,116 @@ const dashboardResize=(()=>{
   return{place};
 })();
 
+// Real data stays behind the existing Cloudflare account API and never enters theme storage.
+function liveNotice(e){return e?.message||(language==='zh'?'連線失敗':'Connection unavailable');}
+function updateLiveStatus(){
+  for(const id of ['live-timetable-status','live-cool-status'])$(id).hidden=!liveMode;
+  $('live-timetable-refresh').disabled=$('live-cool-refresh').disabled=!liveMode||livePending;
+  if(!liveMode)return;
+  const messageT=liveTimetableInfo||(liveTimetable?(language==='zh'?'已載入課表':'Saved timetable loaded'):t('liveNoTimetable'));
+  const messageC=liveCoolInfo||(liveCalendar?(language==='zh'?'已載入 COOL 行事曆':'COOL calendar loaded'):t('noCalendar'));
+  $('live-timetable-status').textContent=$('live-timetable-settings-status').textContent=messageT;
+  $('live-cool-status').textContent=$('live-cool-settings-status').textContent=messageC;
+}
+function renderLiveAccount(){
+  student=studentFromAccount(liveAccount,liveTimetable);
+  renderAll();dashboardResize.place();
+}
+function sessionExpired(){
+  account.current=null;leavePreview();
+  $('live-login-status').textContent=language==='zh'?'登入已過期，請重新登入。':'Session expired. Please sign in again.';
+}
+async function readLiveSnapshots(){
+  if(!liveMode||!liveAccount)return;
+  const epoch=liveEpoch;
+  const [tResult,cResult]=await Promise.allSettled([account.timetable(),account.coolCalendar()]);
+  if(epoch!==liveEpoch||!liveMode)return;
+  if(tResult.status==='fulfilled'){
+    liveTimetable=tResult.value.timetable||null;
+    liveTimetableInfo=tResult.value.connectionStatus==='reconnect_required'
+      ?'Timetable reconnect required. Last saved classes are preserved.':'';
+  }else{
+    if(tResult.reason?.status===401){sessionExpired();return;}
+    liveTimetableInfo=liveNotice(tResult.reason);
+  }
+  if(cResult.status==='fulfilled'){
+    liveCalendar=cResult.value.calendar||null;
+    liveCoolInfo=cResult.value.connectionStatus==='reconnect_required'
+      ?'COOL reconnect required. Last saved deadlines are preserved.':'';
+  }else{
+    if(cResult.reason?.status===401){sessionExpired();return;}
+    liveCoolInfo=liveNotice(cResult.reason);
+  }
+  renderLiveAccount();
+}
+function startLive(current){
+  if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
+  liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;
+  liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';
+  selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
+  $('login-screen').hidden=true;$('app-screen').hidden=false;
+  if($('live-login-dialog').open)$('live-login-dialog').close();
+  renderLiveAccount();readLiveSnapshots();
+}
+async function restoreLive(){
+  $('live-restore').disabled=true;
+  $('live-login-status').textContent=language==='zh'?'正在檢查登入狀態…':'Checking your current session…';
+  try{const current=await account.restore();
+    if(current)startLive(current);
+    else $('live-login-status').textContent=language==='zh'?'尚未登入，請使用登入按鈕。':'No active session. Please sign in.';
+  }catch(e){$('live-login-status').textContent=liveNotice(e);}
+  finally{$('live-restore').disabled=false;}
+}
+async function syncLive(which){
+  if(!liveMode||!liveAccount||livePending)return;
+  const epoch=liveEpoch;livePending=true;
+  if(which==='timetable')liveTimetableInfo='Checking NTU ePortfolio…';
+  else liveCoolInfo='Checking your COOL calendar…';
+  updateLiveStatus();
+  try{
+    const result=which==='timetable'
+      ?await account.syncTimetable(undefined,undefined,true)
+      :await account.syncCoolCalendar(undefined,undefined,true);
+    if(epoch!==liveEpoch)return;
+    if(which==='timetable'){liveTimetable=result.timetable||liveTimetable;liveTimetableInfo='Timetable updated';}
+    else{liveCalendar=result.calendar||liveCalendar;liveCoolInfo='COOL calendar updated';}
+    renderLiveAccount();
+  }catch(e){
+    if(epoch!==liveEpoch)return;
+    if(e.status===401){sessionExpired();return;}
+    if(which==='timetable')liveTimetableInfo=liveNotice(e);else liveCoolInfo=liveNotice(e);
+  }finally{if(epoch===liveEpoch){livePending=false;updateLiveStatus();}}
+}
+function openLiveLogin(){
+  $('live-login-form').reset();$('live-login-error').hidden=true;
+  $('live-login-dialog').showModal();$('live-login-number').focus();
+}
+async function submitLiveLogin(event){
+  event.preventDefault();
+  if(livePending||!event.currentTarget.reportValidity())return;
+  livePending=true;const button=$('live-login-submit'),pass=$('live-login-password'),number=$('live-login-number');
+  button.disabled=true;const secret=pass.value,studentNumber=number.value.trim();pass.value='';
+  const message=$('live-login-error');message.hidden=false;message.textContent='Verifying NTU account…';
+  try{
+    const availability=await fetch('/api/ntu/status',{credentials:'same-origin',cache:'no-store'});
+    if(!availability.ok||(await availability.json()).loginEnabled!==true)
+      throw Error('NTU sign-in is not enabled on this Campus Week server.');
+    const current=await account.login(studentNumber,secret);
+    startLive(current);
+  }catch(e){message.textContent=liveNotice(e);}
+  finally{pass.value='';number.value='';livePending=false;button.disabled=false;}
+}
+async function endLiveAccount(){
+  if(liveMode&&account.current){
+    try{await account.logout();}catch(e){
+      if(e.status!==401){liveTimetableInfo=liveNotice(e);updateLiveStatus();return;}
+    }
+  }
+  account.current=null;leavePreview();
+}
+
 function enterPreview(){
+  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;account.current=null;
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
   selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');
