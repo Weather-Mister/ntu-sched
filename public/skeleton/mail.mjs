@@ -1,12 +1,13 @@
 const $=id=>document.getElementById(id);
-const words={en:{mail:'Campus Mail',inbox:'Inbox',unread:'Unread',starred:'Starred',sent:'Sent',drafts:'Drafts',trash:'Trash',archived:'Archived',compose:'＋ Compose',search:'Search this folder',refresh:'Refresh',enable:'Enable notifications',disable:'Disable notifications',loading:'Loading…',empty:'No messages found.',choose:'Select a message to read',login:'Sign in with your real NTU account to use mail.',back:'← Inbox',reply:'Reply',archive:'Archive',remove:'Move to Trash',images:'Load external images',to:'To',subject:'Subject',message:'Message',send:'Send',cancel:'Close editor',sending:'Sending…',delivered:'Message sent.',uncertain:'Delivery is unconfirmed. Check Sent before trying again.',check:'Check delivery',older:'Older',newer:'Newer',loadMore:'Load 50 more',loadingMore:'Loading more…',markAllRead:'Mark all read',markRead:'Mark read',markUnread:'Mark unread',star:'Star',unstar:'Remove star',of:'of',setup:'On iPhone, use Share → Add to Home Screen, open the installed app, then enable notifications.',enabled:'Notifications enabled on this device. New-mail checks run about every five minutes.',denied:'Notifications are blocked. Allow them in your browser or phone settings.',failed:'This message was not sent. Your text is still here.',install:'Add Campus Week to your Home Screen to enable alerts.'},zh:{mail:'Campus Mail',inbox:'收件匣',unread:'未讀',starred:'星號',sent:'寄件備份',drafts:'草稿',trash:'垃圾桶',archived:'封存',compose:'＋ 撰寫',search:'搜尋此資料夾',refresh:'重新整理',enable:'啟用通知',disable:'關閉通知',loading:'載入中…',empty:'沒有郵件。',choose:'選擇郵件以閱讀',login:'請使用真實臺大帳號登入以使用信箱。',back:'← 收件匣',reply:'回覆',archive:'封存',remove:'移至垃圾桶',images:'載入外部圖片',to:'收件人',subject:'主旨',message:'內文',send:'寄出',cancel:'關閉編輯器',sending:'寄送中…',delivered:'已寄出郵件。',uncertain:'尚未確認寄送結果。再次寄送前請檢查寄件備份。',check:'確認寄送結果',older:'較舊',newer:'較新',loadMore:'再載入 50 封',loadingMore:'正在載入…',markAllRead:'全部標記為已讀',markRead:'標記已讀',markUnread:'標記未讀',star:'加上星號',unstar:'取消星號',of:'／',setup:'iPhone 請點選分享 → 加入主畫面，開啟安裝後的 App，再啟用通知。',enabled:'此裝置已啟用通知。約每五分鐘檢查新郵件。',denied:'通知已被封鎖。請至瀏覽器或手機設定允許通知。',failed:'郵件未寄出，編輯器保留了您的內文。',install:'將 Campus Week 加入主畫面以啟用通知。'}};
+const words={en:{mail:'Campus Mail',inbox:'Inbox',unread:'Unread',starred:'Starred',sent:'Sent',drafts:'Drafts',trash:'Trash',archived:'Archived',compose:'＋ Compose',search:'Search this folder',refresh:'Refresh',enable:'Enable notifications',disable:'Disable notifications',loading:'Loading…',empty:'No messages found.',choose:'Select a message to read',login:'Sign in with your real NTU account to use mail.',back:'← Inbox',reply:'Reply',archive:'Archive',remove:'Move to Trash',images:'Load external images',translate:'Translate',english:'English',original:'Original',translationLabel:'ENGLISH TRANSLATION',translationFailed:'Translation failed: ',to:'To',subject:'Subject',message:'Message',send:'Send',cancel:'Close editor',sending:'Sending…',delivered:'Message sent.',uncertain:'Delivery is unconfirmed. Check Sent before trying again.',check:'Check delivery',older:'Older',newer:'Newer',loadMore:'Load 50 more',loadingMore:'Loading more…',markAllRead:'Mark all read',markRead:'Mark read',markUnread:'Mark unread',star:'Star',unstar:'Remove star',of:'of',setup:'On iPhone, use Share → Add to Home Screen, open the installed app, then enable notifications.',enabled:'Notifications enabled on this device. New-mail checks run about every five minutes.',denied:'Notifications are blocked. Allow them in your browser or phone settings.',failed:'This message was not sent. Your text is still here.',install:'Add Campus Week to your Home Screen to enable alerts.'},zh:{mail:'Campus Mail',inbox:'收件匣',unread:'未讀',starred:'星號',sent:'寄件備份',drafts:'草稿',trash:'垃圾桶',archived:'封存',compose:'＋ 撰寫',search:'搜尋此資料夾',refresh:'重新整理',enable:'啟用通知',disable:'關閉通知',loading:'載入中…',empty:'沒有郵件。',choose:'選擇郵件以閱讀',login:'請使用真實臺大帳號登入以使用信箱。',back:'← 收件匣',reply:'回覆',archive:'封存',remove:'移至垃圾桶',images:'載入外部圖片',translate:'翻譯',english:'英文',original:'原文',translationLabel:'英文翻譯',translationFailed:'翻譯失敗：',to:'收件人',subject:'主旨',message:'內文',send:'寄出',cancel:'關閉編輯器',sending:'寄送中…',delivered:'已寄出郵件。',uncertain:'尚未確認寄送結果。再次寄送前請檢查寄件備份。',check:'確認寄送結果',older:'較舊',newer:'較新',loadMore:'再載入 50 封',loadingMore:'正在載入…',markAllRead:'全部標記為已讀',markRead:'標記已讀',markUnread:'標記未讀',star:'加上星號',unstar:'取消星號',of:'／',setup:'iPhone 請點選分享 → 加入主畫面，開啟安裝後的 App，再啟用通知。',enabled:'此裝置已啟用通知。約每五分鐘檢查新郵件。',denied:'通知已被封鎖。請至瀏覽器或手機設定允許通知。',failed:'郵件未寄出，編輯器保留了您的內文。',install:'將 Campus Week 加入主畫面以啟用通知。'}};
 function node(tag,attrs={},text){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else e.setAttribute(k,v);}if(text!==undefined)e.textContent=text;return e;}
 export function createMailUI({account,isLive,language}){
  const dialog=$('mail-dialog'),list=dialog.querySelector('.mailx-list'),reader=dialog.querySelector('.mailx-reader'),
   count=dialog.querySelector('.mailx-count'),composeButton=dialog.querySelector('.mailx-compose-main'),
   refreshButton=dialog.querySelector('.mailx-refresh-button'),listTools=dialog.querySelector('.mailx-list-tools');
  let owner=null,epoch=0,folder='inbox',query='',busy=false,queuedLoad=null,sequence=0,reading=0,
-  current=null,draft=null,pushId=null,registration=null,lastLoad=0,messages=[],nextCursor=null,totalCount=0,mutating=false;
+  current=null,draft=null,pushId=null,registration=null,lastLoad=0,messages=[],nextCursor=null,totalCount=0,mutating=false,
+   translationCache=new Map(),translationShown=new Set();
  const w=()=>words[language()==='zh'?'zh':'en'];
  const status=node('p',{class:'mail-status',role:'status','aria-live':'polite'}),
   search=node('input',{type:'search',placeholder:w().search,'aria-label':w().search}),
@@ -121,6 +122,7 @@ export function createMailUI({account,isLive,language}){
   const next=value?.studentNumber||null;if(next===owner)return;
   epoch++;sequence++;reading++;owner=next;busy=false;queuedLoad=null;folder='inbox';query='';
   messages=[];nextCursor=null;totalCount=0;search.value='';draft=null;pushId=null;
+   translationCache.clear();translationShown.clear();
   list.replaceChildren();emptyReader();tell('');locale();renderList();
   if(!next){dialog.close();void navigator.serviceWorker?.getRegistration('/').then(async r=>{await(await r?.pushManager.getSubscription())?.unsubscribe();}).catch(()=>{});}
   else if(dialog.open)void load(false);
@@ -159,25 +161,64 @@ export function createMailUI({account,isLive,language}){
   }
  }
  async function read(ref,images=false){
-  if(draft)return;
-  const generation=++reading,identity=epoch;tell(w().loading);
-  try{
-   const message=await request('message?'+new URLSearchParams({mailbox:ref.mailbox,uid:ref.uid,...(images?{images:'1'}:{})}));
-   if(generation!==reading||identity!==epoch)return;
-   current=message;draft=null;showSelection();
-   reader.replaceChildren();dialog.classList.add('mail-reading');
-   const toolbar=node('div',{class:'mailx-reader-toolbar'}),tools=node('div',{class:'mailx-reader-toolbar-buttons'});
-   toolbar.append(button(w().back,()=>{dialog.classList.remove('mail-reading');}),tools);
-   tools.append(button(w().reply,()=>edit(message)),button(w().archive,()=>void mutate('archive',message)),button(w().remove,()=>void mutate('trash',message)));
-   const head=node('div',{class:'mail-message-head'});head.append(node('h3',{},displaySubject(message.subject)),node('p',{},message.headers));
-   if(!images)head.append(button(w().images,()=>void read(message,true)));
-   for(const a of message.attachments){
-    head.append(node('a',{href:'/api/mail/attachment?'+new URLSearchParams({mailbox:message.mailbox,uid:message.uid,part:a.part}),target:'_blank',rel:'noopener',class:'mail-attachment'},'↓ '+a.name));
-   }
-   const frame=node('iframe',{title:displaySubject(message.subject),sandbox:'allow-popups allow-popups-to-escape-sandbox',referrerpolicy:'no-referrer',class:'mail-frame'});
-   frame.srcdoc=message.html;reader.append(toolbar,head,frame);tell('');
-  }catch(error){if(generation===reading&&identity===epoch)tell(error.message);}
- }
+   if(draft)return;
+   const generation=++reading,identity=epoch;tell(w().loading);
+   try{
+    const message=await request('message?'+new URLSearchParams({mailbox:ref.mailbox,uid:ref.uid,...(images?{images:'1'}:{})}));
+    if(generation!==reading||identity!==epoch)return;
+    current=message;draft=null;showSelection();
+    reader.replaceChildren();dialog.classList.add('mail-reading');
+    const toolbar=node('div',{class:'mailx-reader-toolbar'}),tools=node('div',{class:'mailx-reader-toolbar-buttons'});
+    toolbar.append(button(w().back,()=>{dialog.classList.remove('mail-reading');}),tools);
+    tools.append(button(w().reply,()=>edit(message)),button(w().archive,()=>void mutate('archive',message)),button(w().remove,()=>void mutate('trash',message)));
+    const head=node('div',{class:'mail-message-head'}),heading=node('h3',{},displaySubject(message.subject));
+    head.append(heading,node('p',{},message.headers));
+    if(!images)head.append(button(w().images,()=>void read(message,true)));
+    for(const a of message.attachments){
+     head.append(node('a',{href:'/api/mail/attachment?'+new URLSearchParams({mailbox:message.mailbox,uid:message.uid,part:a.part}),target:'_blank',rel:'noopener',class:'mail-attachment'},'↓ '+a.name));
+    }
+    const label=node('div',{class:'campus-mail-translation-label'},w().translationLabel);label.hidden=true;
+    const frame=node('iframe',{title:displaySubject(message.subject),sandbox:'allow-popups allow-popups-to-escape-sandbox',referrerpolicy:'no-referrer',class:'mail-frame'});
+    frame.srcdoc=message.html;reader.append(toolbar,head,label,frame);tell('');
+    if(/[\u3400-\u9fff]/.test(String(message.subject||'')+' '+String(message.html||''))){
+     const key=keyOf(message),control=button(w().translate,()=>void toggleTranslation());
+     control.className='campus-mail-translate';
+     tools.prepend(control);
+     function showEnglish(active){
+      const translation=translationCache.get(key);
+      const enabled=active&&!!translation;
+      if(enabled)translationShown.add(key);else translationShown.delete(key);
+      heading.textContent=displaySubject(enabled?translation.subject:message.subject);
+      frame.title=heading.textContent;
+      frame.srcdoc=enabled?translation.html:message.html;
+      label.hidden=!enabled;label.textContent=w().translationLabel;
+      control.textContent=enabled?w().original:translation?w().english:w().translate;
+      control.setAttribute('aria-pressed',String(enabled));
+      control.title=control.textContent;
+     }
+     showEnglish(translationShown.has(key));
+     async function toggleTranslation(){
+      if(translationCache.has(key)){showEnglish(!translationShown.has(key));return;}
+      control.disabled=true;control.textContent=w().loading;
+      try{
+       const result=await request('translate',{method:'POST',body:JSON.stringify({mailbox:message.mailbox,uid:message.uid})});
+       if(identity!==epoch||generation!==reading||current!==message)return;
+       if(!result.html||!result.body)throw new Error('Gemini returned no readable text.');
+       if(translationCache.size>=30){
+        const oldest=translationCache.keys().next().value;
+        translationCache.delete(oldest);translationShown.delete(oldest);
+       }
+       translationCache.set(key,result);
+       showEnglish(true);tell('');
+      }catch(error){
+       if(identity===epoch&&generation===reading&&current===message){
+        showEnglish(false);tell(w().translationFailed+error.message);
+       }
+      }finally{control.disabled=false;}
+     }
+    }
+   }catch(error){if(generation===reading&&identity===epoch)tell(error.message);}
+  }
  async function mutate(kind,ref){
   if(!ref||mutating)return;
   mutating=true;markAllButton.disabled=true;
