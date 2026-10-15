@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-isolation=none tests/accounts.test.mjs",
+    "test": "node --test --test-isolation=none tests/*.test.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote"
+  },
+  "dependencies": {
+    "linkedom": "0.18.12"
   }
 }

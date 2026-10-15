@@ -9,8 +9,10 @@ const APP = 'https://campus.example';
 const KEY = '12'.repeat(32); // Synthetic test key, never a deployment secret.
 const realFetch = globalThis.fetch;
 let providerCalls = [], failProvider = false, redirectOutside = false, wrongIdentity = false;
+let portfolioMode = 'ok', portfolioPosts = 0, portfolioVersion = 1;
 globalThis.fetch = async (url, options = {}) => {
   const parsed = new URL(url);
+  if (parsed.origin !== 'https://wmail1.cc.ntu.edu.tw') return mockPortfolio(parsed, options);
   assert.equal(parsed.origin, 'https://wmail1.cc.ntu.edu.tw');
   assert.equal(options.headers.get('User-Agent'), 'Campus-Week/1.0');
   providerCalls.push({ url: parsed.href, method: options.method });
@@ -213,4 +215,132 @@ test('readiness distinguishes a missing secret from invalid format without expos
       if (secret) assert.equal(JSON.stringify(body).includes(secret), false);
     }
   }
+});
+
+
+
+const portfolioTarget = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
+const loginForm = '<form name=p1 action=p1.php method=post><input name="user" type=text><input name="pass" type=password><input type=submit name=Submit value="登入"></form>';
+function fixtureTimetable(student = 'b12345678') {
+  return '<html><body><h1>115學年度第1學期</h1><table><tr><th>課程名稱</th><th>課號</th><th>上課時間/教室</th></tr><tr><td>'+student+' 課程 '+portfolioVersion+'</td><td>ME1001</td><td>(一)2,3,4/機械114</td></tr></table></body></html>';
+}
+function mockPortfolio(url, options) {
+  assert.equal(options.headers.get('User-Agent'), 'Campus-Week/1.0');
+  assert.ok(['https://portal.aca.ntu.edu.tw', 'https://web2.cc.ntu.edu.tw'].includes(url.origin));
+  const cookies = options.headers.get('Cookie') || '';
+  if (url.hostname === 'web2.cc.ntu.edu.tw') assert.equal(cookies.includes('portal_only'), false);
+  if (url.hostname === 'portal.aca.ntu.edu.tw') assert.equal(cookies.includes('PHPSESSID'), false);
+  const redirect = (location, extra = {}) => new Response(null, { status: 302, headers: { Location: location, ...extra } });
+  if (url.href === portfolioTarget) {
+    const student = cookies.match(/(?:^|; )portfolio_session=([a-z]\d{8})(?:;|$)/)?.[1];
+    if (!student) return redirect('/sso-gateway/login', { 'Set-Cookie': 'portal_only=nonce; Path=/; Secure' });
+    if (portfolioMode === 'layout') return new Response('<table><tr><td>unsupported private page and synthetic-password</td></tr></table>');
+    if (portfolioMode === 'unavailable') return new Response('private provider error synthetic-password', { status: 503 });
+    return new Response(fixtureTimetable(student));
+  }
+  if (url.pathname === '/sso-gateway/login') return redirect(portfolioMode === 'redirect' ? 'https://untrusted.example/password' : 'https://web2.cc.ntu.edu.tw/p/s/login2/p6.php');
+  if (url.pathname.endsWith('/p6.php')) return redirect('p1.php', { 'Set-Cookie': 'PHPSESSID=synthetic; Path=/p/s/login2/; Secure' });
+  if (url.pathname.endsWith('/p1.php')) {
+    assert.match(cookies, /PHPSESSID=synthetic/);
+    if (options.method !== 'POST') return new Response(loginForm);
+    portfolioPosts++;
+    assert.equal(options.headers.get('Origin'), 'https://web2.cc.ntu.edu.tw');
+    assert.equal(options.body.get('Submit'), '登入');
+    if (portfolioMode === 'credentials') return new Response(loginForm);
+    if (portfolioMode === 'challenge') return new Response('<input autocomplete="one-time-code">');
+    if (portfolioMode === 'layout') {} // Authentication succeeds; only the timetable layout fails.
+    return redirect('https://portal.aca.ntu.edu.tw/sso-gateway/sso-callback?student='+options.body.get('user'));
+  }
+  if (url.pathname === '/sso-gateway/sso-callback') return redirect('/eportfolio/login-sso', { 'Set-Cookie': 'portfolio_session='+url.searchParams.get('student')+'; Path=/; Secure; HttpOnly' });
+  if (url.pathname === '/eportfolio/login-sso') return redirect(portfolioTarget);
+  throw new Error('Unexpected synthetic endpoint');
+}
+async function sync(e, auth, body = {}) {
+  return request(e, 'timetable/sync', { method: 'POST', cookie: auth.cookie, csrf: auth.csrf, body });
+}
+test('timetable sync uses saved authorization, keeps cookies scoped, and restores an encrypted snapshot', async () => {
+  const e = env(), auth = await login(e), before = portfolioPosts;
+  const response = await sync(e, auth); assert.equal(response.status, 200, await response.clone().text());
+  const result = await response.json();
+  assert.equal(result.changed, true); assert.equal(result.timetable.term, '115-1');
+  assert.equal(result.timetable.sessions[0].start, 550); assert.equal(result.timetable.sessions[0].end, 730);
+  assert.equal(portfolioPosts, before + 1);
+  const restored = await (await request(e, 'timetable', { cookie: auth.cookie })).json();
+  assert.deepEqual(restored.timetable, result.timetable);
+  assert.equal(JSON.stringify(restored).includes('synthetic-password'), false);
+  const saved = e.DB.sqlite.prepare("SELECT * FROM student_connections WHERE provider='timetable'").get();
+  assert.equal(saved.encrypted_authorization.includes('課程'), false);
+  const account = e.DB.sqlite.prepare('SELECT * FROM students').get();
+  const decrypted = await decryptAuthorization(KEY, account.id, 'timetable', saved.encrypted_authorization);
+  assert.equal(decrypted.password, 'synthetic-password');
+  await assert.rejects(decryptAuthorization(KEY, account.id, 'ntu_mail', saved.encrypted_authorization));
+  const again = await sync(e, auth); assert.equal((await again.json()).changed, false); assert.equal(portfolioPosts, before + 1);
+  const connections = (await (await request(e, 'connections', { cookie: auth.cookie })).json()).connections;
+  assert.equal(connections.find(c => c.provider === 'timetable').syncReady, true);
+});
+test('timetables belong only to the session owner, with CSRF and no supplied student override', async () => {
+  const e = env(), a = await login(e), b = await login(e, 'r23456789');
+  assert.equal((await request(e, 'timetable/sync', { method: 'POST', cookie: a.cookie, body: {} })).status, 403);
+  assert.equal((await sync(e, a, { studentId: 'another-owner' })).status, 400);
+  await sync(e, a);
+  assert.equal((await (await request(e, 'timetable', { cookie: b.cookie })).json()).timetable, null);
+  await sync(e, b);
+  const own = await (await request(e, 'timetable?studentId=ignored', { cookie: b.cookie })).json();
+  assert.match(own.timetable.sessions[0].title, /r23456789/);
+  assert.equal((await request(e, 'timetable')).status, 401);
+});
+test('manual timetable refresh bypasses the fresh cache while automatic checks use a five-day interval', async () => {
+  const e = env(), auth = await login(e); await sync(e, auth);
+  const before = portfolioPosts;
+  const response = await sync(e, auth, { force: true }); assert.equal(response.status, 200);
+  assert.equal(portfolioPosts, before + 1);
+  const result = await response.json(); assert.equal(result.checkIntervalMs, 5 * 24 * 60 * 60 * 1000);
+  const tasks = []; await worker.scheduled({}, e, { waitUntil: task => tasks.push(task) }); await Promise.all(tasks);
+  assert.equal(portfolioPosts, before + 1);
+});
+test('provider failure and layout changes keep the last successful timetable', async () => {
+  const e = env(), auth = await login(e); await sync(e, auth);
+  const original = (await (await request(e, 'timetable', { cookie: auth.cookie })).json()).timetable;
+  for (const mode of ['layout', 'unavailable']) {
+    e.DB.sqlite.exec("UPDATE student_connections SET verified_at=1 WHERE provider='timetable'"); portfolioMode = mode;
+    try {
+      const result = await sync(e, auth); assert.equal(result.status, 502);
+      assert.equal((await result.text()).includes('synthetic-password'), false);
+      assert.deepEqual((await (await request(e, 'timetable', { cookie: auth.cookie })).json()).timetable, original);
+    } finally { portfolioMode = 'ok'; }
+  }
+});
+test('rejected timetable password does not log out Campus Week and stops automatic retries', async () => {
+  const e = env(), auth = await login(e); await sync(e, auth);
+  e.DB.sqlite.exec("UPDATE student_connections SET verified_at=1 WHERE provider='timetable'");
+  portfolioMode = 'credentials';
+  try {
+    const failed = await sync(e, auth); assert.equal(failed.status, 409);
+    assert.equal((await failed.json()).error.code, 'timetable_credentials_required');
+    const before = portfolioPosts;
+    assert.equal((await sync(e, auth)).status, 409); assert.equal(portfolioPosts, before);
+    assert.equal((await request(e, 'auth/me', { cookie: auth.cookie })).status, 200);
+    assert.equal((await (await request(e, 'timetable', { cookie: auth.cookie })).json()).connectionStatus, 'reconnect_required');
+  } finally { portfolioMode = 'ok'; }
+  assert.equal((await sync(e, auth, { password: 'different-myntu-password' })).status, 200);
+});
+test('SSO refuses external redirects and verification challenges without repeated credential posts', async () => {
+  for (const [mode, status] of [['redirect', 502], ['challenge', 409]]) {
+    const e = env(), auth = await login(e), before = portfolioPosts; portfolioMode = mode;
+    try { assert.equal((await sync(e, auth)).status, status); assert.equal(portfolioPosts - before, mode === 'redirect' ? 0 : 1); }
+    finally { portfolioMode = 'ok'; }
+  }
+});
+test("scheduled checks detect changes and retain another student's isolated snapshot", async () => {
+  const e = env(), a = await login(e), b = await login(e, 'r23456789'); await sync(e, a); await sync(e, b);
+  e.DB.sqlite.exec("UPDATE student_connections SET verified_at=1 WHERE provider='timetable'");
+  portfolioVersion = 2;
+  try {
+    const tasks = []; await worker.scheduled({}, e, { waitUntil: task => tasks.push(task) }); await Promise.all(tasks);
+    for (const [auth, number] of [[a, 'b12345678'], [b, 'r23456789']]) {
+      const saved = (await (await request(e, 'timetable', { cookie: auth.cookie })).json()).timetable;
+      assert.equal(saved.sessions[0].title, number+' 課程 2');
+      assert.ok(saved.syncedAt >= saved.changedAt);
+    }
+  } finally { portfolioVersion = 1; }
 });

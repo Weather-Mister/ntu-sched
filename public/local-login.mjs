@@ -1,4 +1,5 @@
 import {CampusAccount} from '/campus-account.mjs';
+import {initLiveTimetable} from '/live-timetable.mjs';
 import {initMailPanel} from '/local-mail.mjs';
 import {getLanguage} from '/language.mjs';
 import {toCSV,parseTimetable} from '/timetable.mjs';
@@ -29,12 +30,13 @@ import {toCSV,parseTimetable} from '/timetable.mjs';
   search.addEventListener('input',renderFeed);courseFilter.addEventListener('change',renderFeed);sync.addEventListener('click',()=>{scope.value='cool';message.hidden=true;dialog.showModal();});document.getElementById('clear').addEventListener('click',()=>{assignments=[];announcements=[];feedInfo=null;filters.hidden=true;feedNotice.hidden=true;refreshCourses();renderFeed();});
   const stop=()=>{controller?.abort();account.value='';password.value='';};close.addEventListener('click',()=>{stop();dialog.close();});dialog.addEventListener('close',stop);cancel.addEventListener('click',()=>{stop();message.hidden=false;message.textContent='Attempt cancelled.';});button.addEventListener('click',()=>{message.hidden=true;dialog.showModal();});
   if(cloudAccounts){
+   const liveTimetable=initLiveTimetable({client:accountClient,openLogin:()=>{message.hidden=true;dialog.showModal();},onSessionExpired:()=>{signedIn=null;renderAccount();}});
    scope.hidden=true;scope.previousElementSibling.hidden=true;scope.value='mail';
    top.querySelector('.eyebrow').textContent='CAMPUS WEEK / STUDENT ACCOUNT';
    dialog.querySelector('h2').textContent='Your own Campus Week account.';
-   dialog.querySelector('h2').nextElementSibling.textContent='Sign in with your student number and NTU Mail password. Campus Week keeps you signed in for 30 days and encrypts retained NTU authorization. COOL and timetable connections are coming next.';
+   dialog.querySelector('h2').nextElementSibling.textContent='Sign in with your student number and NTU Mail password. Campus Week keeps you signed in for 30 days and encrypts retained NTU authorization. Your timetable checks ePortfolio for changes automatically.';
    form.querySelector('.micro').textContent='Your password stays hidden and is cleared when submitted. It is sent securely to NTU Mail for verification.';
-   dialog.lastElementChild.textContent='Student accounts are the first stage. Live COOL, timetable and inbox feeds are not connected yet.';
+   dialog.lastElementChild.textContent='Timetable sync is available. COOL and inbox feeds are coming next.';
    accountLabel.textContent='Student number';account.maxLength=9;account.pattern='[A-Za-z][0-9]{8}';passLabel.textContent='NTU Mail password';
    submit.textContent='Sign in to Campus Week';submit.disabled=!status.loginEnabled;
    const availability=node('p','notice warning','Sign-in is temporarily unavailable. The site administrator needs to finish account setup.');availability.setAttribute('role','status');
@@ -45,6 +47,7 @@ import {toCSV,parseTimetable} from '/timetable.mjs';
     button.textContent=signedIn?'Account: '+signedIn.studentNumber:'Sign in to Campus Week';
     button.nextElementSibling.textContent=signedIn?'Signed in on this device':'Student accounts · persistent login';
     signout.hidden=!signedIn;form.hidden=!!signedIn;accountClient.current=signedIn;dialog.querySelector('h2').textContent=signedIn?'Signed in as '+signedIn.studentNumber:'Your own Campus Week account.';
+    liveTimetable.setAccount(signedIn);
     if(!status.loginEnabled&&!signedIn)button.nextElementSibling.textContent='Sign-in is temporarily unavailable. Open for details.';
     availability.hidden=retry.hidden=!!status.loginEnabled;account.disabled=password.disabled=!status.loginEnabled;submit.disabled=!status.loginEnabled||checkingAvailability;
     feedMeta.textContent='Live COOL syncing is the next stage. Assignments and announcements are not connected yet.';
@@ -63,7 +66,7 @@ import {toCSV,parseTimetable} from '/timetable.mjs';
    signout.addEventListener('click',async()=>{signout.disabled=true;try{await accountClient.logout();signedIn=null;document.getElementById('clear').click();renderAccount();}catch(error){feedNotice.hidden=false;feedNotice.textContent=error.message;}finally{signout.disabled=false;}});
    const originalHandlers=[sync,document.getElementById('check-mail-access')];
    for(const original of originalHandlers){const replacement=original.cloneNode(true);original.replaceWith(replacement);replacement.addEventListener('click',()=>{if(!signedIn){message.hidden=true;dialog.showModal();return;}feedNotice.hidden=false;feedNotice.textContent='Your account is connected. Live feeds are still being added; you do not need to enter your password again.';});}
-   const footer=document.querySelector('.footer');footer.textContent='Independent NTU student tool · Campus Week accounts on Cloudflare · Timetable imports remain local snapshots until live syncing is connected.';
+   const footer=document.querySelector('.footer');footer.textContent='Independent NTU student tool · Live ePortfolio timetable checks · Account data encrypted on Cloudflare · COOL and inbox feeds coming next.';
    try{signedIn=await accountClient.restore();}catch(error){button.nextElementSibling.textContent=error.message;}
    renderAccount();
    form.addEventListener('submit',async event=>{event.preventDefault();event.stopImmediatePropagation();if(!form.reportValidity()||controller||!status.loginEnabled)return;controller=new AbortController();const number=account.value,secret=password.value;password.value='';account.value='';submit.disabled=true;message.hidden=false;message.className='notice';message.textContent='Verifying your NTU account…';try{const previous=signedIn?.studentNumber;signedIn=await accountClient.login(number,secret,controller.signal);if(previous&&previous!==signedIn.studentNumber)document.getElementById('clear').click();renderAccount();dialog.close();}catch(error){message.className='notice error';message.textContent=error.message;}finally{controller=null;submit.disabled=!status.loginEnabled;}});

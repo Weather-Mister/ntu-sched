@@ -25,10 +25,11 @@
   },
   "triggers": {
     "crons": [
-      "17 */6 * * *"
+      "17 * * * *"
     ]
   },
   "observability": {
     "enabled": false
   }
 }
+
