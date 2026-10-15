@@ -9,9 +9,13 @@ const chinese = '<!doctype html><html><head><style>body{color:red}</style></head
 
 function context(html=chinese, subject='課程通知') {
   let attempts=0, sent=0, received;
+  const buckets=new Map();
   const env={
     GEMINI_API_KEY:'private-test-key', GEMINI_MODEL:'gemini-2.5-flash',
-    DB:{prepare(){return {bind(){return this;},async first(){return {attempts:++attempts};}};}}
+    DB:{prepare(){return {
+      bind(key){this.key=key;return this;},
+      async first(){const next=(buckets.get(this.key)||0)+1;buckets.set(this.key,next);attempts++;return {attempts:next};}
+    };}}
   };
   const owner={student_id:'student-private-id',student_number:'b12345678'};
   const messageReader=async(_env,_owner,url)=>{
@@ -63,7 +67,7 @@ test('model HTML is sanitized before it reaches the sandboxed mail frame',async(
   assert.match(result.bodyHtml,/https:\/\/ntu\.edu\.tw/);
   assert.match(result.html,/Content-Security-Policy/);
 });
-test('no API key, invalid references, non-Chinese messages, and quota errors are safe',async()=>{
+test('missing key and invalid references or non-Chinese messages never invoke Gemini',async()=>{
   const c=context();
   delete c.env.GEMINI_API_KEY;
   await assert.rejects(translateMail(c.env,c.owner,request,c),e=>e.status===503&&e.code==='translation_unconfigured');
@@ -72,9 +76,29 @@ test('no API key, invalid references, non-Chinese messages, and quota errors are
   const english=context('<p>English only.</p>','Hello');
   await assert.rejects(translateMail(english.env,english.owner,request,english),e=>e.status===400&&e.code==='translation_not_chinese');
   assert.equal(english.sent,0);
-  for(let i=0;i<12;i++)await translateMail(c.env,c.owner,request,c);
-  await assert.rejects(translateMail(c.env,c.owner,request,c),e=>e.status===429&&e.code==='translation_limit');
-  assert.equal(c.sent,12);
+  assert.equal(c.attempts,0);
+  assert.equal(c.sent,0);
+});
+test('Campus translation quota matches personal Mail: 12 per minute, resets next minute',async()=>{
+  const c=context(),actualNow=Date.now;
+  let fakeTime=102000000; // on an exact minute boundary
+  try{
+    Date.now=()=>fakeTime;
+    for(let i=0;i<12;i++)await translateMail(c.env,c.owner,request,c);
+    await assert.rejects(translateMail(c.env,c.owner,request,c),error=>
+      error.status===429&&error.code==='translation_limit'&&error.retryAfterSeconds===60);
+    assert.equal(c.sent,12);
+    fakeTime+=60000;
+    await translateMail(c.env,c.owner,request,c);
+    assert.equal(c.sent,13);
+  }finally{Date.now=actualNow;}
+});
+test('NTU read failures cannot exhaust Gemini quota',async()=>{
+  const c=context();
+  c.messageReader=async()=>{throw new Error('NTU temporarily unavailable');};
+  for(let i=0;i<20;i++)await assert.rejects(translateMail(c.env,c.owner,request,c));
+  assert.equal(c.attempts,0);
+  assert.equal(c.sent,0);
 });
 test('incomplete Gemini output leaves the original email untouched',async()=>{
   const c=context();
@@ -89,7 +113,10 @@ test('fragment markup is stripped of HTML instructions and dangerous links',()=>
 test('reader translation is per-message cached, reset on sign-out, and uses POST',()=>{
   const ui=readFileSync(new URL('../public/skeleton/mail.mjs',import.meta.url),'utf8');
   assert.match(ui,/translationCache=new Map\(\)/);
-  assert.match(ui,/translationCache\.clear\(\);translationShown\.clear\(\)/);
+  assert.match(ui,/translationRequests=new Map\(\)/);
+  assert.match(ui,/translationRequests\.get\(key\)/);
+  assert.match(ui,/translationRequests\.set\(key,pending\)/);
+  assert.match(ui,/translationCache\.clear\(\);translationShown\.clear\(\);translationRequests\.clear\(\)/);
   assert.match(ui,/request\('translate',\{method:'POST'/);
   assert.match(ui,/showEnglish\(!translationShown\.has\(key\)\)/);
   assert.match(ui,/if\(identity!==epoch\|\|generation!==reading\|\|current!==message\)return/);
