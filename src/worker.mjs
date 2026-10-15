@@ -11,6 +11,7 @@ import {reviseDraft} from './mail-compose-ai.mjs';
 import {saveComposeDraft,listComposeDrafts,deleteComposeDraft,uploadComposePart,removeComposeFile,queueComposeMail,listComposeJobs,changeComposeJob,processDueComposeJobs} from './mail-composer-store.mjs';
 import { pushConfiguration, subscribe } from './mail-push.mjs';
 import { savedAnnouncements, syncAnnouncements } from './cool-announcements.mjs';
+import {readPreferences,savePreferences,readHanziWidget} from './student-preferences.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -111,6 +112,14 @@ export default {
       if (path === '/api/connections' && request.method === 'GET') {
         const current = await session(request, env);
         return json({ connections: await connections(env, current.student_id) });
+      }
+      if(path==='/api/preferences'){
+        const current=await session(request,env,request.method!=='GET'),owner={studentNumber:current.student_number};
+        if(request.method==='GET')return json({...owner,...await readPreferences(env,current)});
+        if(request.method==='PATCH')return json({...owner,...await savePreferences(env,current,await readJson(request))});
+      }
+      if(path==='/api/widgets/hanzi'&&request.method==='GET'){
+        const current=await session(request,env);return json({studentNumber:current.student_number,...await readHanziWidget(env,current,new URL(request.url).searchParams.get('username'))});
       }
       if (path.startsWith('/api/mail/')) {
         const current=await session(request,env,request.method!=='GET'),url=new URL(request.url),owner={studentNumber:current.student_number};

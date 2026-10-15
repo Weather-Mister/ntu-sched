@@ -7,6 +7,7 @@ import { AccountTasks } from '/account-tasks.mjs';
 import { eventsOn, nextEventDates } from '/event-model.mjs';
 import { createEventUI } from './custom-events.mjs';
 import { createMailUI } from './mail.mjs';
+import { createSettings } from './settings.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
 const profiles = {
@@ -441,23 +442,14 @@ function renderTranslations(){
   $('language-en').setAttribute('aria-pressed',String(language==='en'));$('language-zh').setAttribute('aria-pressed',String(language==='zh'));$('login-language-en').setAttribute('aria-pressed',String(language==='en'));$('login-language-zh').setAttribute('aria-pressed',String(language==='zh'));
   $('settings-language').value=language;$('task-input').placeholder=t('addPlaceholder');
   $('cool-refresh').title=t('refresh');$('cool-refresh').setAttribute('aria-label',t('refresh'));
-  const choices=$('settings-mobile-choices');choices.replaceChildren();
-  document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(original=>{
-    const btn=node('button','',original.textContent);btn.type='button';btn.dataset.settingsTab=original.dataset.settingsTab;btn.setAttribute('aria-selected',String(activePanel===btn.dataset.settingsTab));
-    btn.addEventListener('click',()=>showPanel(btn.dataset.settingsTab));choices.append(btn);
-  });
-  choices.hidden=false;
   // Keep the chosen NTU panel tab when the interface language changes.
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.textContent=t(button.dataset.i18n));
 }
 function showPanel(which){
   activePanel=which;
-  document.querySelectorAll('[data-settings-tab]').forEach(btn=>btn.setAttribute('aria-selected',String(btn.dataset.settingsTab===which)));
-  document.querySelectorAll('[data-settings-panel]').forEach(panel=>{panel.hidden=panel.dataset.settingsPanel!==which;});
-  $('account-name').textContent=student?student.name[language==='zh'?1:0]:'';
-  $('account-id').textContent=student?student.id:'';
-  document.querySelector('.settings-main').scrollTop=0;
+  settingsUI.update({student,liveMode,language,timetable:liveTimetable});
 }
+
 function renderAll(){
   renderTranslations();if(!student)return;renderBanner();renderCalendar();renderDeadlines();renderTasks();updateLiveStatus();showPanel(activePanel);
   if(opened&&$('lesson-dialog').open)populateLesson(opened.c,opened.key);
@@ -519,7 +511,7 @@ function leavePreview(){
   liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
-  taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);$('task-input').value='';
+  taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);settingsUI.reset();$('task-input').value='';
   eventUI.reset();
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
@@ -767,7 +759,6 @@ $('login-language-zh').addEventListener('click',()=>chooseLanguage('zh'));
 $('language-en').addEventListener('click',()=>chooseLanguage('en'));
 $('language-zh').addEventListener('click',()=>chooseLanguage('zh'));
 $('settings-language').addEventListener('change',e=>chooseLanguage(e.target.value));
-$('theme-select').addEventListener('change',e=>{document.body.dataset.theme=e.target.value;});
 $('page-refresh').addEventListener('click',()=>{
   if(liveMode){if(!livePending)readLiveSnapshots();void announcementStore.refresh();return;}
   renderAll();$('toast').textContent=t('previewRefresh');
@@ -790,8 +781,7 @@ $('task-form').addEventListener('submit',async e=>{
 });
 $('tasks-retry').addEventListener('click',()=>{if(liveMode)void taskStore.refresh();});
 $('tasks-undo').addEventListener('click',()=>{if(liveMode)void taskStore.undo();});
-$('open-settings').addEventListener('click',()=>{showPanel('account');$('settings-dialog').showModal();});
-document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(btn=>btn.addEventListener('click',()=>showPanel(btn.dataset.settingsTab)));
+$('open-settings').addEventListener('click',()=>{showPanel('account');settingsUI.open();$('settings-dialog').showModal();});
 $('settings-close-desktop').addEventListener('click',()=>$('settings-dialog').close());
 $('settings-close-mobile').addEventListener('click',()=>$('settings-dialog').close());
 $('close-lesson').addEventListener('click',()=>{if(!lessonSaving)$('lesson-dialog').close();});
@@ -808,7 +798,7 @@ window.addEventListener('online',()=>{if(liveMode&&!document.hidden){void taskSt
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});
 window.addEventListener('online',updateSyncDots);
 window.addEventListener('offline',updateSyncDots);
-renderTranslations();
-
-
 const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language});
+
+const settingsUI=createSettings({account,onSessionExpired:sessionExpired});
+renderTranslations();
