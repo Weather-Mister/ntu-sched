@@ -20,3 +20,16 @@ jobs:
       - run: node --check src/mail-store.mjs
       - run: node --check src/mail-translation.mjs
       - run: node --check src/worker.mjs
+      - name: Test public NTU syllabus retrieval on experiment branch
+        if: github.event_name == 'pull_request' && github.head_ref == 'experiment/ntu-course-exam-source'
+        run: |
+          node --input-type=module <<'NODE'
+          import { readNtuCourseExams } from './src/ntu-course-exams.mjs';
+          for (const url of ['https://course.ntu.edu.tw/courses/115-1/23006']) {
+            try {
+              const result=await readNtuCourseExams(url);
+              console.log(JSON.stringify({source:result.sourceUrl,term:result.term,courseCode:result.courseCode,serial:result.serial,exams:result.exams.map(x=>({kind:x.kind,date:x.date,certainty:x.certainty}))}));
+              if(result.courseCode !== 'CSIE5734' || !result.exams.some(x=>x.kind==='midterm'))process.exitCode=1;
+            } catch(error) { console.log('Public NTU smoke check failed:', error.code || 'request_error'); process.exitCode=1; }
+          }
+          NODE
