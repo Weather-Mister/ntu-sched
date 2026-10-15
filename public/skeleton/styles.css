@@ -656,8 +656,9 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 /* COOL mobile feed: show four complete cards, then scroll inside a four-card-high list. */
 .cool-mobile-more{display:none}
 @media(max-width:790px){
-  .cool-list:not(.cool-list-expanded)>.cool-item:nth-child(n+5){display:none}
-  .cool-list.cool-list-expanded{
+  /* Announcement bodies can be far taller than assignment cards. Cap the viewport,
+     not the cards: shrinking flex items used to overlap their disclosure content. */
+  .cool-list{
     max-height:343px;
     min-height:0;
     overflow-y:auto;
@@ -668,6 +669,15 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
     -webkit-overflow-scrolling:touch;
     padding:1px 4px 4px 1px;
   }
+  .cool-list>.cool-item{
+    flex:0 0 auto;
+    min-width:0;
+    width:100%;
+  }
+  /* Show the full body in the feed's one scroll area instead of creating a
+     second scrollable text box inside the announcement card. */
+  .cool-list .announcement-body p{max-height:none;overflow:visible}
+  .cool-list:not(.cool-list-expanded)>.cool-item:nth-child(n+5){display:none}
   .cool-mobile-more:not([hidden]){
     display:flex;
     align-items:center;
