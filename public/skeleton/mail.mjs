@@ -40,7 +40,9 @@ export function createMailUI({account,isLive,language}){
   const control=button('',()=>void mutate(kind,ref));
   control.className='campus-mail-icon';control.title=label;control.setAttribute('aria-label',label);
   if((kind==='star'&&ref.starred)||(kind==='unread'&&ref.unread))control.classList.add('is-on');
-  const svg=node('svg',{'aria-hidden':'true',viewBox:'0 0 24 24'}),use=node('use');
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg'),use=document.createElementNS(ns,'use');
+  svg.setAttribute('aria-hidden','true');svg.setAttribute('viewBox','0 0 24 24');
   use.setAttribute('href','#'+iconRef);svg.append(use);control.append(svg);return control;
  }
  function showSelection(){
