@@ -20,7 +20,7 @@ export function parsePortfolioTimetable(html) {
 }
 
 export function combineNames(original, alternate) {
-  const same = (a, b) => a.day === b.day && a.start === b.start && a.end === b.end && (!(a.code && b.code) || a.code === b.code) && ((a.code && b.code && a.code === b.code) || a.room === b.room);
+  const same = (a, b) => a.day === b.day && a.start === b.start && a.end === b.end && (!(a.code && b.code) || a.code === b.code) && (!(a.serial && b.serial) || a.serial === b.serial) && (!(a.section && b.section) || a.section === b.section) && ((a.code && b.code && a.code === b.code) || a.room === b.room);
   return original.map(a => {
     const matches = alternate.filter(b => same(a, b));
     if (matches.length !== 1 || original.filter(b => same(b, matches[0])).length !== 1) return a;
