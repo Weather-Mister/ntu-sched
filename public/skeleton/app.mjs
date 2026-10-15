@@ -125,10 +125,10 @@ function renderWeekTimetable(){
   const latest=Math.max(...courses.map(c=>minutes(c[2])),17*60);
   const firstHour=Math.max(0,Math.floor((earliest-20)/60));
   const finalHour=Math.min(24,Math.ceil((latest+20)/60));
-  const scale=.94; // pixels per minute
+  const scale=.76; // compact pixels per minute; class durations remain proportional
   const origin=firstHour*60,totalHeight=(finalHour-firstHour)*60*scale;
-  container.style.gridTemplateColumns='56px repeat('+dayCount+', minmax(152px, 1fr))';
-  container.style.minWidth=(56+dayCount*152)+'px';
+  container.style.gridTemplateColumns='42px repeat('+dayCount+', minmax(78px, 1fr))';
+  container.style.minWidth=(42+dayCount*78)+'px';
   container.style.setProperty('--hour-height',(60*scale)+'px');
   const corner=node('div','timetable-corner');
   corner.style.gridColumn='1';corner.style.gridRow='1';container.append(corner);
@@ -176,9 +176,9 @@ function setTimetableView(view){
   timetableView=view;
   $('view-day').setAttribute('aria-pressed',String(view==='day'));
   $('view-week').setAttribute('aria-pressed',String(view==='week'));
-  document.querySelector('.workspace').hidden=view==='week';
+  $('schedule-list').hidden=view==='week';
   $('week-timetable').hidden=view!=='week';
-  if(view==='week')renderWeekTimetable();
+  if(student)renderCalendar();
 }
 
 function renderCalendar(){
@@ -198,8 +198,10 @@ function renderCalendar(){
     btn.addEventListener('click',()=>{selectedDate=key;renderCalendar();});strip.append(btn);
   }
   const items=student.courses.filter(c=>c[0]===weekday(selectedDate)).sort((a,b)=>a[1].localeCompare(b[1]));
-  $('selected-day').textContent=t('days')[weekday(selectedDate)];$('selected-date').textContent=pretty(selectedDate);
-  $('class-count').textContent=items.length+' '+(items.length===1?t('singleClass'):t('classes'));
+  const numberOfClasses=timetableView==='week'?student.courses.length:items.length;
+  $('selected-day').textContent=timetableView==='week'?t('weeklyTimetable'):t('days')[weekday(selectedDate)];
+  $('selected-date').textContent=timetableView==='week'?t('calendarLabel'):pretty(selectedDate);
+  $('class-count').textContent=numberOfClasses+' '+(numberOfClasses===1?t('singleClass'):t('classes'));
   const list=$('schedule-list');list.replaceChildren();
   if(!items.length){const empty=node('div','empty-card');empty.append(node('strong','',t('noClasses')),node('span','',t('noClassesDesc')));list.append(empty);}
   for(const c of items){
