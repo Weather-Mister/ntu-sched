@@ -37,6 +37,7 @@ const dict={
     timetableDesc:'Timetable connections will be wired to the existing backend later.',previewStatus:'Preview data',syncNotConnected:'Not connected to your NTU account in this preview.',reconnectLater:'Reconnect (later)',coolDesc:'Calendar deadlines will be connected after the UI is finalized.',widgetsDesc:'Optional extras can be added without affecting the core schedule.',hanziLater:'Future optional widget. Disabled by default. Username input and loading will be implemented later.',comingLater:'Coming later',
     securityDesc:'Production account access remains exclusively with our existing Cloudflare backend.',noCredentials:'No credentials in preview',securityPreview:'This demo does not request NTU credentials, contact APIs or persist student data.',signOutAllLater:'Sign out all devices (later)',aboutDesc:'Campus Week UI skeleton v1. Independent student project; not affiliated with National Taiwan University.',designPreview:'Design preview',aboutDetails:'Lightweight static HTML, CSS and JavaScript. Separate from the existing working site.',
     next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your sample timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
+    assignments:'Assignments',announcements:'Announcements',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
@@ -47,10 +48,11 @@ const dict={
     timetableDesc:'課表連線將於介面定稿後接入現有後端。',previewStatus:'預覽資料',syncNotConnected:'本預覽未連線至臺大帳號。',reconnectLater:'稍後重新連線',coolDesc:'介面定稿後才會連結日曆與作業期限。',widgetsDesc:'選用小工具不會影響主要課表。',hanziLater:'未來可選擇啟用，預設關閉；使用者名稱輸入及資料載入會稍後實作。',comingLater:'稍後推出',
     securityDesc:'正式帳號存取仍由現有 Cloudflare 後端處理。',noCredentials:'預覽不需帳密',securityPreview:'此預覽不會要求臺大帳密、呼叫 API 或持久儲存學生資料。',signOutAllLater:'登出所有裝置（稍後）',aboutDesc:'Campus Week 介面骨架 v1。獨立學生專案，與國立臺灣大學無隸屬關係。',designPreview:'設計預覽',aboutDetails:'使用輕量 HTML、CSS 與 JavaScript；與現有網站完全分離。',
     next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的範例課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
+    assignments:'作業',announcements:'公告',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',
     days:['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],shortDays:['週一','週二','週三','週四','週五','週六','週日']
   }
 };
-let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0;
+let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments';
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
 function iso(date){return date.toISOString().slice(0,10);}
@@ -74,11 +76,26 @@ function renderBanner(){
   $('next-label').textContent=next?(next.live?t('live'):t('next')):'—';
   $('next-title').textContent=next?next.c[language==='zh'?4:3]:'—';
   $('next-meta').textContent=next?longDate(next.key)+' · '+next.c[1]+'–'+next.c[2]+' · '+next.c[5]:'';
-  $('next-countdown').textContent=next?(next.live?t('endsIn'):t('startsIn'))+' '+howLong((next.live?next.end:next.start)-now):'—';
+  $('next-countdown').textContent=next?(next.live?t('endsIn'):t('startsIn'))+' '+howLong((next.live?next.end:next.start)-now):'';
+  const badgeDay = $('next-badge-day'), badgeTime = $('next-badge-time');
+  if(!next){badgeDay.textContent='—';badgeTime.textContent='';}
+  else {
+    badgeDay.textContent=next.live||next.key===today?(language==='zh'?'今天':'Today'):
+      next.key===offset(today,1)?(language==='zh'?'明天':'Tomorrow'):
+      t('days')[weekday(next.key)];
+    const time=next.live?next.c[2]:next.c[1];
+    const [hour,minute]=time.split(':').map(Number);
+    badgeTime.textContent=language==='zh'?time:((hour%12)||12)+':'+String(minute).padStart(2,'0')+(hour>=12?' PM':' AM');
+  }
 }
 function renderCalendar(){
   if(!student)return;const base=monday(selectedDate),today=taipeiToday(),strip=$('day-strip');
-  $('week-range').textContent=pretty(base,true)+' – '+pretty(offset(base,6),true);$('choose-date').value=selectedDate;strip.replaceChildren();
+  const end=offset(base,6);
+  const monthfmt=new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'UTC',month:'short',day:'numeric'});
+  $('week-range').textContent=language==='zh'?
+    monthfmt.format(dateFor(base))+' – '+monthfmt.format(dateFor(end)):
+    (base.slice(0,7)===end.slice(0,7)?monthfmt.format(dateFor(base))+'–'+dateFor(end).getUTCDate():monthfmt.format(dateFor(base))+' – '+monthfmt.format(dateFor(end)));
+  $('choose-date').value=selectedDate;strip.replaceChildren();
   for(let d=0;d<7;d++){
     const key=offset(base,d),btn=node('button','day-button');btn.type='button';btn.classList.toggle('active',key===selectedDate);btn.classList.toggle('today',key===today);
     btn.setAttribute('aria-pressed',String(key===selectedDate));btn.setAttribute('aria-label',longDate(key));
@@ -100,8 +117,34 @@ function renderCalendar(){
     btn.append(clock,card);btn.addEventListener('click',()=>showLesson(c,selectedDate));list.append(btn);
   }
 }
+const announcements={
+  engineering:[
+    ['New course materials available','已新增課程教材','Engineering Mathematics','工程數學',0],
+    ['Tutorial room information','助教課教室資訊','Statics','靜力學',2],
+    ['Laboratory update','實驗課公告','Engineering Materials','工程材料',4]
+  ],
+  social:[
+    ['Seminar reading posted','研討會閱讀資料已發布','Research Methods','研究方法',0],
+    ['Class discussion reminder','課堂討論提醒','Exploring Taiwan','探索臺灣',2],
+    ['Updated tutorial information','助教課資訊更新','Statistics','統計學',5]
+  ]
+};
 function renderDeadlines(){
   const list=$('cool-list');list.replaceChildren();if(!student)return;
+  document.querySelectorAll('[data-cool-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
+  $('cool-list').setAttribute('aria-labelledby',coolView==='assignments'?'cool-assignments-tab':'cool-announcements-tab');
+  $('cool-heading').textContent=coolView==='assignments'?t('upcomingDates'):t('announcements');
+  $('cool-preview-note').textContent=coolView==='assignments'?t('sampleDeadlines'):t('sampleAnnouncements');
+  if(coolView==='announcements'){
+    const profile=student===profiles.engineering?'engineering':'social';
+    for(const entry of announcements[profile]){
+      const card=node('article','cool-item announcement-card card'),date=node('span','cool-date'),copy=node('span','cool-copy');
+      const key=offset(taipeiToday(),-entry[4]);date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
+      copy.append(node('strong','',entry[language==='zh'?1:0]),node('small','',entry[language==='zh'?3:2]));
+      card.append(date,copy);list.append(card);
+    }
+    return;
+  }
   for(const item of student.deadlines){
     const key=offset(taipeiToday(),item[0]),card=node('article','cool-item card'),date=node('span','cool-date'),copy=node('span','cool-copy');
     date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
@@ -132,6 +175,8 @@ function renderTranslations(){
     btn.addEventListener('click',()=>showPanel(btn.dataset.settingsTab));choices.append(btn);
   });
   choices.hidden=false;
+  // Keep the chosen NTU panel tab when the interface language changes.
+  document.querySelectorAll('[data-cool-view]').forEach(button=>button.textContent=t(button.dataset.i18n));
 }
 function showPanel(which){
   activePanel=which;
@@ -154,16 +199,16 @@ function showLesson(c,key){opened={c,key};populateLesson(c,key);$('lesson-dialog
 function leavePreview(){
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
-  student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';
+  student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';
   for(const id of ['schedule-list','cool-list','todo-list','day-strip'])$(id).replaceChildren();
-  $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='—';
+  $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
   $('app-screen').hidden=true;$('login-screen').hidden=false;$('preview-profile').focus();
 }
 function enterPreview(){
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
-  selectedDate=taipeiToday();activePanel='account';opened=null;
+  selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';
   $('login-screen').hidden=true;$('app-screen').hidden=false;renderAll();$('open-settings').focus();
 }
 function chooseLanguage(value){language=value;renderAll();}
@@ -180,6 +225,9 @@ $('next-week').addEventListener('click',()=>{selectedDate=offset(selectedDate,7)
 $('jump-today').addEventListener('click',()=>{selectedDate=taipeiToday();renderCalendar();});
 $('choose-date').addEventListener('change',e=>{try{dateFor(e.target.value);selectedDate=e.target.value;renderCalendar();}catch{$('choose-date').value=selectedDate;}});
 $('cool-refresh').addEventListener('click',()=>{renderDeadlines();$('toast').textContent=t('previewRefresh');});
+document.querySelectorAll('[data-cool-view]').forEach(button=>button.addEventListener('click',()=>{
+  coolView=button.dataset.coolView;renderDeadlines();
+}));
 $('task-form').addEventListener('submit',e=>{
   e.preventDefault();if(!student)return;const content=$('task-input').value.trim();if(!content)return;
   tasks.unshift({id:++counter,text:content,done:false});$('task-input').value='';renderTasks();
