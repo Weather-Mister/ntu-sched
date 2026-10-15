@@ -69,6 +69,10 @@
 <nav class="week-toolbar" aria-label="Date navigation">
 <div class="week-caption"><span class="eyebrow" data-i18n="week">Week</span><strong id="week-range" class="week-range" aria-live="polite"></strong></div>
 <div class="week-actions">
+<div class="timetable-view-switch" role="group" aria-label="Timetable view">
+<button id="view-day" type="button" aria-pressed="true" data-i18n="dayView">Day</button>
+<button id="view-week" type="button" aria-pressed="false" data-i18n="weekView">Week</button>
+</div>
 <button id="previous-week" type="button" class="icon-button" aria-label="Previous week"><svg aria-hidden="true"><use href="#i-left"/></svg></button>
 <button id="jump-today" type="button" class="button small" data-i18n="today">Today</button>
 <button id="next-week" type="button" class="icon-button" aria-label="Next week"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
@@ -113,6 +117,15 @@
 </section>
 </aside>
 </main>
+<section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
+<div class="week-timetable-title">
+<div><p class="eyebrow" data-i18n="calendarLabel">TIMETABLE</p><h2 id="week-timetable-heading" data-i18n="weeklyTimetable">Weekly timetable</h2></div>
+<span id="week-timetable-range" class="week-timetable-range"></span>
+</div>
+<div id="week-timetable-scroll" class="week-timetable-scroll" tabindex="0" aria-label="Weekly timetable, scroll horizontally and vertically">
+<div id="week-timetable-grid" class="week-timetable-grid"></div>
+</div>
+</section>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
 <dialog id="lesson-dialog" class="dialog detail-dialog" aria-labelledby="lesson-dialog-name">
