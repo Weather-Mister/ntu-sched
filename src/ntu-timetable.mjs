@@ -1,6 +1,7 @@
 import { CookieJar } from './ntu-cookies.mjs';
 import { ApiError } from './security.mjs';
 import { documentFrom, parsePortfolioTimetable, combineNames } from './portfolio-html.mjs';
+import { portfolioLanguageUrl } from './portfolio-language.mjs';
 
 export const TIMETABLE_URL = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
 const LOGIN_ORIGIN = 'https://web2.cc.ntu.edu.tw';
@@ -116,19 +117,19 @@ export async function readNtuTimetable(studentNumber, password, { beforeCredenti
     page = await request(TIMETABLE_URL);
     if (page.url.origin !== PORTAL_ORIGIN || canonicalPath(page.url) !== '/eportfolio/course-overview' || page.document.querySelector('input[type="password"]')) throw new ApiError(409, 'timetable_credentials_required', 'NTU did not complete ePortfolio sign-in. Enter your myNTU password to connect your timetable.');
     const result = parsePortfolioTimetable(page.html);
-    // Read another language only if ePortfolio itself supplies that exact link.
+    // ePortfolio may use a DIV, button or anchor for its language control.
+    // Read only a literal, same-origin course-overview destination declared by
+    // that control. We do not execute its JavaScript or invent translations.
     for (const language of ['en', 'zh']) {
       if (!result.sessions.some(s => language === 'en' ? !s.titleEn : !s.titleZh)) continue;
-      const label = language === 'en' ? /^(English|English Version|EN|英文版?)$/i : /^(中文|繁體中文|中文版|Chinese|ZH(?:-TW)?)$/i;
-      for (const control of page.document.querySelectorAll('a[href],.ic-earth[onclick]')) {
-        if (!label.test(control.textContent.trim())) continue;
-        const href = control.getAttribute('href') || control.getAttribute('onclick')?.match(/^\s*(?:window\.)?location(?:\.href)?\s*=\s*(["'])([^"']+)\1\s*;?\s*$/)?.[2];
-        if (!href) continue;
-        const alternate = new URL(href, page.url);
-        if (alternate.origin !== PORTAL_ORIGIN || canonicalPath(alternate) !== '/eportfolio/course-overview' || alternate.href === page.url.href) continue;
-        try { const view = await request(alternate); if (view.url.origin === PORTAL_ORIGIN && view.url.pathname === alternate.pathname) result.sessions = combineNames(result.sessions, parsePortfolioTimetable(view.html).sessions); } catch { /* The successfully read timetable remains usable without alternate names. */ }
-        break;
-      }
+      const alternate = portfolioLanguageUrl(page.document, page.url, language);
+      if (!alternate) continue;
+      try {
+        const view = await request(alternate);
+        if (view.url.origin === PORTAL_ORIGIN && canonicalPath(view.url) === '/eportfolio/course-overview') {
+          result.sessions = combineNames(result.sessions, parsePortfolioTimetable(view.html).sessions);
+        }
+      } catch { /* Keep the valid saved timetable when a translation view is unavailable. */ }
     }
     return { ...result, syncedAt: Date.now(), sourceUrl: TIMETABLE_URL };
   } catch (error) {
