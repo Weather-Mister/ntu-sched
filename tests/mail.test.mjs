@@ -9,14 +9,17 @@ import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
 import {encryptedPush,validateSubscription} from '../src/mail-push.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
 const APP='https://campus.example',KEY='ab'.repeat(32),realFetch=globalThis.fetch;
-let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0;
-beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;});
+let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0,failLoginCount=0;
+beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;failLoginCount=0;});
 after(()=>{globalThis.fetch=realFetch;});
 globalThis.fetch=async(url,init={})=>{
  const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams,action=fields.get('_action')||u.searchParams.get('_action');calls.push({url:u.href,action,init});
  if(u.hostname==='fcm.googleapis.com')return new Response(null,{status:pushStatus});
  assert.equal(u.origin,'https://wmail1.cc.ntu.edu.tw');
- if(action==='login')return new Response('rcmail.set_env('+JSON.stringify({task:'mail',request_token:'nonce',username:fields.get('_user')})+');',{headers:{'Set-Cookie':'roundcube_sessid=test'}});
+ if(action==='login'){
+  const rejected=failLoginCount>0;if(rejected)failLoginCount--;
+  return new Response('rcmail.set_env('+JSON.stringify({task:rejected?'login':'mail',request_token:'nonce',username:fields.get('_user')})+');',{headers:{'Set-Cookie':'roundcube_sessid=test'}});
+ }
  if(!action)return new Response('<input type="hidden" name="_token" value="nonce">');
  if(['list','search'].includes(action)){
   if(failListOnce>0){failListOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
@@ -56,6 +59,38 @@ test('mail list is scoped to the authenticated student; session and metadata reu
  await request(e,b,'list');assert.equal(calls.filter(c=>c.action==='login').length,2);
  const record=e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id);assert.ok(!record.upstream.includes('nonce'));assert.ok(!record.upstream.includes('test-password'));
  await request(e,a,'list?folder=sent');assert.equal(calls.filter(c=>c.action==='login').length,2);
+});
+test('first-load NTU login not confirmed once is recovered without refreshing or signing out',async()=>{
+ const e=env(),a=await identity(e);
+ failLoginCount=1;
+ const response=await request(e,a,'list?folder=sent&limit=25');
+ assert.equal(response.status,200);assert.equal((await response.json()).messages.length,1);
+ assert.equal(calls.filter(c=>c.action==='login').length,2);
+ assert.ok(e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id).upstream);
+ assert.equal((await request(e,a,'list?folder=sent&limit=25')).status,200);
+ assert.equal(calls.filter(c=>c.action==='login').length,2);
+ e.sqlite.close();
+});
+test('two unconfirmed NTU logins show a temporary error, not false reauthorization',async()=>{
+ const e=env(),a=await identity(e);
+ failLoginCount=2;
+ const response=await request(e,a,'list?folder=sent&limit=25');
+ assert.equal(response.status,502);
+ const body=await response.json();
+ assert.equal(body.error.code,'ntu_login_unconfirmed');
+ assert.notMatch(body.error.message,/sign in again/i);
+ assert.equal(calls.filter(c=>c.action==='login').length,2);
+ // A later request can recover using the retained verified connection.
+ assert.equal((await request(e,a,'list?folder=sent&limit=25')).status,200);
+ e.sqlite.close();
+});
+test('missing NTU authorization still requests reconnection without attempting Roundcube login',async()=>{
+ const e=env(),a=await identity(e);
+ e.sqlite.prepare("DELETE FROM student_connections WHERE student_id=? AND provider='ntu_mail'").run(a.student_id);
+ const response=await request(e,a,'list?folder=sent&limit=25');
+ assert.equal(response.status,409);assert.equal((await response.json()).error.code,'reauthorize');
+ assert.equal(calls.filter(c=>c.action==='login').length,0);
+ e.sqlite.close();
 });
 test('NTU mail sessions expire three minutes after login even while requests keep succeeding',async()=>{
  const e=env(),a=await identity(e),originalNow=Date.now,started=originalNow();
