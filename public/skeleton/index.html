@@ -76,7 +76,7 @@
 <nav class="ntu-grid" aria-label="NTU shortcuts">
 <a class="ntu-link" href="https://my.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon"><svg aria-hidden="true"><use href="#i-home"/></svg></span>myNTU</a>
 <a class="ntu-link" href="https://cool.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon cool"><svg aria-hidden="true"><use href="#i-cool"/></svg></span>NTU COOL</a>
-<a class="ntu-link" href="https://wmail1.cc.ntu.edu.tw/rc/index.php" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span>NTU Mail</a>
+<button class="ntu-link" type="button" data-open-mail aria-label="Open Campus Mail"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><span data-mail-i18n="mail">Campus Mail</span></button>
 </nav>
 </section>
 </aside>
@@ -104,7 +104,7 @@
 <nav class="ntu-grid" aria-label="NTU shortcuts">
 <a class="ntu-link" href="https://my.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon"><svg aria-hidden="true"><use href="#i-home"/></svg></span>myNTU</a>
 <a class="ntu-link" href="https://cool.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon cool"><svg aria-hidden="true"><use href="#i-cool"/></svg></span>NTU COOL</a>
-<a class="ntu-link" href="https://wmail1.cc.ntu.edu.tw/rc/index.php" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span>NTU Mail</a>
+<button class="ntu-link" type="button" data-open-mail aria-label="Open Campus Mail"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><span data-mail-i18n="mail">Campus Mail</span></button>
 </nav>
 </section>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
@@ -153,6 +153,15 @@
 </div>
 </div>
 </dialog>
+<dialog id="mail-dialog" class="dialog mail-dialog" aria-labelledby="mail-dialog-heading">
+<div class="mail-shell">
+<header class="mail-header">
+<div class="mail-brand"><span class="mail-header-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><div><p class="eyebrow" data-mail-i18n="mailPreview">MAIL PREVIEW</p><h2 id="mail-dialog-heading" data-mail-i18n="mail">Campus Mail</h2></div></div>
+<div class="mail-actions"><a class="button small mail-official-link" href="https://wmail1.cc.ntu.edu.tw/rc/index.php" target="_blank" rel="noopener noreferrer external" data-mail-i18n="officialMail">Open official NTU Mail ↗</a><button id="mail-close" class="icon-button" aria-label="Close Mail" type="button"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+</header>
+<div class="mail-workspace"><nav class="mail-nav" aria-label="Mail folders"><button type="button" data-mail-folder="inbox" aria-pressed="true">Inbox</button><button type="button" data-mail-folder="sent" aria-pressed="false">Sent</button><button type="button" data-mail-folder="drafts" aria-pressed="false">Drafts</button><button type="button" data-mail-folder="trash" aria-pressed="false">Trash</button></nav>
+<section class="mail-content" aria-labelledby="mail-folder-heading"><div class="mail-folder-title"><h3 id="mail-folder-heading">Inbox</h3><span class="mail-placeholder-pill" data-mail-i18n="previewStatus">PREVIEW</span></div><div class="mail-empty card"><span class="mail-empty-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><h3 data-mail-i18n="mailEmpty">Your mail will appear here after we connect the service.</h3><p data-mail-i18n="mailDesc">The Campus Week mail client will be integrated after the UI is finalized.</p><p class="micro" data-mail-i18n="mailPreviewOnly">No messages or credentials are loaded in this preview.</p></div></section>
+</div></div></dialog>
 <p id="toast" class="sr-only" role="status" aria-live="polite"></p>
 </body>
 </html>
