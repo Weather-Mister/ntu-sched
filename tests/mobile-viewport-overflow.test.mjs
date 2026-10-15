@@ -37,3 +37,14 @@ test('narrow settings cards use minmax tracks instead of intrinsic widths',()=>{
   assert.match(css,/\.settings-hub \.settings-connection-grid\s*\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\);/s);
   assert.match(css,/@media \(max-width:380px\)/);
 });
+
+test('lesson locations render beneath titles on mobile without affecting desktop cards',()=>{
+  const app=readFileSync(new URL('app.mjs',base),'utf8');
+  assert.match(app,/card\.append\(node\('span','lesson-name',[^\n]+node\('span','lesson-room',c\[5\]\)\)/);
+  const mobileStart=css.indexOf('@media (max-width:790px)');
+  const narrower=css.indexOf('@media (max-width:600px)');
+  const mobile=css.slice(mobileStart,narrower);
+  assert.match(mobile,/\.schedule-column \.lesson-card > \.lesson-name\s*\{[^}]*display:block;/s);
+  assert.match(mobile,/\.schedule-column \.lesson-card > \.lesson-room\s*\{[^}]*display:block;[^}]*white-space:pre-line;/s);
+  assert.match(mobile,/\.schedule-column \.lesson-card > \.lesson-room:empty\s*\{display:none\}/);
+});

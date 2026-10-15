@@ -37,6 +37,24 @@
   }
   .week-section .day-button {min-width:0;overflow-wrap:anywhere}
 
+  /* Each lesson's location is its own line, never appended to the title.
+     pre-line also keeps deliberate line breaks in custom room descriptions. */
+  .schedule-column .lesson-card > .lesson-name {
+    display:block;
+    min-width:0;
+    margin-bottom:0;
+    overflow-wrap:anywhere;
+  }
+  .schedule-column .lesson-card > .lesson-room {
+    display:block;
+    width:100%;
+    min-width:0;
+    margin-top:6px;
+    white-space:pre-line;
+    overflow-wrap:anywhere;
+  }
+  .schedule-column .lesson-card > .lesson-room:empty {display:none}
+
   /* Long translated titles, course names and user-entered text. */
   .section-head {min-width:0;max-width:100%;flex-wrap:wrap}
   .section-head > *, .section-head .section-action {min-width:0;max-width:100%}
