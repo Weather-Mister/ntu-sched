@@ -35,3 +35,13 @@ test('skeleton has account gates, bilingual controls, week navigation, tasks, an
   assert.match(css, /\.settings-choices\{display:none\}/);
   assert.doesNotMatch(html, /file-transfer|transfer-section|placesDialog|notification-bell/);
 });
+
+test('main dashboard reload button refreshes the whole site instead of only data', () => {
+  assert.match(html, /id="page-refresh"[^>]*aria-label="Reload site"/);
+  assert.match(js, /\$\('page-refresh'\)\.addEventListener\('click',\(\)=>window\.location\.reload\(\)\)/);
+  assert.match(js, /\$\('page-refresh'\)\.title=t\('reloadSite'\)/);
+  assert.match(js, /reloadSite:'Reload site'/);
+  assert.match(js, /reloadSite:'重新載入網站'/);
+  assert.match(js, /\$\('cool-refresh'\)\.addEventListener/);
+  assert.match(js, /\$\('live-timetable-refresh'\)\.addEventListener/);
+});
