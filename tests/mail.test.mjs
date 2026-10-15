@@ -97,6 +97,25 @@ test('rejected mail mutations discard the faulty session without replaying the o
  assert.equal(calls.filter(c=>c.action==='mark').length,2);
  e.sqlite.close();
 });
+test('Roundcube subject controls are removed and sender is read from the fromto column',async()=>{
+ const e=env(),a=await identity(e);
+ virtualMessages=3;
+ const original=globalThis.fetch;
+ globalThis.fetch=async(url,init={})=>{
+  const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams;
+  const action=fields.get('_action')||u.searchParams.get('_action');
+  if(action==='list')return Response.json({action,env:{pagecount:1,messagecount:1},exec:'this.add_message_row("3",'+JSON.stringify({
+   subject:'<a href="#">Real subject</a><span>Open in new window</span>',
+   fromto:'<span class="adr">Student &lt;student@ntu.edu.tw&gt;</span>',
+   date:'Today 12:00'})+','+JSON.stringify({seen:false})+');'});
+  return original(url,init);
+ };
+ try{
+  const response=await request(e,a,'list?folder=sent&limit=25');
+  assert.equal(response.status,200);const m=(await response.json()).messages[0];
+  assert.equal(m.subject,'Real subject');assert.equal(m.from,'Student <student@ntu.edu.tw>');
+ }finally{globalThis.fetch=original;e.sqlite.close();}
+});
 test('progressive mailbox batches return newest 25 then 50 then 50 without duplicate UIDs',async()=>{
  const e=env(),a=await identity(e);virtualMessages=125;
  const first=await(await request(e,a,'list?folder=sent&limit=25')).json();
