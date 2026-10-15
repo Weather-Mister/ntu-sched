@@ -119,5 +119,5 @@ test('reader translation is per-message cached, reset on sign-out, and uses POST
   assert.match(ui,/translationCache\.clear\(\);translationShown\.clear\(\);translationRequests\.clear\(\)/);
   assert.match(ui,/request\('translate',\{method:'POST'/);
   assert.match(ui,/showEnglish\(!translationShown\.has\(key\)\)/);
-  assert.match(ui,/if\(identity!==epoch\|\|generation!==reading\|\|current!==message\)return/);
+  assert.match(ui,/if\(!result\|\|identity!==epoch\|\|generation!==reading\|\|current!==message\)return/);
 });
