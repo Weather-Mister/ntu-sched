@@ -234,7 +234,7 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,3vw,31px);line-height:1.05;lette
   flex:1 1 auto;min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;
   scrollbar-width:thin;scrollbar-color:#c6c6bc transparent;
 }
-.week-timetable-grid{display:grid;grid-template-rows:39px auto;width:100%}
+.week-timetable-grid{display:grid;grid-template-rows:30px auto;width:100%}
 .timetable-corner{
   grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:8;
   background:var(--card);border-right:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -277,6 +277,21 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,3vw,31px);line-height:1.05;lette
 .timetable-lesson-room{display:block;min-width:0;font-size:10px;opacity:.72;line-height:1.22;overflow-wrap:anywhere}
 .timetable-lesson.is-short{gap:2px;padding:4px 6px}
 .timetable-lesson.is-short .timetable-lesson-room{display:none}
+/* The Week grid replaces the Day list, not the entire dashboard. */
+.schedule-column > .week-timetable{
+  flex:1 1 auto;min-height:0;min-width:0;width:100%;height:auto;
+  overflow:hidden;border:0;border-radius:0;box-shadow:none;background:transparent;
+}
+.schedule-column > .week-timetable .week-timetable-title{display:none}
+.schedule-column > .week-timetable .week-timetable-scroll{min-height:0;width:100%;border-radius:10px}
+.schedule-column .timetable-day-head{gap:3px;font-size:10px}
+.schedule-column .timetable-day-head strong{font-size:10px}
+.schedule-column .timetable-hour{font-size:9px;right:4px}
+.schedule-column .timetable-lesson{padding:4px 4px;gap:2px;border-radius:6px}
+.schedule-column .timetable-lesson-time{font-size:8px;line-height:1.12}
+.schedule-column .timetable-lesson-title{font-size:10px;line-height:1.13}
+.schedule-column .timetable-lesson-room{display:none}
+.schedule-column .timetable-lesson.is-short{padding:3px 3px}
 .timetable-lesson[data-color="0"]{--lesson-bg:#e7efdf;--lesson-border:#cbdcc2;--lesson-ink:#35553d}
 .timetable-lesson[data-color="1"]{--lesson-bg:#f1e7d8;--lesson-border:#dfccb2;--lesson-ink:#775239}
 .timetable-lesson[data-color="2"]{--lesson-bg:#ece5f0;--lesson-border:#d5c7df;--lesson-ink:#684879}
@@ -291,16 +306,15 @@ body[data-theme=dark] .timetable-lesson[data-color="5"]{--lesson-bg:#4d3b3a;--le
 body[data-theme=dark] .timetable-lesson[data-color="2"]{--lesson-bg:#40354f;--lesson-border:#69567e;--lesson-ink:#f0e1fb}
 body[data-theme=dark] .timetable-lesson[data-color="3"]{--lesson-bg:#304657;--lesson-border:#55758d;--lesson-ink:#e2f3ff}
 body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--lesson-border:#527f7a;--lesson-ink:#e0f5ef}
-@media(min-width:791px){
-  .week-timetable{grid-column:1;grid-row:3;height:100%}
-}
 @media(max-width:790px){
   /* The existing mobile Day view stays intact. Only its optional view picker adds a row. */
   .week-section .week-toolbar{flex-wrap:wrap;row-gap:6px}
   .week-section .week-actions{flex-wrap:wrap;justify-content:flex-end}
   .week-section .timetable-view-switch{margin-right:auto}
   .week-section .timetable-view-switch button{padding:4px 10px;min-height:28px}
-  .week-timetable{height:min(75dvh,660px);min-height:390px;margin-bottom:14px}
+  .schedule-column > .week-timetable{
+    flex:none;height:min(60dvh,540px);min-height:310px;max-height:540px;margin:0;
+  }
   .week-timetable-title{padding:12px;min-height:54px}
   .week-timetable-title h2{font-size:16px}
   .week-timetable-range{font-size:11px}
