@@ -8,6 +8,7 @@ import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refre
 import { mailReference } from './mail-content.mjs';
 import { translateMail } from './mail-translation.mjs';
 import { pushConfiguration, subscribe } from './mail-push.mjs';
+import { savedAnnouncements, syncAnnouncements } from './cool-announcements.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -97,8 +98,8 @@ export default {
       // Report only the setup issue, never the secret or any part of its value.
       const authorizationStorageIssue = authorizationStorageReady ? null : env.NTU_CREDENTIAL_KEY ? 'invalid_format' : 'missing';
       const loginEnabled = env.NTU_LOGIN_ENABLED === 'true' && authorizationStorageReady && !!env.DB;
-      if (request.method === 'GET' && path === '/api/ntu/status') return json({ available: true, mode: 'accounts', loginEnabled, authorizationStorageReady, authorizationStorageIssue, timetableSyncReady: true, coolCalendarReady: true, announcementsSyncReady: false, liveSyncReady: false });
-      if (request.method === 'GET' && path === '/api/health') return json({ service: 'campus-week', stage: 'accounts-timetable-and-calendar', loginEnabled, authorizationStorageReady, authorizationStorageIssue, databaseBound: !!env.DB, timetableSyncReady: true, coolCalendarReady: true, announcementsSyncReady: false, liveSyncReady: false });
+      if (request.method === 'GET' && path === '/api/ntu/status') return json({ available: true, mode: 'accounts', loginEnabled, authorizationStorageReady, authorizationStorageIssue, timetableSyncReady: true, coolCalendarReady: true, announcementsSyncReady: true, liveSyncReady: false });
+      if (request.method === 'GET' && path === '/api/health') return json({ service: 'campus-week', stage: 'accounts-timetable-and-calendar', loginEnabled, authorizationStorageReady, authorizationStorageIssue, databaseBound: !!env.DB, timetableSyncReady: true, coolCalendarReady: true, announcementsSyncReady: true, liveSyncReady: false });
       if (!env.DB) throw new ApiError(503, 'configuration_required', 'Campus Week database is not configured yet.');
       if (path === '/api/auth/login' && request.method === 'POST') return await login(request, env);
       if (path === '/api/auth/me' && request.method === 'GET') {
@@ -169,6 +170,16 @@ export default {
         const body = await readJson(request);
         if (Object.keys(body).some(key => !['password', 'force'].includes(key)) || body.force !== undefined && typeof body.force !== 'boolean' || body.password !== undefined && (typeof body.password !== 'string' || !body.password || body.password.length > 1024 || /[\r\n\0]/.test(body.password))) throw new ApiError(400, 'invalid_request', 'Enter your myNTU password, or use your saved connection.');
         try { return json(await syncTimetable(env, current, body.password, body.force === true)); }
+        finally { body.password = ''; }
+      }
+      if (path === '/api/cool/announcements' && request.method === 'GET') {
+        const current = await session(request, env);
+        return json({studentNumber:current.student_number,...await savedAnnouncements(env,current.student_id)});
+      }
+      if (path === '/api/cool/announcements/sync' && request.method === 'POST') {
+        const current = await session(request,env,true), body = await readJson(request);
+        if (Object.keys(body).some(key => !['password','force'].includes(key)) || body.force !== undefined && typeof body.force !== 'boolean' || body.password !== undefined && (typeof body.password !== 'string' || !body.password || body.password.length > 1024 || /[\r\n\0]/.test(body.password))) throw new ApiError(400,'invalid_request','Use your saved COOL connection or enter your myNTU password.');
+        try { return json({studentNumber:current.student_number,...await syncAnnouncements(env,current,body.password,body.force === true)}); }
         finally { body.password = ''; }
       }
       if (path === '/api/cool/calendar' && request.method === 'GET') {

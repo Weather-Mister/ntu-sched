@@ -626,3 +626,5 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
  .campus-mail-avatar{width:38px;height:38px;border-radius:13px}
  .campus-mail-date{max-width:76px}
 }
+
+.cool-list .announcement-card{display:block;min-width:0}.announcement-card .cool-copy{display:block;min-width:0}.announcement-title{display:block;color:inherit;font-weight:800;text-decoration:none;overflow-wrap:anywhere;margin:6px 0}.announcement-title:hover{text-decoration:underline}.announcement-body summary{cursor:pointer;font-size:12px;margin-top:9px}.announcement-body p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:13px;max-height:340px;overflow:auto}.cool-list .announcement-card .cool-copy small{white-space:normal}

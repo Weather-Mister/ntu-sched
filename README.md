@@ -26,7 +26,9 @@ Calendar parsing uses pinned `ical.js`, supports folded/escaped text, UTC/Taipei
 
 Each new page opening shows saved homework immediately and fetches the upstream calendar once, even when the saved snapshot is fresh. Hidden/offline openings defer that fetch until visible/online. Further checks run every **five minutes** while visible, with manual refresh. The existing hourly cron checks up to ten connected accounts whose calendar snapshot is at least an hour old. Account switches clear the previous owner's homework and ignore late responses.
 
-**Upcoming:** Announcements should check once a minute while the site is open and active, with manual refresh. Announcements are not implemented yet; calendar subscriptions do not provide announcements. Campus Mail and the optional Gemini translation endpoint are implemented.
+**COOL announcements (skeleton):** The Announcements tab reads published announcements from active enrolled courses for the last 90 days using the separate authenticated Canvas API. It restores the encrypted saved feed immediately, checks upstream on every page/account opening, then every **two minutes** only while the page is visible, focused and online. Hidden/offline openings defer the initial check until active. The COOL refresh button refreshes the selected tab; the Settings COOL sync and page refresh buttons also refresh announcements. Cards show course, title, author, Taipei posting time, expandable plain-text content and a direct COOL link. Provider HTML never executes in the app.
+
+The announcement snapshot and COOL-only provider cookies are encrypted in the existing student-owned `cool` record; no migration or new secrets are required. Provider sessions are reused; an expired session can reconnect once using the saved NTU authorization, with existing credential limits. Transient errors keep saved announcements, throttle responses respect retry timing, and rejected passwords pause automatic attempts. Calendar and announcement writes use compare-and-swap merges so concurrent updates cannot erase each other. No background announcement polling runs while the site is closed. Campus Mail and the optional Gemini translation endpoint are implemented.
 
 `NTU_LOGIN_ENABLED` is explicitly enabled in the deployment configuration; a missing or malformed encryption secret still disables account login. Demo login never creates a real account.
 
@@ -80,6 +82,8 @@ Apply `migrations/0002_manual_tasks.sql` to the existing database **before** dep
 | DELETE | `/api/tasks/:id` | Soft remove an owned task using `{version}` |
 | GET | `/api/timetable` | Current student's saved timetable and connection state |
 | POST | `/api/timetable/sync` | Read ePortfolio using retained authorization or a supplied myNTU password; optional `force: true` for manual refresh |
+| GET | `/api/cool/announcements` | Current student’s saved announcement snapshot |
+| POST | `/api/cool/announcements/sync` | Refresh published announcements using the saved COOL/NTU connection; optional `password` and `force` |
 | GET | `/api/cool/calendar` | Current student’s saved homework and connection state; never the private feed link |
 | POST | `/api/cool/calendar/sync` | Automatically discover/read the personal feed using retained NTU authorization; optional `password` and `force` |
 | POST | `/api/auth/logout` | Revoke the current device session |
@@ -91,7 +95,7 @@ All task mutations also require `X-CSRF-Token`. Task responses include the authe
 
 ## Next stages
 
-Verify automatic COOL calendar discovery with the owner's real account, implement the announcements behavior above, then verify the connected Campus Mail client on the owner's phone and desktop. Retain the same encrypted ownership boundaries and cached-data fallback for each provider.
+Verify live announcement reads and automatic COOL calendar discovery with the owner's real account, then verify the connected Campus Mail client on the owner's phone and desktop. Retain the same encrypted ownership boundaries and cached-data fallback for each provider.
 
 
 ## Gemini translation in Campus Mail

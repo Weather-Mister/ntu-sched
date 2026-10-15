@@ -11,7 +11,7 @@ function allowed(url) {
 }
 const stopped = () => new ApiError(502, 'cool_login_redirect', 'COOL returned an unexpected sign-in destination. Your timetable and saved homework have not changed.');
 function challenge(doc) { return !!doc.querySelector('input[autocomplete="one-time-code"],input[name*="captcha" i],iframe[src*="recaptcha"],iframe[src*="challenges.cloudflare.com"]') || /verify you are human|checking your browser/i.test(doc.title || ''); }
-export async function discoverCoolCalendar(studentNumber, password, { beforeCredentialSubmit } = {}) {
+export async function discoverCoolCalendar(studentNumber, password, { beforeCredentialSubmit, onAuthenticated, skipCalendar = false } = {}) {
   const jar = new CookieJar(), controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 60000);
   let requests = 0, bytes = 0;
   async function request(destination, initial = {}) {
@@ -71,6 +71,8 @@ export async function discoverCoolCalendar(studentNumber, password, { beforeCred
     const profile = await request(COOL + '/api/v1/users/self/profile', { json: true });
     let identity; try { identity = JSON.parse(profile.text.replace(/^while\(1\);\s*/, '')).login_id; } catch { throw stopped(); }
     if (typeof identity !== 'string' || identity.trim().toLowerCase().replace(/@ntu\.edu\.tw$/, '').replace(/^ntu\\/, '') !== studentNumber) throw new ApiError(502, 'cool_identity_mismatch', 'COOL could not verify that this calendar belongs to your Campus Week account. No connection was saved.');
+    if (onAuthenticated) await onAuthenticated(jar);
+    if (skipCalendar) return;
     page = await request(COOL + '/calendar');
     if (page.url.origin !== COOL || pathOf(page.url) !== '/calendar') throw stopped();
     const feeds = [...page.doc.querySelectorAll('#calendar-feed-url-input,input[value],a[href]')].flatMap(n => {

@@ -40,6 +40,10 @@ export class CampusAccount {
   async syncCoolCalendar(password, signal, force = false) {
     return this.request('cool/calendar/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });
   }
+  async coolAnnouncements() { return this.request('cool/announcements'); }
+  async syncCoolAnnouncements(password, signal, force = false) {
+    return this.request('cool/announcements/sync', {method:'POST',signal,body:JSON.stringify(password === undefined ? {force} : {password,force})});
+  }
   async logout(allDevices = false) {
     await this.request(allDevices ? 'auth/logout-all' : 'auth/logout', { method: 'POST' });
     this.current = null;

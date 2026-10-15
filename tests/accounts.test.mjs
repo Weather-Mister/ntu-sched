@@ -391,6 +391,7 @@ test('only three credential submissions are allowed per ten-minute window and th
 });
 
 
+let announcementsMode = 'ok', announcementReads = 0;
 let coolMode = 'ok', coolPosts = 0, coolReads = 0, coolRevision = 1;
 const coolForm = '<form method=post action="/adfs/ls/?request=synthetic"><input type=hidden name=__VIEWSTATE value=nonce><input id=ContentPlaceHolder1_UsernameTextBox name=username><input id=ContentPlaceHolder1_PasswordTextBox name=password type=password><input id=ContentPlaceHolder1_SubmitButton name=submit type=submit value=Login></form>';
 function mockCool(url, options) {
@@ -425,6 +426,20 @@ function mockCool(url, options) {
   assert.ok(student,'provider session is required to discover a private calendar');
   if(url.pathname==='/')return new Response('<h1>Dashboard</h1>');
   if(url.pathname==='/api/v1/users/self/profile')return Response.json({login_id:coolMode==='identity'?'r99999999':student});
+  if(url.pathname==='/api/v1/courses') {
+    if(announcementsMode==='expired'){announcementsMode='ok';return new Response('',{status:401});}
+    if(announcementsMode==='unavailable')return new Response('secret provider error',{status:503});
+    return Response.json([{id:42,name:student+' Calculus'}]);
+  }
+  if(url.pathname==='/api/v1/announcements') {
+    announcementReads++;
+    assert.equal(url.searchParams.get('active_only'),'true');
+    assert.equal(url.searchParams.get('context_codes[]'),'course_42');
+    const item={id:123,context_code:'course_42',title:student+' Notice',posted_at:new Date(Date.now()-10000).toISOString(),message:'<p>Hello</p><script>bad()</script><p>World</p>',author:{display_name:'Teacher'}};
+    if(announcementsMode==='empty')return Response.json([]);
+    if(url.searchParams.get('page')==='2')return Response.json([{...item,id:124,title:'Second page'}]);
+    const next=new URL(url);next.searchParams.set('page','2');return Response.json([item],{headers:{Link:'<'+next.href+'>; rel="next"'}});
+  }
   if(url.pathname==='/calendar')return new Response('<input id=calendar-feed-url-input value="https://cool.ntu.edu.tw/feeds/calendars/user_'+student+'_synthetic.ics">');
   throw new Error('Unexpected COOL synthetic route');
 }
@@ -480,4 +495,32 @@ test('hourly background COOL checks update saved homework without repeating NTU 
   e.DB.sqlite.exec("UPDATE student_connections SET verified_at=1 WHERE provider='cool'");coolRevision=2;
   try{const tasks=[];await worker.scheduled({},e,{waitUntil:task=>tasks.push(task)});await Promise.all(tasks);assert.equal(coolPosts,before);assert.equal(portfolioPosts,tableBefore);assert.match((await (await request(e,'cool/calendar',{cookie:auth.cookie})).json()).calendar.assignments[0].title,/Homework 2/);}
   finally{coolRevision=1;}
+});
+
+async function syncAnnouncements(e,auth,body={force:true}) { return request(e,'cool/announcements/sync',{method:'POST',cookie:auth.cookie,csrf:auth.csrf,body}); }
+test('announcements connect through saved NTU credentials, paginate, encrypt data and reuse provider cookies',async()=>{
+  const e=env(),auth=await login(e),before=coolPosts;
+  const response=await syncAnnouncements(e,auth);assert.equal(response.status,200,await response.clone().text());
+  const result=await response.json();assert.equal(result.announcements.items.length,2);assert.equal(result.checkIntervalMs,120000);assert.equal(coolPosts,before+1);
+  const item=result.announcements.items.find(i=>i.id==='42:123');assert.match(item.body,/Hello/);assert.match(item.body,/World/);assert.doesNotMatch(item.body,/bad/);assert.equal(item.url,'https://cool.ntu.edu.tw/courses/42/discussion_topics/123');
+  assert.doesNotMatch(JSON.stringify(result),/canvas_session|synthetic-password/);
+  const row=e.DB.sqlite.prepare("SELECT * FROM student_connections WHERE provider='cool'").get();assert.doesNotMatch(row.encrypted_authorization,/Notice|canvas_session/);
+  await syncCool(e,auth);await syncAnnouncements(e,auth);assert.equal(coolPosts,before+2); // Calendar discovery once; announcements reuse their session.
+  const stored=await(await request(e,'cool/announcements',{cookie:auth.cookie})).json();assert.equal(stored.announcements.items.length,2);
+  const reads=announcementReads;await syncAnnouncements(e,auth,{force:false});assert.equal(announcementReads,reads);
+  const calendar=await(await request(e,'cool/calendar',{cookie:auth.cookie})).json();assert.equal(calendar.calendar.assignments.length,1);
+});
+test('announcement routes require owner session and CSRF and never accept a supplied owner or URL',async()=>{
+  const e=env(),a=await login(e),b=await login(e,'r23456789');
+  assert.equal((await request(e,'cool/announcements')).status,401);
+  assert.equal((await request(e,'cool/announcements/sync',{method:'POST',cookie:a.cookie,body:{}})).status,403);
+  for(const body of [{studentId:'other'},{url:'https://evil.example'},{force:'yes'}])assert.equal((await syncAnnouncements(e,a,body)).status,400);
+  await syncAnnouncements(e,a);assert.equal((await(await request(e,'cool/announcements',{cookie:b.cookie})).json()).announcements,null);
+  await syncAnnouncements(e,b);assert.match((await(await request(e,'cool/announcements',{cookie:b.cookie})).json()).announcements.items.find(i=>i.id==='42:123').title,/r23456789/);
+});
+test('announcement refresh recovers an expired provider session once and preserves snapshots on failure',async()=>{
+  const e=env(),auth=await login(e);await syncAnnouncements(e,auth);const before=coolPosts;
+  announcementsMode='expired';assert.equal((await syncAnnouncements(e,auth)).status,200);assert.equal(coolPosts,before+1);
+  announcementsMode='unavailable';try{assert.equal((await syncAnnouncements(e,auth)).status,502);assert.equal((await(await request(e,'cool/announcements',{cookie:auth.cookie})).json()).announcements.items.length,2);}finally{announcementsMode='ok';}
+  announcementsMode='empty';try{assert.deepEqual((await(await syncAnnouncements(e,auth)).json()).announcements.items,[]);}finally{announcementsMode='ok';}
 });

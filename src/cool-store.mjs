@@ -3,7 +3,7 @@ import { readCoolCalendar } from './cool-calendar.mjs';
 import { discoverCoolCalendar } from './cool-login.mjs';
 
 export const COOL_INTERVAL = 5 * 60 * 1000;
-async function connection(env, studentId, provider = 'cool') {
+export async function connection(env, studentId, provider = 'cool') {
   const row = await env.DB.prepare('SELECT status, verified_at, encrypted_authorization FROM student_connections WHERE student_id = ? AND provider = ?').bind(studentId, provider).first();
   if (!row) return null;
   try { return { ...row, value: await decryptAuthorization(env.NTU_CREDENTIAL_KEY, studentId, provider, row.encrypted_authorization) }; }
@@ -13,7 +13,7 @@ function publicSnapshot(row) {
   return { calendar: row?.value?.calendar || null, connectionStatus: row?.status || 'not_connected', checkIntervalMs: COOL_INTERVAL };
 }
 export async function savedCoolCalendar(env, studentId) { return publicSnapshot(await connection(env, studentId)); }
-async function limit(env, studentId, type, maximum) {
+export async function limit(env, studentId, type, maximum) {
   const bucket = Math.floor(Date.now() / 600000);
   const attempts = await env.DB.prepare('INSERT INTO login_limits(key, attempts, expires_at) VALUES(?, 1, ?) ON CONFLICT(key) DO UPDATE SET attempts = attempts + 1 RETURNING attempts').bind(`cool:${type}:${studentId}:${bucket}`, (bucket + 1) * 600).first();
   if (attempts.attempts > maximum) {
@@ -45,8 +45,7 @@ export async function syncCoolCalendar(env, student, password, force = false) {
     const changed = JSON.stringify(calendar.assignments) !== JSON.stringify(previous?.value.calendar?.assignments);
     calendar.changedAt = changed ? calendar.syncedAt : previous.value.calendar.changedAt || previous.value.calendar.syncedAt;
     const retained = password !== undefined ? { username: student.student_number, password } : previous?.value.password ? { username: previous.value.username, password: previous.value.password } : {};
-    const encrypted = await encryptAuthorization(env.NTU_CREDENTIAL_KEY, studentId, 'cool', { ...retained, feedUrl, calendar });
-    await env.DB.prepare("INSERT INTO student_connections(student_id, provider, encrypted_authorization, status, verified_at) VALUES(?, 'cool', ?, 'authorized', ?) ON CONFLICT(student_id, provider) DO UPDATE SET encrypted_authorization = excluded.encrypted_authorization, status = excluded.status, verified_at = excluded.verified_at").bind(studentId, encrypted, calendar.syncedAt).run();
+    await mergeCoolConnection(env, studentId, { ...retained, ...(password !== undefined ? {announcementsReconnect:false,announcementCookies:[]} : {}), feedUrl, calendar }, calendar.syncedAt);
     return { calendar, connectionStatus: 'authorized', checkIntervalMs: COOL_INTERVAL, changed };
   } catch (error) {
     if (previous && ['cool_credentials_required', 'cool_verification_required', 'cool_calendar_reconnect'].includes(error.code)) await env.DB.prepare("UPDATE student_connections SET status = 'reconnect_required' WHERE student_id = ? AND provider = 'cool'").bind(studentId).run();
@@ -56,4 +55,17 @@ export async function syncCoolCalendar(env, student, password, force = false) {
 export async function refreshDueCoolCalendars(env) {
   const rows = await env.DB.prepare("SELECT u.id AS student_id, u.student_number FROM students u JOIN student_connections c ON c.student_id = u.id WHERE c.provider = 'cool' AND c.status = 'authorized' AND c.verified_at < ? ORDER BY c.verified_at LIMIT 10").bind(Date.now() - 60 * 60 * 1000).all();
   for (const row of rows.results) { try { await syncCoolCalendar(env, row); } catch { /* Keep the last successful snapshot; never log feed tokens. */ } }
+}
+
+// Compare-and-swap preserves concurrent calendar and announcement updates.
+export async function mergeCoolConnection(env, studentId, patch, calendarAt) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const row = await connection(env, studentId);
+    const encrypted = await encryptAuthorization(env.NTU_CREDENTIAL_KEY, studentId, 'cool', {...row?.value, ...patch});
+    const result = row
+      ? await env.DB.prepare("UPDATE student_connections SET encrypted_authorization=?, status=?, verified_at=? WHERE student_id=? AND provider='cool' AND encrypted_authorization=?").bind(encrypted, calendarAt === undefined ? row.status : 'authorized', calendarAt ?? row.verified_at, studentId, row.encrypted_authorization).run()
+      : await env.DB.prepare("INSERT OR IGNORE INTO student_connections(student_id,provider,encrypted_authorization,status,verified_at) VALUES(?,'cool',?,'authorized',?)").bind(studentId, encrypted, calendarAt ?? 0).run();
+    if (Number(result.meta?.changes) > 0) return;
+  }
+  throw new ApiError(409, 'cool_busy', 'COOL is updating. Please retry shortly.');
 }
