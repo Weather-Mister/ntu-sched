@@ -578,6 +578,13 @@ function enterPreview(){
 }
 function chooseLanguage(value){language=value;renderAll();}
 $('enter-preview').addEventListener('click',enterPreview);
+$('live-restore').addEventListener('click',restoreLive);
+$('live-login-open').addEventListener('click',openLiveLogin);
+$('live-login-form').addEventListener('submit',submitLiveLogin);
+$('live-login-close').addEventListener('click',()=>$('live-login-dialog').close());
+$('live-login-dialog').addEventListener('close',()=>{$('live-login-password').value='';});
+$('live-timetable-refresh').addEventListener('click',()=>syncLive('timetable'));
+$('live-cool-refresh').addEventListener('click',()=>syncLive('cool'));
 $('view-day').addEventListener('click',()=>setTimetableView('day'));
 $('view-week').addEventListener('click',()=>setTimetableView('week'));
 $('login-language-en').addEventListener('click',()=>chooseLanguage('en'));
@@ -586,12 +593,18 @@ $('language-en').addEventListener('click',()=>chooseLanguage('en'));
 $('language-zh').addEventListener('click',()=>chooseLanguage('zh'));
 $('settings-language').addEventListener('change',e=>chooseLanguage(e.target.value));
 $('theme-select').addEventListener('change',e=>{document.body.dataset.theme=e.target.value;});
-$('page-refresh').addEventListener('click',()=>{renderAll();$('toast').textContent=t('previewRefresh');});
+$('page-refresh').addEventListener('click',()=>{
+  if(liveMode){readLiveSnapshots();return;}
+  renderAll();$('toast').textContent=t('previewRefresh');
+});
 $('previous-week').addEventListener('click',()=>{selectedDate=offset(selectedDate,-7);renderCalendar();});
 $('next-week').addEventListener('click',()=>{selectedDate=offset(selectedDate,7);renderCalendar();});
 $('jump-today').addEventListener('click',()=>{selectedDate=taipeiToday();renderCalendar();});
 $('choose-date').addEventListener('change',e=>{try{dateFor(e.target.value);selectedDate=e.target.value;renderCalendar();}catch{$('choose-date').value=selectedDate;}});
-$('cool-refresh').addEventListener('click',()=>{renderDeadlines();$('toast').textContent=t('previewRefresh');});
+$('cool-refresh').addEventListener('click',()=>{
+  if(liveMode){syncLive('cool');return;}
+  renderDeadlines();$('toast').textContent=t('previewRefresh');
+});
 document.querySelectorAll('[data-cool-view]').forEach(button=>button.addEventListener('click',()=>{
   coolView=button.dataset.coolView;renderDeadlines();
 }));
@@ -604,11 +617,12 @@ document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(btn=>btn.
 $('settings-close-desktop').addEventListener('click',()=>$('settings-dialog').close());
 $('settings-close-mobile').addEventListener('click',()=>$('settings-dialog').close());
 $('close-lesson').addEventListener('click',()=>$('lesson-dialog').close());
-$('switch-account').addEventListener('click',leavePreview);
-$('log-out').addEventListener('click',leavePreview);
+$('switch-account').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
+$('log-out').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('settings-dialog').addEventListener('close',()=>{if(student)$('open-settings').focus();});
 $('lesson-dialog').addEventListener('close',()=>{opened=null;});
 setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();}},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});
 renderTranslations();
 
 
