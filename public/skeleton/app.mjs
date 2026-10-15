@@ -252,12 +252,14 @@ const mailWords={
     previewStatus:'PREVIEW',mailEmpty:'Your mail will appear here after we connect the service.',
     mailDesc:'The Campus Week mail client will be integrated after the UI is finalized.',
     mailPreviewOnly:'No messages or credentials are loaded in this preview.',
-    inbox:'Inbox',sent:'Sent',drafts:'Drafts',trash:'Trash'},
+    inbox:'Inbox',unread:'Unread',starred:'Starred',sent:'Sent',drafts:'Drafts',trash:'Trash',archived:'Archived',
+    noMessages:'0 messages',compose:'＋ Compose',readerTitle:'Message',readerEmpty:'Select a message to read'},
   zh:{mail:'Campus Mail',mailPreview:'信箱預覽',officialMail:'開啟臺大官方信箱 ↗',
     previewStatus:'預覽',mailEmpty:'連線後，您的郵件將顯示在此。',
     mailDesc:'Campus Week 郵件介面將在整體介面確認後再整合。',
     mailPreviewOnly:'此預覽不會載入任何郵件或帳號資料。',
-    inbox:'收件匣',sent:'寄件備份',drafts:'草稿',trash:'垃圾桶'}
+    inbox:'收件匣',unread:'未讀',starred:'已加星號',sent:'寄件備份',drafts:'草稿',trash:'垃圾桶',archived:'封存',
+    noMessages:'0 封郵件',compose:'＋ 撰寫',readerTitle:'郵件',readerEmpty:'選擇一封郵件來閱讀'}
 };
 let mailFolder='inbox';
 function renderMailLocale(){
