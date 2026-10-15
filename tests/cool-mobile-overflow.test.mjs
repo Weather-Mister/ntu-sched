@@ -54,9 +54,32 @@ test('mobile COOL list preserves expansion per tab and inner scroll across reren
 test('mobile COOL feed cutoff is limited to small screens and does not hide desktop cards',()=>{
   const css=readFileSync(new URL('../public/skeleton/styles.css',import.meta.url),'utf8');
   const selector='.cool-list:not(.cool-list-expanded)>.cool-item:nth-child(n+5)';
-  assert.ok(css.includes('@media(max-width:790px){\n  '+selector));
+  assert.ok(css.includes(selector));
+  assert.ok(css.includes('@media(max-width:790px){'));
   assert.ok(css.includes('max-height:343px'));
   assert.ok(css.includes('overscroll-behavior:contain'));
+  assert.match(css,/\.cool-list>\.cool-item\s*\{\s*flex:0 0 auto;/);
+  assert.ok(css.includes('.cool-list .announcement-body p{max-height:none;overflow:visible}'));
   const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
   assert.match(html,/id="cool-mobile-more"[^>]*aria-controls="cool-list"/);
+});
+
+test('long announcement cards keep their disclosure and toggle without losing the count',()=>{
+  const {document,list,button,controller}=setup();
+  const cards=Array.from({length:7},(_,index)=>{
+    const article=document.createElement('article');article.className='cool-item announcement-card';
+    const details=document.createElement('details');details.className='announcement-body';details.dataset.announcement=String(index);
+    const summary=document.createElement('summary');summary.textContent='Read announcement';
+    const body=document.createElement('p');body.textContent='Full announcement content. '.repeat(100);
+    details.append(summary,body);article.append(details);return article;
+  });
+  list.replaceChildren(...cards);
+  cards[0].querySelector('details').open=true;
+  controller.update('announcements');
+  assert.equal(button.textContent,'Show 3 more');
+  assert.equal(cards[0].querySelector('details').open,true);
+  button.click();
+  assert.equal(button.textContent,'Show less');
+  assert.equal(list.children.length,7);
+  assert.equal(cards[0].querySelector('details').open,true);
 });
