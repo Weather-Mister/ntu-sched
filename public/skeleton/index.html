@@ -109,10 +109,14 @@
 </section>
 <section class="cool-column" aria-labelledby="cool-heading">
 <span id="cool-sync-dot" class="sync-dot" role="img" hidden></span>
-<div class="section-head"><div><p class="eyebrow" data-i18n="coursesLabel">NTU + COURSES</p><h3 id="cool-heading" data-i18n="upcomingDates">Upcoming dates</h3></div><button id="cool-refresh" class="button small" type="button" data-i18n="refresh">Refresh</button></div>
+<div class="section-head cool-panel-header">
+<p class="eyebrow" data-i18n="coursesLabel">NTU + COURSES</p>
+<h3 id="cool-heading" class="sr-only" data-i18n="upcomingDates">Upcoming dates</h3>
 <div class="cool-view-switch" role="tablist" aria-label="NTU content">
 <button id="cool-assignments-tab" type="button" role="tab" aria-selected="true" aria-controls="cool-list" data-cool-view="assignments" data-i18n="assignments">Assignments</button>
 <button id="cool-announcements-tab" type="button" role="tab" aria-selected="false" aria-controls="cool-list" data-cool-view="announcements" data-i18n="announcements">Announcements</button>
+</div>
+<button id="cool-refresh" class="icon-button cool-header-refresh" type="button" aria-label="Refresh" title="Refresh"><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
 </div>
 <div id="cool-list" class="cool-list" role="tabpanel" aria-labelledby="cool-assignments-tab"></div>
 <p id="cool-preview-note" class="preview-footnote" data-i18n="sampleDeadlines">Illustrative events and deadlines; not connected to COOL.</p>

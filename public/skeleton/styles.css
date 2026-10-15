@@ -636,3 +636,19 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 body[data-theme=dark] .sync-dot{background:#56605a}
 body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 @media(max-width:790px){.sync-dot{inset-block-start:-5px;inset-inline-end:1px}}
+
+/* The feed selector is the header title; refresh stays alongside it. */
+.workspace .cool-column>.cool-panel-header{display:grid;grid-template-columns:minmax(0,1fr) 30px;column-gap:8px;row-gap:6px;align-items:center;min-height:0;flex-wrap:nowrap}
+.cool-panel-header>.eyebrow{grid-column:1/-1;grid-row:1;margin:0}
+.cool-column .cool-panel-header .cool-view-switch{grid-column:1;grid-row:2;display:flex;align-items:center;gap:2px;min-width:0;margin:0;padding:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.cool-column .cool-panel-header .cool-view-switch button{flex:1 1 0;min-width:0;min-height:29px;padding:5px 8px;font-size:12px;line-height:1.2;letter-spacing:-.015em;font-weight:750;border-radius:7px;white-space:nowrap;color:var(--muted)}
+.cool-column .cool-panel-header .cool-view-switch button[aria-selected=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px #2425290b}
+.cool-panel-header .cool-header-refresh{grid-column:2;grid-row:2;width:30px;height:30px;min-height:30px;border-radius:9px;background:transparent;border-color:transparent;color:var(--muted)}
+.cool-header-refresh svg{width:16px;height:16px}
+@media(hover:hover){.cool-panel-header .cool-header-refresh:hover{background:var(--panel);color:var(--text)}.cool-column .cool-panel-header .cool-view-switch button:hover{color:var(--text)}}
+@container cool-panel (max-width:280px){
+ .cool-panel-header>.eyebrow{grid-column:1;align-self:center}
+ .cool-column .cool-panel-header .cool-view-switch{grid-column:1/-1}
+ .cool-panel-header .cool-header-refresh{grid-row:1;width:26px;height:24px;min-height:24px;justify-self:end}
+ .cool-column .cool-panel-header .cool-view-switch button{font-size:11px;padding-inline:5px}
+}

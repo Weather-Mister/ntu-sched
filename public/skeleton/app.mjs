@@ -438,6 +438,7 @@ function renderTranslations(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{const translated=t(el.dataset.i18n);if(typeof translated==='string')el.textContent=translated;});
   $('language-en').setAttribute('aria-pressed',String(language==='en'));$('language-zh').setAttribute('aria-pressed',String(language==='zh'));$('login-language-en').setAttribute('aria-pressed',String(language==='en'));$('login-language-zh').setAttribute('aria-pressed',String(language==='zh'));
   $('settings-language').value=language;$('task-input').placeholder=t('addPlaceholder');
+  $('cool-refresh').title=t('refresh');$('cool-refresh').setAttribute('aria-label',t('refresh'));
   const choices=$('settings-mobile-choices');choices.replaceChildren();
   document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(original=>{
     const btn=node('button','',original.textContent);btn.type='button';btn.dataset.settingsTab=original.dataset.settingsTab;btn.setAttribute('aria-selected',String(activePanel===btn.dataset.settingsTab));
