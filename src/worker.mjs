@@ -116,10 +116,12 @@ export default {
         if(path==='/api/mail/send'&&request.method==='POST')return json({...owner,...await sendMail(env,current,await readJson(request,220000))});
         if(path==='/api/mail/send/check'&&request.method==='POST')return json({...owner,...await checkSend(env,current,(await readJson(request)).id)});
         if(path==='/api/mail/action'&&request.method==='POST'){
-          const body=await readJson(request),ref=mailReference(body.mailbox,body.uid);
-          if(!['read','unread','star','unstar','archive','trash'].includes(body.action))throw new ApiError(400,'invalid_mail','Invalid mail action.');
+          const body=await readJson(request);
+          if(!['read','unread','star','unstar','archive','trash','read-all'].includes(body.action))throw new ApiError(400,'invalid_mail','Invalid mail action.');
+          const ref=body.action==='read-all'?null:mailReference(body.mailbox,body.uid);
           await withMailbox(env,current,async s=>{
-            if(['archive','trash'].includes(body.action))await s.ajax('move',{_mbox:ref.mailbox,_uid:ref.uid,_target_mbox:s.folders[body.action==='archive'?'archive':'trash']},true);
+            if(body.action==='read-all')await s.ajax('mark',{_mbox:'INBOX',_uid:'*',_flag:'read',_folders:'cur'},true);
+            else if(['archive','trash'].includes(body.action))await s.ajax('move',{_mbox:ref.mailbox,_uid:ref.uid,_target_mbox:s.folders[body.action==='archive'?'archive':'trash']},true);
             else await s.ajax('mark',{_mbox:ref.mailbox,_uid:ref.uid,_flag:{read:'read',unread:'unread',star:'flagged',unstar:'unflagged'}[body.action]},true);
             await env.DB.prepare('UPDATE mail_state SET inbox_at=0 WHERE student_id=?').bind(current.student_id).run();
           });return json({...owner,ok:true});
