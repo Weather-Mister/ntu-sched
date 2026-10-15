@@ -7,7 +7,7 @@ export { text as mailText };
 // screen-reader-only external-window link to the subject column.
 export function mailListText(value,{subject=false}={}){
  const raw=String(value??'');
- const {document}=parseHTML('<html><body>'+raw+'</body></html');
+ const {document}=parseHTML('<html><body>'+raw+'</body></html>');
  const body=document.body;
  for(const element of [...body.querySelectorAll('*')]){
   if(!element.isConnected)continue;
