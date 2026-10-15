@@ -468,3 +468,39 @@ body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--le
     transition:none!important;transform:none!important;
   }
 }
+
+/* Theme-neutral live account surfaces. Future Garden and PC layouts reuse these. */
+.live-entry {
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+}
+.live-entry-heading{font-size:12px;font-weight:850;color:var(--text)}
+.live-entry>p{font-size:11px;line-height:1.45;color:var(--muted);margin:5px 0 10px}
+.live-entry-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.live-entry-actions .button{font-size:11px;padding:8px 9px;min-width:0;min-height:36px}
+.live-login-dialog{width:min(465px,calc(100vw - 30px));max-height:calc(100dvh - 30px);overflow-y:auto}
+.live-login-form{display:flex;flex-direction:column;gap:9px;padding:24px 25px;background:var(--card);border-radius:17px}
+.live-login-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.live-login-form>h2{font-size:22px;margin:0}
+.live-login-form>p{color:var(--muted);font-size:12px;margin:1px 0 7px;line-height:1.5}
+.live-login-form>label{font-size:12px;font-weight:800}
+.live-login-form>input{
+  width:100%;min-height:42px;padding:7px 12px;
+  background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:11px
+}
+.live-login-form>.button{width:100%;min-height:42px;margin-top:6px}
+.live-login-form>.live-login-error{color:#97443d;margin:3px 0;font-size:12px;overflow-wrap:anywhere}
+.live-login-form>.live-login-note{font-size:10px;margin:5px 0 0}
+.live-sync-status{
+  flex:0 0 auto;margin:0 0 8px;padding:6px 9px;
+  border:1px solid var(--line);border-radius:9px;
+  background:var(--panel);color:var(--muted);font-size:10px;line-height:1.4;
+  overflow-wrap:anywhere;
+}
+.cool-open-link{display:block;min-width:0;text-decoration:none;color:inherit}
+.cool-open-link:focus-visible .cool-item{outline:3px solid #829bd1;outline-offset:-3px}
+.cool-open-link:hover .cool-item{border-color:var(--accent)}
+.cool-open-link .cool-item{width:100%}
+@media(max-width:420px){
+  .live-entry-actions{grid-template-columns:1fr}
+  .live-login-form{padding:19px 17px}
+}
