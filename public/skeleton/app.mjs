@@ -323,11 +323,15 @@ function renderDeadlines(){
     }
     return;
   }
-  for(const item of student.deadlines){
-    const key=offset(taipeiToday(),item[0]),card=node('article','cool-item card'),date=node('span','cool-date'),copy=node('span','cool-copy');
+  for(const [index,item] of student.deadlines.entries()){
+    const key=offset(taipeiToday(),item[0]),card=node('article','cool-item card'),
+      main=node('div','cool-main'),date=node('span','cool-date'),copy=node('span','cool-copy');
     date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
     copy.append(node('strong','',item[language==='zh'?2:1]),node('small','',item[language==='zh'?4:3]));
-    card.append(date,copy,node('span','cool-due',language==='zh'?item[0]+' 天後':'In '+item[0]+' days'));list.append(card);
+    main.append(date,copy,node('span','cool-due',language==='zh'?item[0]+' 天後':'In '+item[0]+' days'));
+    card.append(main);
+    addCoolCheck(card,'preview-'+index,previewCoolDone);
+    list.append(card);
   }
 }
 function renderLiveDeadlines(){
@@ -348,18 +352,23 @@ function renderLiveDeadlines(){
   const dateTime=new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{
     timeZone:'Asia/Taipei',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
   for(const item of items.slice(0,40)){
-    const card=node('article','cool-item card'),date=node('span','cool-date'),
-      copy=node('span','cool-copy');
+    const card=node('article','cool-item card'),
+      main=node(item.url?'a':'div','cool-main'),
+      date=node('span','cool-date'),copy=node('span','cool-copy');
     const when=new Date(item.dueAt);
     date.append(node('strong','',String(when.toLocaleDateString('en-US',{timeZone:'Asia/Taipei',day:'numeric'}))),
       node('small','',when.toLocaleDateString(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short'})));
     copy.append(node('strong','',item.title),node('small','',item.course));
     const due=node('span','cool-due',dateTime.format(when));
-    card.append(date,copy,due);
-    if(item.url){const link=node('a','cool-open-link');link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';
-      link.setAttribute('aria-label',(language==='zh'?'在 COOL 開啟：':'Open in COOL: ')+item.title);
-      link.append(card);list.append(link);
-    } else list.append(card);
+    main.append(date,copy,due);
+    if(item.url){
+      main.href=item.url;main.target='_blank';main.rel='noopener noreferrer';
+      main.setAttribute('aria-label',(language==='zh'?'在 COOL 開啟：':'Open in COOL: ')+item.title);
+    }
+    card.append(main);
+    if(item.kind==='assignment')addCoolCheck(card,item.id,coolDone,saveCoolChecks);
+    else card.classList.add('cool-nonassignment');
+    list.append(card);
   }
 }
 
@@ -510,7 +519,9 @@ function updateLiveStatus(){
   if(!liveMode)return;
   const messageT=liveTimetableInfo||(liveTimetable?(language==='zh'?'已載入課表':'Saved timetable loaded'):t('liveNoTimetable'));
   const messageC=liveCoolInfo||(liveCalendar?(language==='zh'?'已載入 COOL 行事曆':'COOL calendar loaded'):t('noCalendar'));
-  $('live-timetable-status').textContent=$('live-timetable-settings-status').textContent=messageT;
+  const missing=language==='en'&&liveTimetable?englishNameMissing(liveTimetable):0;
+  $('live-timetable-status').textContent=$('live-timetable-settings-status').textContent=
+    messageT+(missing?' · '+t('englishNamesMissing'):'');
   $('live-cool-status').textContent=$('live-cool-settings-status').textContent=messageC;
 }
 function renderLiveAccount(){
