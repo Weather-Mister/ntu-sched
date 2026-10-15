@@ -219,12 +219,13 @@
 <dialog id="mail-dialog" class="dialog mailx-dialog" aria-labelledby="mail-dialog-heading">
 <div class="mailx-shell">
 <header class="mailx-topbar">
-<div class="mailx-brand"><span class="mailx-brand-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><h2 id="mail-dialog-heading" class="mailx-title" data-mail-i18n="mail">Campus Mail</h2><span class="mailx-demo-badge" data-mail-i18n="previewStatus">Preview</span></div>
-
+<div class="mailx-brand"><span class="mailx-brand-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><h2 id="mail-dialog-heading" class="mailx-title" data-mail-i18n="mail">Campus Mail</h2></div>
 <button class="mailx-compose-main" type="button" data-mail-i18n="compose" disabled>＋ Compose</button>
-<button class="mailx-icon-button mailx-refresh-button" type="button" title="Refresh (available after integration)" aria-label="Refresh mail (available after integration)" disabled><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
 <span class="mailx-account-switch" title="Current Campus Week account">NTU</span>
+<div class="mailx-header-tools" role="group" aria-label="Mail controls">
 <a class="mailx-top-action mailx-official-link" href="https://wmail1.cc.ntu.edu.tw/rc/index.php" target="_blank" rel="noopener noreferrer external" data-mail-i18n="officialMail">Official NTU Mail ↗</a>
+<button class="mailx-icon-button mailx-refresh-button" type="button" title="Refresh" aria-label="Refresh" disabled><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+</div>
 <button class="mailx-icon-button mailx-close" id="mail-close" type="button" aria-label="Close Mail"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
 </header>
 <nav class="mailx-mobile-tabs" aria-label="Mail folders">
