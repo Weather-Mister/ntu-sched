@@ -50,6 +50,7 @@
 </div>
 </section>
 <div id="app-screen" class="app-shell" hidden>
+<section class="dashboard-hero" aria-label="Campus Week overview">
 <header class="topbar">
 <div><p class="eyebrow" data-i18n="headerEyebrow">NTU · CAMPUS WEEK PREVIEW</p><h1 data-i18n="mySchedule">My Schedule</h1></div>
 <div class="topbar-actions">
@@ -62,6 +63,8 @@
 <div class="next-copy"><p id="next-label" class="eyebrow">UP NEXT</p><div id="next-title" class="next-title">—</div><p id="next-meta" class="next-meta"></p><p id="next-countdown" class="next-relative">—</p></div>
 <div class="next-badge"><strong id="next-badge-day">—</strong><small id="next-badge-time">—</small></div>
 </section>
+</section>
+<section class="week-section" aria-label="Week and day navigation">
 <nav class="week-toolbar" aria-label="Date navigation">
 <div class="week-caption"><span class="eyebrow" data-i18n="week">Week</span><strong id="week-range" class="week-range" aria-live="polite"></strong></div>
 <div class="week-actions">
@@ -71,19 +74,9 @@
 <span class="calendar-picker"><svg aria-hidden="true"><use href="#i-week"/></svg><label class="sr-only" for="choose-date" data-i18n="chooseDate">Choose date</label><input id="choose-date" type="date" aria-label="Choose date"></span>
 </div>
 </nav>
-<main class="workspace">
-<aside class="day-rail">
-<p class="eyebrow" data-i18n="week">Week</p>
-<div id="day-strip" class="day-strip" aria-label="Choose day"></div>
-<section class="rail-ntu">
-<h3>NTU</h3>
-<nav class="ntu-grid" aria-label="NTU shortcuts">
-<a class="ntu-link" href="https://my.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon"><svg aria-hidden="true"><use href="#i-home"/></svg></span>myNTU</a>
-<a class="ntu-link" href="https://cool.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon cool"><svg aria-hidden="true"><use href="#i-cool"/></svg></span>NTU COOL</a>
-<button class="ntu-link" type="button" data-open-mail aria-label="Open Campus Mail"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><span data-mail-i18n="mail">Campus Mail</span></button>
-</nav>
+<div class="day-strip-row"><div id="day-strip" class="day-strip" aria-label="Choose day"></div></div>
 </section>
-</aside>
+<main class="workspace">
 <section class="schedule-column" aria-labelledby="selected-day">
 <div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><span id="class-count" class="section-side"></span></div>
 <div id="schedule-list" class="schedule-list" aria-live="polite"></div>
@@ -97,24 +90,28 @@
 <div id="cool-list" class="cool-list" role="tabpanel" aria-labelledby="cool-assignments-tab"></div>
 <p id="cool-preview-note" class="preview-footnote" data-i18n="sampleDeadlines">Illustrative events and deadlines; not connected to COOL.</p>
 </section>
+<aside class="side-column" aria-label="Tasks and shortcuts">
 <section class="tasks-column" aria-labelledby="tasks-heading">
 <div class="section-head"><div><p class="eyebrow" data-i18n="toDo">TO DO</p><h3 id="tasks-heading" data-i18n="manualTasks">Manual tasks</h3></div><span id="task-count" class="section-side"></span></div>
+
+<div id="todo-list" class="todo-list" aria-live="polite"></div>
 <form id="task-form" class="todo-form">
 <label for="task-input" class="sr-only" data-i18n="newTask">New task</label><input id="task-input" type="text" maxlength="140" autocomplete="off" placeholder="Add a task…">
 <button type="submit" class="button primary small" data-i18n="add">Add</button>
 </form>
-<div id="todo-list" class="todo-list" aria-live="polite"></div>
 <p class="preview-footnote" data-i18n="tasksOnly">Preview tasks stay in memory and disappear on reload.</p>
 </section>
-</main>
-<section class="mobile-ntu" aria-labelledby="mobile-ntu-heading">
-<h3 id="mobile-ntu-heading">NTU</h3>
+
+<section class="shortcuts-panel">
+<div class="shortcuts-heading"><div><p class="eyebrow" data-i18n="campusAccessEyebrow">QUICK ACCESS</p><h3 data-i18n="campusShortcuts">Campus shortcuts</h3></div></div>
 <nav class="ntu-grid" aria-label="NTU shortcuts">
 <a class="ntu-link" href="https://my.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon"><svg aria-hidden="true"><use href="#i-home"/></svg></span>myNTU</a>
 <a class="ntu-link" href="https://cool.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon cool"><svg aria-hidden="true"><use href="#i-cool"/></svg></span>NTU COOL</a>
 <button class="ntu-link" type="button" data-open-mail aria-label="Open Campus Mail"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><span data-mail-i18n="mail">Campus Mail</span></button>
 </nav>
 </section>
+</aside>
+</main>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
 <dialog id="lesson-dialog" class="dialog detail-dialog" aria-labelledby="lesson-dialog-name">
