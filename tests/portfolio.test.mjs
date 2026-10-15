@@ -191,3 +191,13 @@ test('cookie language support is limited to the known NTU globe and course page'
   assert.equal(portfolioLanguageRequest(globe, base, 'unknown'), null);
   assert.equal(portfolioLanguageRequest(documentFrom('<button onclick="submitPassword()">English</button>'), base, 'en'), null);
 });
+
+test('ePortfolio optional offering identifiers survive import without being confused with course names', () => {
+  const html='<table><tr><th>課程名稱</th><th>課號</th><th>流水號</th><th>班次</th><th>課程識別碼</th><th>上課時間</th></tr>'+
+    '<tr><td>工程數學上</td><td>ME2001</td><td>12345</td><td>02</td><td>502 21100</td><td>一2,3</td></tr></table>';
+  const session=parsePortfolioTimetable(html).sessions[0];
+  assert.equal(session.code,'ME2001');
+  assert.equal(session.serial,'12345');
+  assert.equal(session.section,'02');
+  assert.equal(session.courseIdentifier,'502 21100');
+});
