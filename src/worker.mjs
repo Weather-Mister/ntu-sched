@@ -6,6 +6,7 @@ import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications } from './mail-store.mjs';
 import { mailReference } from './mail-content.mjs';
+import { translateMail } from './mail-translation.mjs';
 import { pushConfiguration, subscribe } from './mail-push.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
@@ -113,6 +114,7 @@ export default {
         if(path==='/api/mail/list'&&request.method==='GET')return json({...owner,...await listMail(env,current,url)});
         if(path==='/api/mail/message'&&request.method==='GET')return json({...owner,...await readMail(env,current,url)});
         if(path==='/api/mail/attachment'&&request.method==='GET')return await attachment(env,current,url);
+        if(path==='/api/mail/translate'&&request.method==='POST')return json({...owner,...await translateMail(env,current,await readJson(request))});
         if(path==='/api/mail/send'&&request.method==='POST')return json({...owner,...await sendMail(env,current,await readJson(request,220000))});
         if(path==='/api/mail/send/check'&&request.method==='POST')return json({...owner,...await checkSend(env,current,(await readJson(request)).id)});
         if(path==='/api/mail/action'&&request.method==='POST'){
