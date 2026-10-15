@@ -3,6 +3,7 @@ import { verifyNtuMail } from './ntu-mail.mjs';
 import { savedTimetable, syncTimetable, refreshDueTimetables } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
+import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -102,6 +103,15 @@ export default {
       if (path === '/api/connections' && request.method === 'GET') {
         const current = await session(request, env);
         return json({ connections: await connections(env, current.student_id) });
+      }
+      if (path === '/api/events' || path.startsWith('/api/events/')) {
+        const current=await session(request,env,request.method!=='GET'),owner={studentNumber:current.student_number};
+        if(new URL(request.url).search)throw new ApiError(400,'invalid_event','Event requests do not accept query parameters.');
+        if(path==='/api/events'&&request.method==='GET')return json({...owner,events:await listEvents(env,current.student_id)});
+        if(path==='/api/events'&&request.method==='POST')return json({...owner,event:await createEvent(env,current.student_id,await readJson(request))},201);
+        const id=/^\/api\/events\/([^/]+)$/.exec(path)?.[1];
+        if(id&&['PATCH','DELETE'].includes(request.method))return json({...owner,event:await changeEvent(env,current.student_id,id,await readJson(request),request.method==='DELETE')});
+        throw new ApiError(404,'not_found','This event action is not available.');
       }
       if (path === '/api/tasks' || path.startsWith('/api/tasks/')) {
         const current = await session(request, env, request.method !== 'GET');

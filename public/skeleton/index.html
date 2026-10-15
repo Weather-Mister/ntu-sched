@@ -91,9 +91,10 @@
 </section>
 <main class="workspace">
 <section class="schedule-column" aria-labelledby="selected-day">
-<div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><span id="class-count" class="section-side"></span></div>
+<div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><div class="section-action"><span id="class-count" class="section-side"></span><button id="add-event" type="button" class="button primary small">＋ Add event</button></div></div>
 <p id="live-timetable-status" class="live-sync-status" role="status" hidden></p>
 <div id="schedule-list" class="schedule-list" aria-live="polite"></div>
+<div class="personal-event-status"><p id="events-status" class="preview-footnote" role="status"></p><button id="events-retry" class="button small" type="button" hidden>Retry</button><button id="events-undo" class="button small" type="button" hidden>Undo remove</button></div>
 <section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
 <div class="week-timetable-title">
 <div><p class="eyebrow" data-i18n="calendarLabel">TIMETABLE</p><h2 id="week-timetable-heading" data-i18n="weeklyTimetable">Weekly timetable</h2></div>
@@ -145,6 +146,19 @@
 </main>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
+<dialog id="event-dialog" class="dialog event-dialog" aria-labelledby="event-heading">
+<form id="event-form" class="detail-sheet event-form">
+<button id="event-close" type="button" class="icon-button dialog-close" aria-label="Close">×</button>
+<p class="eyebrow" data-event-copy="personal">PERSONAL EVENT</p><h2 id="event-heading">Add event</h2>
+<label for="event-title" data-event-copy="name">Event name</label><input id="event-title" type="text" maxlength="140" required autocomplete="off" placeholder="e.g. Study group">
+<label for="event-location" data-event-copy="location">Location (optional)</label><input id="event-location" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Main Library">
+<div class="event-fields"><div><label for="event-date" id="event-date-label">Date</label><input id="event-date" type="date" min="2000-01-01" max="2199-12-31" required></div><div><label for="event-frequency" data-event-copy="repeat">Repeat</label><select id="event-frequency"><option value="once" data-event-copy="once">One time</option><option value="weekly" data-event-copy="weekly">Every week</option></select></div></div>
+<div class="event-fields"><div><label for="event-start" data-event-copy="start">Start time</label><input id="event-start" type="time" required></div><div><label for="event-end" data-event-copy="end">End time</label><input id="event-end" type="time" required></div></div>
+<fieldset id="event-weekly" hidden><legend data-event-copy="days">Repeat on</legend><div id="event-days" class="event-days"></div><label for="event-until" data-event-copy="until">Repeat until (optional)</label><input id="event-until" type="date" min="2000-01-01" max="2199-12-31"><p class="preview-footnote" data-event-copy="series">Changes apply to the whole weekly event.</p></fieldset>
+<details><summary data-event-copy="notes">Notes (optional)</summary><label class="sr-only" for="event-notes" data-event-copy="notes">Notes (optional)</label><textarea id="event-notes" rows="3" maxlength="500"></textarea></details>
+<p id="event-help" class="preview-footnote"></p><p id="event-error" class="event-error" role="alert" hidden></p>
+<div class="event-footer"><button id="event-remove" type="button" class="button small danger" hidden>Remove event</button><span></span><button id="event-cancel" type="button" class="button" data-event-copy="cancel">Cancel</button><button id="event-save" type="submit" class="button primary" data-event-copy="save">Save event</button></div>
+</form></dialog>
 <dialog id="lesson-dialog" class="dialog detail-dialog" aria-labelledby="lesson-dialog-name">
 <div class="detail-sheet">
 <button id="close-lesson" class="icon-button dialog-close" aria-label="Close" type="button"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
