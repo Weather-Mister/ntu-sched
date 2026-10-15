@@ -3,30 +3,54 @@ import { Roundcube, roundcubeEnvironment, roundcubeFormInputs, roundcubeSendResu
 import { mailReference, mailText, messageFromPage, sanitizeMail, rootHeaders, validateSend, buildMime } from './mail-content.mjs';
 import { pushConfiguration,sendPush } from './mail-push.mjs';
 const clock=()=>Date.now();
+const MAIL_SESSION_TTL_MS=3*60*1000;
 function retryError(){const e=new ApiError(429,'mail_busy','Mail is updating. Please try again in a few seconds.');e.retryAfterSeconds=5;return e;}
-export async function withMailbox(env,owner,work){
+export async function withMailbox(env,owner,work,{retryRead=false}={}){
  const id=owner.student_id,lease=crypto.randomUUID(),time=clock();
  await env.DB.prepare('INSERT OR IGNORE INTO mail_state(student_id) VALUES(?)').bind(id).run();
  const row=await env.DB.prepare('UPDATE mail_state SET lease=?,lease_until=? WHERE student_id=? AND lease_until<? RETURNING *').bind(lease,time+180000,id,time).first();
  if(!row)throw retryError();
- let s,success=false;
+ let s,issuedAt=0,success=false;
  try{
   const auth=await env.DB.prepare("SELECT encrypted_authorization FROM student_connections WHERE student_id=? AND provider='ntu_mail' AND status='authorized'").bind(id).first();
   if(!auth)throw new ApiError(401,'reauthorize','Sign in again to connect NTU Mail.');
   const credentials=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,id,'ntu_mail',auth.encrypted_authorization);
-  s=new Roundcube(credentials);
-  if(row.upstream)try{const saved=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,id,'mail_session',row.upstream);if(saved.expires>time){s.cookies=new Map(saved.cookies);s.env=saved.env;s.folders=saved.folders;}}catch{}
-  if(!s.env.request_token)await s.login();
-  const result=await work(s,row);success=true;return result;
+  const newSession=()=>new Roundcube({...credentials});
+  s=newSession();
+  if(row.upstream)try{
+   const saved=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,id,'mail_session',row.upstream);
+   // A fixed age, not a sliding expiry: a busy mailbox must still rotate its NTU session.
+   // Old saved sessions have no issuedAt and are intentionally discarded.
+   if(Number.isFinite(saved.issuedAt)&&saved.issuedAt>0&&saved.issuedAt<=time&&time-saved.issuedAt<MAIL_SESSION_TTL_MS&&
+      Array.isArray(saved.cookies)&&saved.env?.request_token){
+    s.cookies=new Map(saved.cookies);s.env=saved.env;s.folders=saved.folders;issuedAt=saved.issuedAt;
+   }
+  }catch{}
+  if(!s.env.request_token){await s.login();issuedAt=clock();}
+  let result;
+  try{result=await work(s,row);}
+  catch(error){
+   // Retry only idempotent reads: moving mail or sending may have succeeded upstream.
+   if(!retryRead||!['ntu_session_expired','ntu_action_failed'].includes(error?.code))throw error;
+   s.close();s=newSession();await s.login();issuedAt=clock();
+   result=await work(s,row);
+  }
+  success=true;return result;
  }catch(error){
-  if(error.code==='ntu_session_expired'||error.code==='reauthorize')await env.DB.prepare('UPDATE mail_state SET upstream=NULL WHERE student_id=? AND lease=?').bind(id,lease).run();
-  if(error.code==='ntu_session_expired'||error.code==='reauthorize')throw new ApiError(409,error.code,error.code==='ntu_session_expired'?'NTU Mail session expired. Please retry.':'Sign in again to reconnect NTU Mail.');
+  if(['ntu_session_expired','ntu_action_failed','reauthorize'].includes(error?.code))
+   await env.DB.prepare('UPDATE mail_state SET upstream=NULL WHERE student_id=? AND lease=?').bind(id,lease).run();
+  if(error?.code==='ntu_session_expired'||error?.code==='reauthorize')
+   throw new ApiError(409,error.code,error.code==='ntu_session_expired'?'NTU Mail session expired. Please retry.':'Sign in again to reconnect NTU Mail.');
+  if(error?.code==='ntu_action_failed')
+   throw new ApiError(409,'ntu_action_failed','NTU rejected this mail action. Refresh Mail and retry.');
   throw error;
  }finally{
-  try{if(success&&s){const retained={};for(const key of ['request_token','task','username','mailboxes','sent_mailbox','drafts_mailbox','trash_mailbox','junk_mailbox','archive_mailbox'])if(s.env[key]!==undefined)retained[key]=s.env[key];
-   const encrypted=await encryptAuthorization(env.NTU_CREDENTIAL_KEY,id,'mail_session',{cookies:[...s.cookies],env:retained,folders:s.folders,expires:clock()+25*60000});
+  try{if(success&&s){
+   const retained={};for(const key of ['request_token','task','username','mailboxes','sent_mailbox','drafts_mailbox','trash_mailbox','junk_mailbox','archive_mailbox'])if(s.env[key]!==undefined)retained[key]=s.env[key];
+   const encrypted=await encryptAuthorization(env.NTU_CREDENTIAL_KEY,id,'mail_session',{cookies:[...s.cookies],env:retained,folders:s.folders,issuedAt,expires:issuedAt+MAIL_SESSION_TTL_MS});
    await env.DB.prepare('UPDATE mail_state SET upstream=?,lease=NULL,lease_until=0 WHERE student_id=? AND lease=?').bind(encrypted,id,lease).run();
-  }else await env.DB.prepare('UPDATE mail_state SET lease=NULL,lease_until=0 WHERE student_id=? AND lease=?').bind(id,lease).run();}finally{s?.close();}
+  }else await env.DB.prepare('UPDATE mail_state SET lease=NULL,lease_until=0 WHERE student_id=? AND lease=?').bind(id,lease).run();
+  }finally{s?.close();}
  }
 }
 export async function listMail(env,owner,url){
@@ -40,7 +64,7 @@ export async function listMail(env,owner,url){
   const result={folder,mailbox,page,hasMore:data.hasMore,count:data.count,messages:data.rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailText(r.columns.subject)||'(No subject)',from:mailText(r.columns.from||r.columns.to),date:mailText(r.columns.date),unread:!r.flags.seen,starred:!!r.flags.flagged,attachment:!!(r.flags.attachment||r.columns.attachment) }))};
   if(folder==='inbox'&&!query&&page===1)await env.DB.prepare('UPDATE mail_state SET inbox=?,inbox_at=? WHERE student_id=?').bind(JSON.stringify(result),clock(),owner.student_id).run();
   return {...result,updatedAt:clock()};
- });
+ },{retryRead:true});
 }
 export async function readMail(env,owner,url){
  const ref=mailReference(url.searchParams.get('mailbox'),url.searchParams.get('uid'));
@@ -48,7 +72,7 @@ export async function readMail(env,owner,url){
   const html=await(await s.fetch('?'+new URLSearchParams({_task:'mail',_action:'show',_mbox:ref.mailbox,_uid:ref.uid,_safe:'1',_token:s.env.request_token}),{},2*1024*1024)).text();
   const message=messageFromPage(html,ref),headers=await rootHeaders(s,ref);
   return {...message,body:undefined,html:sanitizeMail(message.body,url.searchParams.get('images')==='1'),replyTo:headers.replyTo};
- });
+ },{retryRead:true});
 }
 export async function attachment(env,owner,url){
  const ref=mailReference(url.searchParams.get('mailbox'),url.searchParams.get('uid')),part=url.searchParams.get('part');
@@ -60,7 +84,7 @@ export async function attachment(env,owner,url){
   if(Number(response.headers.get('content-length'))>limit){await response.body?.cancel();throw new ApiError(413,'attachment_too_large','Open attachments over 20 MB in official NTU Mail.');}
   const stream=response.body.pipeThrough(new TransformStream({transform(chunk,controller){size+=chunk.length;if(size>limit)controller.error(new Error('Attachment limit exceeded'));else controller.enqueue(chunk);}}));
   return new Response(stream,{headers:{'Content-Type':'application/octet-stream','Content-Disposition':response.headers.get('content-disposition')||'attachment; filename="attachment"','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"}});
- });
+ },{retryRead:true});
 }
 async function findMessage(s,folder,messageId){
  const list=await s.list(folder,1,messageId,'','base','text');
