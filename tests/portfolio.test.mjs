@@ -60,3 +60,69 @@ test('blocked destination diagnostics exclude ticket query strings and secret va
     });
   } finally { globalThis.fetch = original; }
 });
+
+
+test('ePortfolio DIV-based English control supplies official course translations', async () => {
+  const original = globalThis.fetch;
+  const portal = 'https://portal.aca.ntu.edu.tw';
+  const login = 'https://web2.cc.ntu.edu.tw/p/s/login2/p1.php';
+  const overview = portal + '/eportfolio/course-overview';
+  let englishRequests = 0, credentialPosts = 0;
+  const zh = '<div role="button" class="language-selector" onclick="window.location.href=&quot;/eportfolio/course-overview?lang=en&quot;">English</div>'+
+    '<table><tr><th>課程名稱</th><th>課號</th><th>上課時間</th><th>教室</th></tr>'+
+    '<tr><td>靜力學</td><td>ME101</td><td>一2,3</td><td>繡山講堂</td></tr></table>';
+  const en = '<table><tr><th>Course Name</th><th>Course Code</th><th>Time</th><th>Room</th></tr>'+
+    '<tr><td>Statics</td><td>ME101</td><td>一2,3</td><td>繡山講堂</td></tr></table>';
+  globalThis.fetch = async (address, options) => {
+    const url = String(address);
+    if (options.method === 'POST') {
+      assert.equal(url, login);
+      credentialPosts++;
+      return new Response(null, { status: 302, headers: { Location: portal+'/eportfolio/basic-info' } });
+    }
+    if (url === login) return new Response('<form action="p1.php" method="post"><input name="user"><input type="password" name="pass"></form>');
+    if (url === portal+'/eportfolio/basic-info') return new Response('<h1>Basic info</h1>');
+    if (url === overview) {
+      if (!credentialPosts) return new Response(null, { status: 302, headers: { Location: login } });
+      return new Response(zh);
+    }
+    if (url === overview+'?lang=en') { englishRequests++;return new Response(en); }
+    throw new Error('Unexpected mock request: '+url);
+  };
+  try {
+    const result = await readNtuTimetable('b12345678','synthetic-password');
+    assert.equal(credentialPosts,1);
+    assert.equal(englishRequests,1);
+    assert.equal(result.sessions.length,1);
+    assert.equal(result.sessions[0].title,'靜力學');
+    assert.equal(result.sessions[0].titleZh,'靜力學');
+    assert.equal(result.sessions[0].titleEn,'Statics');
+    assert.equal(result.sessions[0].code,'ME101');
+  } finally { globalThis.fetch = original; }
+});
+
+test('language switch accepts a data-url DIV but rejects unsafe actions', async () => {
+  const { portfolioLanguageUrl } = await import('../src/portfolio-language.mjs');
+  const { documentFrom } = await import('../src/portfolio-html.mjs');
+  const base = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
+  const doc = html => documentFrom(html);
+  assert.equal(
+    portfolioLanguageUrl(doc('<div role="button" aria-label="English" data-url="/eportfolio/course-overview?lang=en"></div>'),base,'en').href,
+    base+'?lang=en'
+  );
+  assert.equal(
+    portfolioLanguageUrl(doc('<div onclick="window.location.assign(\\'/eportfolio/course-overview?lang=en\\')"><span>English</span></div>'),base,'en').href,
+    base+'?lang=en'
+  );
+  for (const invalid of [
+    'https://evil.example/eportfolio/course-overview?lang=en',
+    '/eportfolio/delete?lang=en',
+    '/eportfolio/course-overview?action=delete',
+    'javascript:alert(1)',
+    '/eportfolio/course-overview?ticket=secret'
+  ]) {
+    const control=doc('<div aria-label="English" data-url="'+invalid+'"></div>');
+    assert.equal(portfolioLanguageUrl(control,base,'en'),null);
+  }
+  assert.equal(portfolioLanguageUrl(doc('<div onclick="submitPassword()">English</div>'),base,'en'),null);
+});
