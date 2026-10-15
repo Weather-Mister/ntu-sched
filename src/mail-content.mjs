@@ -3,6 +3,29 @@ import { ApiError } from './security.mjs';
 import { roundcubeEnvironment } from './mail-roundcube.mjs';
 const text=value=>parseHTML('<html><body>'+String(value||'')+'</body></html>').document.body.textContent.trim();
 export { text as mailText };
+// Roundcube sends HTML fragments for list columns. Some skins append a
+// screen-reader-only external-window link to the subject column.
+export function mailListText(value,{subject=false}={}){
+ const raw=String(value??'');
+ const {document}=parseHTML('<html><body>'+raw+'</body></html');
+ const body=document.body;
+ for(const element of [...body.querySelectorAll('*')]){
+  if(!element.isConnected)continue;
+  const classes=String(element.getAttribute('class')||'');
+  if(element.getAttribute('aria-hidden')==='true'||/\b(?:sr-only|visually-hidden|screen-reader-text|sr_only|screenreader)\b/i.test(classes)){
+   element.remove();continue;
+  }
+  if(subject&&/^(?:open in (?:a )?new window|open in new tab|在新視窗開啟)$/i.test(element.textContent.trim())){
+   // Remove the smallest standalone annotation, never its containing subject.
+   if(![...element.children].some(child=>child.textContent.trim()===element.textContent.trim()))element.remove();
+  }
+ }
+ let valueText=body.textContent.replace(/\s+/g,' ').trim();
+ if(subject&&/<[a-z][\s>]/i.test(raw))
+  valueText=valueText.replace(/\s+(?:open in (?:a )?new window|open in new tab|在新視窗開啟)$/i,'').trim();
+ return valueText;
+}
+
 export function mailReference(folder,uid){
  if(typeof folder!=='string'||!folder||folder.length>200||/[\r\n\0]/.test(folder)||!/^\d{1,10}$/.test(String(uid))||Number(uid)<1||Number(uid)>4294967295)throw new ApiError(400,'invalid_mail','Invalid mail reference.');
  return {mailbox:folder,uid:String(uid)};
