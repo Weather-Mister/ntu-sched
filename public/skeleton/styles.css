@@ -204,3 +204,104 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,3vw,31px);line-height:1.05;lette
  .workspace .tasks-column .todo-list{order:2}
  .workspace .tasks-column .preview-footnote{order:3}
 }
+
+/* Optional time-based timetable. Shared across both viewport sizes; hidden by default. */
+.timetable-view-switch{
+  display:inline-flex;align-items:center;gap:2px;flex:none;
+  padding:3px;border:1px solid var(--line);border-radius:11px;background:var(--panel);
+}
+.timetable-view-switch button{
+  min-height:29px;padding:5px 11px;border:0;border-radius:8px;
+  background:transparent;color:var(--muted);font-size:11px;font-weight:800;white-space:nowrap;
+}
+.timetable-view-switch button[aria-pressed=true]{
+  background:var(--card);color:var(--accent);box-shadow:0 1px 5px #0000000d;
+}
+.week-timetable{
+  display:flex;flex-direction:column;min-height:0;min-width:0;
+  overflow:hidden;background:var(--card);border:1px solid var(--line);
+  border-radius:17px;box-shadow:0 2px 8px #24252905;
+}
+.week-timetable-title{
+  display:flex;justify-content:space-between;align-items:center;
+  flex:0 0 auto;gap:12px;min-height:64px;padding:13px 17px;
+  border-bottom:1px solid var(--line);
+}
+.week-timetable-title .eyebrow{font-size:10px;margin:0 0 3px}
+.week-timetable-title h2{font-size:19px;line-height:1.2;margin:0}
+.week-timetable-range{color:var(--muted);font-size:12px;font-weight:750}
+.week-timetable-scroll{
+  flex:1 1 auto;min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:#c6c6bc transparent;
+}
+.week-timetable-grid{display:grid;grid-template-rows:39px auto;width:100%}
+.timetable-corner{
+  grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:8;
+  background:var(--card);border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.timetable-day-head{
+  position:sticky;top:0;z-index:6;display:flex;align-items:center;justify-content:center;gap:5px;
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  background:var(--card);color:var(--muted);font-size:12px;
+}
+.timetable-day-head strong{font-size:12px;color:var(--text)}
+.timetable-day-head.is-today{color:var(--accent);background:var(--accent-soft)}
+.timetable-day-head.is-selected{box-shadow:inset 0 -2px var(--accent)}
+.timetable-time-rail{
+  position:sticky;left:0;z-index:4;background:var(--card);
+  border-right:1px solid var(--line);font-variant-numeric:tabular-nums;
+}
+.timetable-hour{
+  position:absolute;right:7px;display:block;transform:translateY(-50%);
+  font-size:10px;line-height:1;color:var(--muted);
+}
+.timetable-day-track{
+  position:relative;min-width:0;
+  border-right:1px solid var(--line);
+  background-image:linear-gradient(to bottom,var(--line) 1px,transparent 1px);
+  background-size:100% var(--hour-height,56.4px);
+  background-repeat:repeat;
+}
+.timetable-lesson{
+  position:absolute;display:flex;flex-direction:column;justify-content:flex-start;
+  gap:3px;min-width:0;overflow:hidden;
+  padding:7px 9px;text-align:left;border:1px solid var(--lesson-border);
+  border-radius:8px;background:var(--lesson-bg);color:var(--lesson-ink);
+  font-size:11px;line-height:1.25;
+  box-shadow:0 1px 2px #00000008;
+}
+.timetable-lesson:hover{filter:brightness(.975);border-color:currentColor;z-index:3}
+.timetable-lesson:focus-visible{z-index:5}
+.timetable-lesson-time{font-size:10px;line-height:1.12;color:inherit;opacity:.86;white-space:nowrap}
+.timetable-lesson-title{display:block;min-width:0;font-size:11px;line-height:1.24;overflow-wrap:anywhere}
+.timetable-lesson-room{display:block;min-width:0;font-size:10px;opacity:.72;line-height:1.22;overflow-wrap:anywhere}
+.timetable-lesson.is-short{gap:2px;padding:4px 6px}
+.timetable-lesson.is-short .timetable-lesson-room{display:none}
+.timetable-lesson[data-color="0"]{--lesson-bg:#e7efdf;--lesson-border:#cbdcc2;--lesson-ink:#35553d}
+.timetable-lesson[data-color="1"]{--lesson-bg:#f1e7d8;--lesson-border:#dfccb2;--lesson-ink:#775239}
+.timetable-lesson[data-color="2"]{--lesson-bg:#ece5f0;--lesson-border:#d5c7df;--lesson-ink:#684879}
+.timetable-lesson[data-color="3"]{--lesson-bg:#e1ebf1;--lesson-border:#c4d7e3;--lesson-ink:#42647f}
+.timetable-lesson[data-color="4"]{--lesson-bg:#e8eddf;--lesson-border:#cdd9bf;--lesson-ink:#495e39}
+.timetable-lesson[data-color="5"]{--lesson-bg:#f1e4e4;--lesson-border:#e2c9c9;--lesson-ink:#7c5059}
+.timetable-lesson[data-color="6"]{--lesson-bg:#e0ebeb;--lesson-border:#c5d9d7;--lesson-ink:#426c69}
+body[data-theme=dark] .timetable-lesson[data-color="0"],
+body[data-theme=dark] .timetable-lesson[data-color="4"]{--lesson-bg:#304538;--lesson-border:#54715b;--lesson-ink:#e1f3df}
+body[data-theme=dark] .timetable-lesson[data-color="1"],
+body[data-theme=dark] .timetable-lesson[data-color="5"]{--lesson-bg:#4d3b3a;--lesson-border:#80645a;--lesson-ink:#f6e5d8}
+body[data-theme=dark] .timetable-lesson[data-color="2"]{--lesson-bg:#40354f;--lesson-border:#69567e;--lesson-ink:#f0e1fb}
+body[data-theme=dark] .timetable-lesson[data-color="3"]{--lesson-bg:#304657;--lesson-border:#55758d;--lesson-ink:#e2f3ff}
+body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--lesson-border:#527f7a;--lesson-ink:#e0f5ef}
+@media(min-width:791px){
+  .week-timetable{grid-column:1;grid-row:3;height:100%}
+}
+@media(max-width:790px){
+  /* The existing mobile Day view stays intact. Only its optional view picker adds a row. */
+  .week-section .week-toolbar{flex-wrap:wrap;row-gap:6px}
+  .week-section .week-actions{flex-wrap:wrap;justify-content:flex-end}
+  .week-section .timetable-view-switch{margin-right:auto}
+  .week-section .timetable-view-switch button{padding:4px 10px;min-height:28px}
+  .week-timetable{height:min(75dvh,660px);min-height:390px;margin-bottom:14px}
+  .week-timetable-title{padding:12px;min-height:54px}
+  .week-timetable-title h2{font-size:16px}
+  .week-timetable-range{font-size:11px}
+}
