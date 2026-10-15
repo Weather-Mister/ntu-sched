@@ -81,7 +81,7 @@ export async function listMail(env,owner,url){
  return withMailbox(env,owner,async s=>{
   const mailbox=['inbox','unread','starred'].includes(folder)?'INBOX':s.folders[folder==='archived'?'archive':folder];
   const filter=folder==='unread'?'UNSEEN':folder==='starred'?'FLAGGED':'';
-  const mapped=rows=>rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailListText(r.columns.subject,{subject:true})||'(No subject)',from:mailListText(r.columns.from||r.columns.fromto||r.columns.sender||r.columns.to),
+  const mapped=rows=>rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailListText(r.columns.subject,{subject:true})||'(No subject)',from:[r.columns.from,r.columns.fromto,r.columns.sender,r.columns.to].map(value=>mailListText(value)).find(Boolean)||'',
    date:mailListText(r.columns.date),snippet:mailListText(r.columns.snippet||r.columns.preview||r.columns.text||''),unread:!r.flags.seen,
    starred:!!r.flags.flagged,attachment:!!(r.flags.attachment||r.columns.attachment)}));
   let result;
