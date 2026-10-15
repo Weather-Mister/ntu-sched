@@ -112,6 +112,6 @@ export async function refreshMailNotifications(env){
     if(failed)throw new ApiError(502,'push_retry','Notification delivery will retry.');
    }
    if(!old||latest<old.uid)await env.DB.prepare('UPDATE mail_push SET notified_uid=? WHERE student_id=?').bind(latest,owner.student_id).run();
-   await env.DB.prepare('UPDATE mail_state SET baseline=?,checked_at=?,next_check=?,failures=0,last_error=NULL,inbox_at=0 WHERE student_id=?').bind(JSON.stringify({uid:latest}),clock(),clock()+290000,owner.student_id).run();
+   await env.DB.prepare('UPDATE mail_state SET baseline=?,checked_at=?,next_check=?,failures=0,last_error=NULL,inbox_at=0 WHERE student_id=?').bind(JSON.stringify({uid:latest}),clock(),Math.floor(clock()/300000)*300000+300000,owner.student_id).run();
   });}catch(error){await env.DB.prepare('UPDATE mail_state SET next_check=?,failures=failures+1,last_error=? WHERE student_id=?').bind(clock()+(error.code==='reauthorize'?365*86400000:Math.min(3600000,300000*2**Math.min(4,(await env.DB.prepare('SELECT failures FROM mail_state WHERE student_id=?').bind(owner.student_id).first())?.failures||0))),['reauthorize','ntu_session_expired'].includes(error.code)?'Sign in again to reconnect NTU Mail.':'Mail checks will retry automatically.',owner.student_id).run();}}
 }
