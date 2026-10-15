@@ -1,7 +1,7 @@
 import { CookieJar } from './ntu-cookies.mjs';
 import { ApiError } from './security.mjs';
 import { documentFrom, parsePortfolioTimetable, combineNames } from './portfolio-html.mjs';
-import { portfolioLanguageUrl } from './portfolio-language.mjs';
+import { portfolioLanguageRequest } from './portfolio-language.mjs';
 
 export const TIMETABLE_URL = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
 const LOGIN_ORIGIN = 'https://web2.cc.ntu.edu.tw';
@@ -59,7 +59,11 @@ export async function readNtuTimetable(studentNumber, password, { beforeCredenti
       if (!allowed(url)) throw stopped(url);
       if (++requests > 24) throw new ApiError(502, 'timetable_redirect_loop', 'NTU sign-in did not finish within the supported number of steps. Your saved timetable has not changed.');
       const headers = new Headers({ 'User-Agent': 'Campus-Week/1.0', Accept: 'text/html,application/xhtml+xml' });
-      const cookie = jar.header(url); if (cookie) headers.set('Cookie', cookie);
+      let cookie = jar.header(url);
+      if (['en', 'zh'].includes(initial.language) && url.origin === PORTAL_ORIGIN && canonicalPath(url) === '/eportfolio/course-overview') {
+        cookie = [...cookie.split(';').map(pair => pair.trim()).filter(pair => pair && pair.split('=')[0] !== 'lang'), `lang=${initial.language}`].join('; ');
+      }
+      if (cookie) headers.set('Cookie', cookie);
       if (method === 'POST') { headers.set('Content-Type', 'application/x-www-form-urlencoded'); headers.set('Origin', initial.source.origin); headers.set('Referer', initial.source.href); }
       const response = await fetch(url, { method, body, headers, redirect: 'manual', signal: controller.signal });
       jar.receive(response.headers, url);
@@ -118,14 +122,14 @@ export async function readNtuTimetable(studentNumber, password, { beforeCredenti
     if (page.url.origin !== PORTAL_ORIGIN || canonicalPath(page.url) !== '/eportfolio/course-overview' || page.document.querySelector('input[type="password"]')) throw new ApiError(409, 'timetable_credentials_required', 'NTU did not complete ePortfolio sign-in. Enter your myNTU password to connect your timetable.');
     const result = parsePortfolioTimetable(page.html);
     // ePortfolio may use a DIV, button or anchor for its language control.
-    // Read only a literal, same-origin course-overview destination declared by
-    // that control. We do not execute its JavaScript or invent translations.
+    // Read its declared course-overview URL or the known same-page lang cookie
+    // used by NTU's globe. Never execute provider JS or invent translations.
     for (const language of ['en', 'zh']) {
       if (!result.sessions.some(s => language === 'en' ? !s.titleEn : !s.titleZh)) continue;
-      const alternate = portfolioLanguageUrl(page.document, page.url, language);
+      const alternate = portfolioLanguageRequest(page.document, page.url, language);
       if (!alternate) continue;
       try {
-        const view = await request(alternate);
+        const view = await request(alternate.url, { language: alternate.language });
         if (view.url.origin === PORTAL_ORIGIN && canonicalPath(view.url) === '/eportfolio/course-overview') {
           result.sessions = combineNames(result.sessions, parsePortfolioTimetable(view.html).sessions);
         }

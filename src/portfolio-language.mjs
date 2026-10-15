@@ -62,3 +62,20 @@ export function portfolioLanguageUrl(document, currentUrl, language) {
   }
   return null;
 }
+
+export function portfolioLanguageRequest(document, currentUrl, language) {
+  const url = portfolioLanguageUrl(document, currentUrl, language);
+  if (url) return { url };
+  if (!labels[language]) return null;
+  const base = new URL(currentUrl);
+  if (base.origin !== PORTAL || base.pathname.replace(/\/+$/, '') !== PATH ||
+    base.username || base.password) return null;
+  // NTU's init.js binds .eng/.zh clicks to setCookie('lang', lang, 30),
+  // then reloads the current URL. These globe controls have no href/onclick.
+  // Reproduce only this known read-only language preference within the sync.
+  const selector = language === 'en' ? '.ic-earth.eng' : '.ic-earth.zh';
+  if ([...document.querySelectorAll(selector)].some(node => intent(node, language))) {
+    return { url: base, language };
+  }
+  return null;
+}

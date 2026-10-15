@@ -126,3 +126,68 @@ test('language switch accepts a data-url DIV but rejects unsafe actions', async 
   }
   assert.equal(portfolioLanguageUrl(doc('<div onclick="submitPassword()">English</div>'),base,'en'),null);
 });
+
+for (const initialLanguage of ['zh', 'en']) {
+  test(`NTU's same-page globe cookie imports both names from a ${initialLanguage}-first timetable`, async () => {
+    const original = globalThis.fetch;
+    const overview = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
+    const login = 'https://web2.cc.ntu.edu.tw/p/s/login2/p1.php';
+    const names = { zh: '測試課程', en: 'Official Fixture Course' };
+    const page = lang => '<a class="ic-earth eng video"><video></video>English</a>'+
+      '<div class="ic-earth zh video">中文</div><table class="time-table">'+
+      '<tr><th></th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr>'+
+      ['2', '3'].map(period => '<tr><td>'+period+'</td><td><div class="course-detail">'+
+        '<p class="course-name">'+names[lang]+'</p><p class="course-teacher">'+
+        (lang === 'en' ? 'FIXTURE TEACHER' : '測試老師')+'</p></div></td><td></td><td></td><td></td><td></td></tr>').join('')+'</table>';
+    let authenticated = false, posts = 0;
+    const views = [];
+    globalThis.fetch = async (address, options) => {
+      const url = String(address), cookie = options.headers.get('Cookie') || '';
+      if (url === login) {
+        assert.doesNotMatch(cookie, /lang=|portfolio_session=/);
+        if (options.method === 'POST') {
+          posts++; authenticated = true;
+          return new Response(null, { status: 302, headers: { Location: overview } });
+        }
+        return new Response('<form action="p1.php" method="post"><input name="user"><input type="password" name="pass"></form>');
+      }
+      assert.equal(url, overview); // The globe reloads this exact URL, with no invented query.
+      if (!authenticated) return new Response(null, { status: 302, headers: { Location: login } });
+      if (!cookie.includes('portfolio_session=')) {
+        const headers = new Headers();
+        headers.append('Set-Cookie', 'portfolio_session=synthetic; Path=/; Secure; HttpOnly');
+        headers.append('Set-Cookie', 'lang='+initialLanguage+'; Path=/');
+        return new Response(page(initialLanguage), { headers });
+      }
+      assert.match(cookie, /portfolio_session=synthetic/);
+      const preferences = cookie.split(';').map(p => p.trim()).filter(p => p.startsWith('lang='));
+      assert.equal(preferences.length, 1); // Replace, rather than append a duplicate preference.
+      const lang = preferences[0].slice(5); views.push(lang);
+      return new Response(page(lang));
+    };
+    try {
+      const result = await readNtuTimetable('b12345678', 'synthetic-password');
+      assert.equal(posts, 1);
+      assert.ok(views.includes(initialLanguage === 'zh' ? 'en' : 'zh'));
+      assert.equal(result.sessions.length, 1);
+      assert.equal(result.sessions[0].title, names[initialLanguage]);
+      assert.equal(result.sessions[0].titleEn, names.en);
+      assert.equal(result.sessions[0].titleZh, names.zh);
+      assert.equal(result.sessions[0].start, 550);
+      assert.equal(result.sessions[0].end, 670);
+      assert.equal(result.sessions[0].room, '');
+    } finally { globalThis.fetch = original; }
+  });
+}
+
+test('cookie language support is limited to the known NTU globe and course page', async () => {
+  const { portfolioLanguageRequest } = await import('../src/portfolio-language.mjs');
+  const { documentFrom } = await import('../src/portfolio-html.mjs');
+  const base = 'https://portal.aca.ntu.edu.tw/eportfolio/course-overview';
+  const globe = documentFrom('<div class="ic-earth eng video">English</div>');
+  assert.equal(portfolioLanguageRequest(globe, base, 'en').language, 'en');
+  assert.equal(portfolioLanguageRequest(globe, 'https://example.com/eportfolio/course-overview', 'en'), null);
+  assert.equal(portfolioLanguageRequest(globe, 'https://portal.aca.ntu.edu.tw/eportfolio/basic-info', 'en'), null);
+  assert.equal(portfolioLanguageRequest(globe, base, 'unknown'), null);
+  assert.equal(portfolioLanguageRequest(documentFrom('<button onclick="submitPassword()">English</button>'), base, 'en'), null);
+});
