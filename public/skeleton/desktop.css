@@ -1,119 +1,163 @@
-/* Desktop-only Campus Week layout.
-   The shared/mobile sheet owns layouts up to 790px.
-   Desktop intentionally uses: one compact hero row, one calendar row,
-   and a flexible three-column content area. */
+/* Campus Week desktop composition.
+   Desktop layout is independent. Shared styles retain the existing mobile view. */
 @media (min-width:791px) {
-  html,body{height:100%;overflow:hidden}
-  .app-shell{
-    width:min(1760px,100%);height:100dvh;margin:auto;padding:14px 22px;
+  html,body {height:100%;overflow:hidden}
+  .app-shell {
+    width:min(1760px,100%);height:100dvh;margin:auto;overflow:hidden;
     display:grid;grid-template-columns:minmax(0,1fr);
-    grid-template-rows:76px 44px minmax(0,1fr);
-    gap:12px;overflow:hidden;min-height:0;
+    grid-template-rows:auto 60px minmax(0,1fr);
+    gap:11px;padding:15px 24px;min-height:0;
   }
-  .app-shell>.login-footer{display:none}
-  /* Header uses one row, rather than stacking a huge full-width banner. */
-  .dashboard-hero{
-    display:grid;grid-template-columns:minmax(175px,.52fr) minmax(0,1.85fr) auto;
-    grid-template-rows:minmax(0,1fr);align-items:stretch;gap:14px;min-width:0;
-    margin:0;padding:0;background:none;border:0;box-shadow:none;
-  }
-  .dashboard-hero .topbar{display:contents}
-  .dashboard-hero .topbar>div:first-child{
-    grid-column:1;grid-row:1;align-self:center;min-width:0;
-  }
-  .dashboard-hero .topbar h1{font-size:clamp(24px,2vw,30px);line-height:1.05}
-  .dashboard-hero .topbar .eyebrow{font-size:10px;line-height:1.25;margin:0 0 3px}
-  .dashboard-hero .topbar-actions{
-    grid-column:3;grid-row:1;align-self:start;display:flex;gap:6px;
-    min-width:0;padding-top:2px;
-  }
-  .dashboard-hero .topbar-actions .icon-button{
-    width:36px;height:36px;min-height:36px;border-radius:10px;background:var(--card);
-  }
-  .dashboard-hero .language-toggle{border:1px solid var(--line);padding:2px}
-  .dashboard-hero .language-toggle button{min-height:29px;padding:5px 8px}
-  .dashboard-hero .next-class{
-    grid-column:2;grid-row:1;min-width:0;min-height:0;max-height:none;
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    margin:0;padding:10px 15px;border-radius:16px;background:var(--banner);
-    box-shadow:none;overflow:hidden;
-  }
-  .dashboard-hero .next-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
-  .dashboard-hero .next-class .eyebrow{font-size:9px;margin:0 0 2px}
-  .dashboard-hero .next-title{
-    font-size:clamp(14px,1.2vw,17px);font-weight:800;line-height:1.2;
-    margin:0 0 3px;overflow-wrap:anywhere;
-  }
-  .dashboard-hero .next-meta{font-size:10px;color:#c5cede;line-height:1.3;overflow-wrap:anywhere}
-  .dashboard-hero .next-relative{font-size:10px;font-weight:800;margin:3px 0 0;color:#eff2fa}
-  .dashboard-hero .next-badge{
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-width:86px;max-width:120px;flex:none;gap:2px;
-    padding:8px 10px;border:1px solid #ffffff25;border-radius:11px;
-    background:#ffffff16;text-align:center;
-  }
-  .dashboard-hero .next-badge strong{font-size:12px;line-height:1.2}
-  .dashboard-hero .next-badge small{font-size:10px;color:#c7d0e1}
+  .app-shell>.login-footer {display:none}
 
-  /* Single line: Week / Mon-Sun / previous + Today + next + calendar. */
-  .week-section{
-    display:grid;grid-template-columns:minmax(105px,145px) minmax(0,1fr) auto;
-    grid-template-rows:44px;align-items:stretch;gap:10px;
-    margin:0;padding:0;min-width:0;min-height:0;background:none;border:0;
+  /* Clear hierarchy: title and controls first, full-width banner second. */
+  .dashboard-hero {
+    display:flex;flex-direction:column;gap:9px;min-width:0;
+    margin:0;padding:0;border:0;background:transparent;box-shadow:none;
   }
-  .week-section .week-toolbar{display:contents}
-  .week-section .week-caption{
+  .dashboard-hero .topbar {
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    flex:0 0 auto;min-height:47px;margin:0;padding:0 1px;
+  }
+  .dashboard-hero .topbar>div:first-child {min-width:0}
+  .dashboard-hero .topbar h1 {
+    margin:0;font-size:29px;line-height:1.05;letter-spacing:-.04em;
+  }
+  .dashboard-hero .topbar .eyebrow {
+    margin:0 0 3px;font-size:10px;line-height:1.25;
+  }
+  .dashboard-hero .topbar-actions {
+    display:flex;flex:none;align-items:center;gap:7px;
+  }
+  .dashboard-hero .topbar-actions .icon-button {
+    width:38px;height:38px;border-radius:12px;background:var(--card);
+  }
+  .dashboard-hero .language-toggle {
+    border:1px solid var(--line);padding:3px;border-radius:12px;
+  }
+  .dashboard-hero .language-toggle button {
+    min-height:30px;padding:5px 10px;
+  }
+  .dashboard-hero .next-class {
+    display:flex;flex:0 0 auto;justify-content:space-between;align-items:center;
+    gap:18px;width:100%;min-height:92px;max-height:none;
+    margin:0;padding:12px 19px;border-radius:17px;
+    background:var(--banner);box-shadow:none;
+  }
+  .dashboard-hero .next-copy {
+    display:flex;flex-direction:column;align-items:flex-start;min-width:0;
+  }
+  .dashboard-hero .next-class .eyebrow {
+    margin:0 0 4px;font-size:10px;line-height:1.2;
+  }
+  .dashboard-hero .next-title {
+    margin:0 0 4px;font-size:18px;font-weight:820;line-height:1.22;
+    max-width:100%;overflow-wrap:anywhere;
+  }
+  .dashboard-hero .next-meta {
+    font-size:11px;line-height:1.38;color:#c8d0df;overflow-wrap:anywhere;
+  }
+  .dashboard-hero .next-relative {
+    margin:4px 0 0;font-size:11px;font-weight:800;line-height:1.2;color:#f0f2f9;
+  }
+  .dashboard-hero .next-badge {
+    display:flex;flex:none;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;min-width:102px;max-width:155px;
+    padding:10px 12px;border:1px solid #ffffff28;
+    border-radius:12px;background:#ffffff16;text-align:center;
+  }
+  .dashboard-hero .next-badge strong {font-size:13px;line-height:1.2}
+  .dashboard-hero .next-badge small {
+    font-size:10px;line-height:1.25;color:#cad3e5;
+  }
+
+  /* The week row reads as one compact control, not seven unrelated boxes. */
+  .week-section {
+    display:grid;grid-template-columns:115px minmax(0,1fr) auto;
+    grid-template-rows:60px;align-items:center;gap:12px;
+    min-width:0;min-height:0;margin:0;padding:0;
+    background:transparent;border:0;
+  }
+  .week-section .week-toolbar {display:contents}
+  .week-section .week-caption {
     grid-column:1;grid-row:1;display:flex;flex-direction:column;
-    justify-content:center;align-items:flex-start;gap:2px;min-width:0;
+    justify-content:center;align-items:flex-start;min-width:0;gap:3px;padding-left:2px;
   }
-  .week-section .week-caption .eyebrow{font-size:9px;letter-spacing:.1em;margin:0}
-  .week-section .week-range{font-size:13px;font-weight:850;white-space:nowrap;min-width:0;text-align:left}
-  .week-section .day-strip-row{grid-column:2;grid-row:1;min-width:0;min-height:0}
-  .week-section .day-strip{
+  .week-section .week-caption .eyebrow {
+    margin:0;font-size:10px;letter-spacing:.12em;
+  }
+  .week-section .week-range {
+    min-width:0;font-size:14px;font-weight:820;
+    white-space:nowrap;text-align:left;
+  }
+  .week-section .day-strip-row {
+    grid-column:2;grid-row:1;min-width:0;min-height:0;
+  }
+  .week-section .day-strip {
     display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;
-    width:100%;height:44px;min-height:0;margin:0;padding:0;
+    height:60px;width:100%;padding:4px;margin:0;min-height:0;
+    border:1px solid var(--line);border-radius:16px;background:var(--panel);
   }
-  .week-section .day-button{
-    display:flex;flex-direction:row;align-items:center;justify-content:center;
-    gap:5px;min-width:0;min-height:0;height:44px;margin:0;
-    padding:5px 5px;border:1px solid var(--line);border-radius:11px;
-    background:var(--card);box-shadow:none;color:var(--muted);
-    text-align:center;
+  .week-section .day-button {
+    position:relative;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;min-width:0;min-height:0;height:50px;
+    margin:0;padding:5px 3px;border:1px solid transparent;
+    border-radius:11px;background:transparent;color:var(--muted);
+    box-shadow:none;text-align:center;
+    transition:background .12s ease,border-color .12s ease,color .12s ease;
   }
-  .week-section .day-button .day-name{font-size:11px;line-height:1.15;font-weight:800;white-space:nowrap}
-  .week-section .day-button .day-date{
-    font-size:16px;font-weight:850;line-height:1.15;letter-spacing:-.03em;
-    color:var(--text);
+  .week-section .day-button .day-name {
+    font-size:10px;line-height:1.1;font-weight:760;letter-spacing:.035em;
+    white-space:nowrap;color:inherit;
   }
-  .week-section .day-button .day-subtitle{display:none}
-  .week-section .day-button:hover{background:var(--accent-soft);border-color:#aebfdb}
-  .week-section .day-button.active{
-    color:white;background:#263f77;border-color:#263f77;box-shadow:0 2px 6px #263f7725;
+  .week-section .day-button .day-date {
+    font-size:18px;line-height:1.1;font-weight:850;
+    letter-spacing:-.025em;color:var(--text);
   }
-  .week-section .day-button.active .day-date{color:white}
-  .week-section .day-button.today:not(.active){background:var(--accent-soft);color:var(--accent);border-color:#b8c7e2}
-  .week-section .day-button.today:not(.active) .day-date{color:var(--accent)}
-  .week-section .week-actions{
-    grid-column:3;grid-row:1;display:flex;justify-content:flex-end;align-items:center;
-    gap:5px;min-width:0;margin:0;
+  .week-section .day-button .day-subtitle {display:none}
+  .week-section .day-button:hover:not(.active) {
+    background:var(--card);border-color:var(--line);color:var(--accent);
   }
-  .week-section .week-actions .icon-button,.week-section .calendar-picker{
-    display:grid;place-items:center;position:relative;
-    width:35px;height:35px;min-height:35px;border:1px solid var(--line);
-    border-radius:10px;background:var(--card);color:var(--text);
+  .week-section .day-button.active {
+    background:#263f77;border-color:#263f77;color:white;
+    box-shadow:0 2px 7px #243d6e20;
   }
-  .week-section .week-actions .button{
-    height:35px;min-height:35px;padding:5px 11px;border-radius:10px;font-size:11px;
+  .week-section .day-button.active .day-date {color:white}
+  .week-section .day-button.today:not(.active) {
+    background:var(--accent-soft);border-color:#c0cce2;color:var(--accent);
   }
-  .week-section .calendar-picker>svg{width:16px;height:16px}
-  .week-section .calendar-picker input{
+  .week-section .day-button.today:not(.active) .day-date {color:var(--accent)}
+  .week-section .day-button.today:not(.active)::after {
+    content:"";position:absolute;top:5px;right:7px;
+    width:4px;height:4px;border-radius:50%;background:var(--accent);
+  }
+  .week-section .week-actions {
+    grid-column:3;grid-row:1;display:flex;align-items:center;
+    justify-content:flex-end;gap:5px;min-width:0;margin:0;
+  }
+  .week-section .week-actions .icon-button,.week-section .calendar-picker {
+    position:relative;display:grid;place-items:center;
+    width:36px;height:36px;min-height:36px;
+    padding:0;border:1px solid var(--line);
+    border-radius:11px;background:var(--card);color:var(--text);
+  }
+  .week-section .week-actions .button {
+    height:36px;min-height:36px;padding:5px 13px;border-radius:11px;
+    font-size:11px;font-weight:800;
+  }
+  .week-section .week-actions .button:hover,
+  .week-section .week-actions .icon-button:hover {
+    background:var(--accent-soft);
+  }
+  .week-section .calendar-picker>svg {width:16px;height:16px}
+  .week-section .calendar-picker input {
     position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
   }
-  .week-section .calendar-picker input::-webkit-calendar-picker-indicator{
+  .week-section .calendar-picker input::-webkit-calendar-picker-indicator {
     position:absolute;inset:0;width:100%;height:100%;padding:0;margin:0;cursor:pointer;
   }
 
-  /* Panels have room because the header + calendar use only 132px. */
+  /* Content columns use the available space and only their lists scroll. */
   .workspace{
     display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.95fr);
     grid-template-rows:minmax(0,1fr);gap:12px;margin:0;padding:0;
@@ -208,45 +252,54 @@
   .shortcuts-panel .ntu-icon svg{width:13px;height:13px}
 }
 @media (min-width:791px) and (max-width:1100px) {
-  .app-shell{padding:12px 15px;grid-template-rows:72px 40px minmax(0,1fr);gap:9px}
-  .dashboard-hero{grid-template-columns:minmax(145px,.5fr) minmax(0,1.5fr) auto;gap:9px}
-  .dashboard-hero .topbar h1{font-size:23px}
-  .dashboard-hero .next-class{padding:8px 10px}
-  .dashboard-hero .next-badge{min-width:70px;padding:6px}
-  .dashboard-hero .next-title{font-size:13px}
-  .dashboard-hero .next-meta{font-size:9px}
-  .week-section{grid-template-columns:minmax(88px,105px) minmax(0,1fr) auto;grid-template-rows:40px;gap:6px}
-  .week-section .day-strip,.week-section .day-button{height:40px}
-  .week-section .day-button{gap:2px;padding:4px 2px}
-  .week-section .day-button .day-name{font-size:10px}
-  .week-section .day-button .day-date{font-size:13px}
-  .week-section .week-actions{gap:3px}
-  .week-section .week-actions .icon-button,.week-section .calendar-picker{width:30px;height:31px;min-height:31px}
-  .week-section .week-actions .button{height:31px;min-height:31px;padding:3px 8px}
-  .workspace{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,.78fr);gap:9px}
-  .workspace>.schedule-column{grid-column:1;grid-row:1/3}
-  .workspace>.cool-column{grid-column:2;grid-row:1}
-  .workspace>.side-column{grid-column:2;grid-row:2}
-  .side-column{grid-template-columns:minmax(0,1fr) minmax(145px,.7fr);grid-template-rows:minmax(0,1fr);gap:9px}
-  .side-column>.tasks-column{grid-column:1;grid-row:1}
-  .side-column>.shortcuts-panel{grid-column:2;grid-row:1}
-  .workspace .schedule-column,.workspace .cool-column,.workspace .tasks-column,.workspace .shortcuts-panel{padding:10px}
-  .workspace .section-head{padding:0 0 7px;margin:0 0 7px}
-  .workspace .section-head h2{font-size:21px}
-  .workspace .section-head h3{font-size:15px}
-  .shortcuts-panel .ntu-grid{grid-template-columns:1fr;gap:4px}
-  .shortcuts-panel .ntu-link{justify-content:flex-start;min-height:30px;padding:3px 5px;font-size:10px}
-  .shortcuts-heading h3{font-size:13px}
-  .shortcuts-panel .ntu-icon{width:20px;height:20px}
+  .app-shell {padding:12px 15px;gap:9px}
+  .dashboard-hero .topbar {min-height:43px}
+  .dashboard-hero .topbar h1 {font-size:25px}
+  .dashboard-hero .next-class {min-height:83px;padding:10px 15px}
+  .dashboard-hero .next-title {font-size:15px}
+  .dashboard-hero .next-badge {min-width:88px}
+  .week-section {grid-template-columns:97px minmax(0,1fr) auto;gap:7px}
+  .week-section .week-range {font-size:12px}
+  .week-section .day-strip {gap:3px}
+  .week-section .day-button .day-name {font-size:9px}
+  .week-section .day-button .day-date {font-size:16px}
+  .week-section .week-actions {gap:3px}
+  .week-section .week-actions .icon-button,
+  .week-section .calendar-picker {width:31px;height:34px;min-height:34px}
+  .week-section .week-actions .button {height:34px;min-height:34px;padding:4px 9px}
+  .workspace {grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,.78fr);gap:9px}
+  .workspace>.schedule-column {grid-column:1;grid-row:1/3}
+  .workspace>.cool-column {grid-column:2;grid-row:1}
+  .workspace>.side-column {grid-column:2;grid-row:2}
+  .side-column {grid-template-columns:minmax(0,1fr) minmax(140px,.7fr);grid-template-rows:minmax(0,1fr);gap:9px}
+  .side-column>.tasks-column {grid-column:1;grid-row:1}
+  .side-column>.shortcuts-panel {grid-column:2;grid-row:1}
+  .workspace .schedule-column,.workspace .cool-column,
+  .workspace .tasks-column,.workspace .shortcuts-panel {padding:10px}
+  .workspace .section-head {padding:0 0 7px;margin:0 0 7px}
+  .workspace .section-head h2 {font-size:21px}
+  .workspace .section-head h3 {font-size:15px}
+  .shortcuts-panel .ntu-grid {grid-template-columns:1fr;gap:4px}
+  .shortcuts-panel .ntu-link {justify-content:flex-start;min-height:30px;padding:3px 5px;font-size:10px}
+  .shortcuts-heading h3 {font-size:13px}
+  .shortcuts-panel .ntu-icon {width:20px;height:20px}
 }
-@media (min-width:791px) and (max-height:620px) {
-  .app-shell{grid-template-rows:66px 37px minmax(0,1fr);gap:7px;padding-top:8px;padding-bottom:8px}
-  .dashboard-hero .topbar h1{font-size:22px}
-  .dashboard-hero .next-title{font-size:13px}
-  .week-section{grid-template-rows:37px}
-  .week-section .day-button,.week-section .day-strip{height:37px}
-  .workspace .schedule-column,.workspace .cool-column,.workspace .tasks-column,.workspace .shortcuts-panel{padding:9px}
-  .workspace .section-head{padding-bottom:6px;margin-bottom:6px}
-  .shortcuts-panel{gap:5px}
-  .shortcuts-panel .ntu-link{min-height:33px;padding:4px}
+@media (min-width:791px) and (max-height:640px) {
+  .app-shell {gap:8px;padding-top:9px;padding-bottom:9px}
+  .dashboard-hero {gap:6px}
+  .dashboard-hero .topbar {min-height:40px}
+  .dashboard-hero .topbar h1 {font-size:24px}
+  .dashboard-hero .next-class {min-height:77px;padding:9px 15px}
+  .dashboard-hero .next-title {font-size:16px}
+  .week-section {grid-template-rows:54px}
+  .week-section .day-strip {height:54px}
+  .week-section .day-button {height:44px}
+  .workspace .schedule-column,.workspace .cool-column,
+  .workspace .tasks-column,.workspace .shortcuts-panel {padding:9px}
+  .workspace .section-head {padding-bottom:6px;margin-bottom:6px}
+  .shortcuts-panel {gap:5px}
+  .shortcuts-panel .ntu-link {min-height:33px;padding:4px}
+}
+@media (prefers-reduced-motion:reduce) and (min-width:791px) {
+  .week-section .day-button {transition:none}
 }
