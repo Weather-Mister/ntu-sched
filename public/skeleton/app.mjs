@@ -1,5 +1,6 @@
 // Campus Week theme-ready interface: fictional preview and opt-in live NTU data.
-import { account, mapTimetable, mapCalendar, studentFromAccount } from './live-source.mjs';
+import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
+import { formatPeriods } from '/ntu-periods.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
 const profiles = {
@@ -40,6 +41,7 @@ const dict={
     next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your sample timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
     dayView:'Day',weekView:'Week',weeklyTimetable:'Weekly timetable',calendarLabel:'CLASS TIMETABLE',weekViewScroll:'Weekly timetable; scroll vertically or sideways to explore classes',
     liveEntryHeading:'Or use your real NTU account',liveEntryDesc:'Connect through the existing Campus Week account and backend.',restoreSession:'Use existing session',signInNtu:'Sign in to NTU',realAccount:'REAL NTU ACCOUNT',realLoginExplanation:'Uses the existing secure Campus Week login and the same timetable/COOL backend as the original site.',studentNumber:'NTU student number',ntuPassword:'NTU Mail password',accountSecurity:'Only sign in on your trusted Campus Week HTTPS address. Your password is not saved by this page.',timetableConnection:'Timetable connection',coolConnection:'COOL connection',syncTimetable:'Sync timetable',syncCool:'Sync COOL',realAssignmentsNote:'Live COOL calendar · open in COOL to submit or verify',realAnnouncementsNote:'Announcements are not available from the connected calendar yet.',noCalendar:'No connected COOL calendar. Select Refresh or connect from Settings.',liveNoAssignments:'No upcoming calendar deadlines.',liveNoTimetable:'No saved classes yet. Use Settings → Timetable → Sync timetable.',
+    doneLocally:'Marked done here only; this does not submit to COOL.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
     assignments:'Assignments',announcements:'Announcements',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',campusAccessEyebrow:'CAMPUS',campusShortcuts:'Campus shortcuts',freeDay:'Free',
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
@@ -53,12 +55,14 @@ const dict={
     next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的範例課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
     dayView:'單日',weekView:'整週',weeklyTimetable:'每週課表',calendarLabel:'課程時間表',weekViewScroll:'每週課表；可上下及左右捲動查看課程',
     liveEntryHeading:'或使用真正的臺大帳號',liveEntryDesc:'使用現有 Campus Week 帳號與後端連線。',restoreSession:'使用現有登入狀態',signInNtu:'登入臺大帳號',realAccount:'真實臺大帳號',realLoginExplanation:'沿用既有安全的 Campus Week 登入與課表、COOL 後端。',studentNumber:'臺大學號',ntuPassword:'臺大郵件密碼',accountSecurity:'請只在可信任的 Campus Week HTTPS 網址登入；此頁不會儲存密碼。',timetableConnection:'課表連線',coolConnection:'COOL 連線',syncTimetable:'同步課表',syncCool:'同步 COOL',realAssignmentsNote:'來自 COOL 的行事曆；提交與狀態以 COOL 為準',realAnnouncementsNote:'COOL 行事曆不包含公告，目前尚未連接公告。',noCalendar:'尚無 COOL 行事曆，請按重新整理或至設定連線。',liveNoAssignments:'目前沒有近期行事曆截止日期。',liveNoTimetable:'尚無已儲存課表，請到設定 → 課表同步。',
+    doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
     assignments:'作業',announcements:'公告',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',campusAccessEyebrow:'校園',campusShortcuts:'校園捷徑',freeDay:'無課',
     days:['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],shortDays:['週一','週二','週三','週四','週五','週六','週日']
   }
 };
 let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,liveTimetableInfo='',liveCoolInfo='';
+let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
 function iso(date){return date.toISOString().slice(0,10);}
@@ -245,6 +249,7 @@ function renderCalendar(){
     const btn=node('button','lesson');btn.type='button';
     if(selectedDate===today){btn.classList.toggle('live',lessonState(c,selectedDate)===t('live'));btn.classList.toggle('completed',lessonState(c,selectedDate)===t('completed'));}
     const clock=node('span','lesson-time');clock.append(node('strong','',c[1]),node('span','',c[2]));
+    const period=lessonPeriod(c);if(period)clock.append(node('small','lesson-period',period));
     const card=node('span','lesson-card');card.dataset.color=String(student.courses.indexOf(c)%7);
     card.append(node('span','lesson-name',c[language==='zh'?4:3]),node('span','lesson-room',c[5]));
     if(items.some(other=>other!==c&&other[1]<c[2]&&c[1]<other[2]))card.append(node('span','state-pill',t('overlap')));
@@ -265,6 +270,42 @@ const announcements={
     ['Updated tutorial information','助教課資訊更新','Statistics','統計學',5]
   ]
 };
+// Use the same official NTU period boundaries and format as the production timetable.
+function lessonPeriod(c){return formatPeriods(minutes(c[1]),minutes(c[2]),language==='zh'?'zh-TW':'en',true);}
+function addCoolCheck(card,key,doneStore,save=()=>{}){
+  const done=doneStore.has(key);
+  card.classList.add('cool-checkable');
+  card.classList.toggle('done',done);
+  const control=node('button','cool-done-button'+(done?' is-done':''),'✓');
+  control.type='button';control.setAttribute('aria-pressed',String(done));
+  control.setAttribute('aria-label',t(done?'markUndone':'markDone'));
+  control.title=t('doneLocally');
+  control.addEventListener('click',()=>{
+    if(doneStore.has(key))doneStore.delete(key);else doneStore.add(key);
+    save();renderDeadlines();
+  });
+  card.append(control);
+}
+async function coolDoneKey(studentNumber){
+  const data=new TextEncoder().encode('campus-week-v1\\0'+studentNumber);
+  const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',data));
+  return 'campus-week-cool-done-v1-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function restoreCoolChecks(current,epoch){
+  try{
+    const key=await coolDoneKey(current.studentNumber);
+    if(!liveMode||epoch!==liveEpoch)return;
+    coolDoneStorageKey=key;
+    const raw=JSON.parse(localStorage.getItem(key)||'[]');
+    coolDone=new Set(Array.isArray(raw)?raw.filter(x=>typeof x==='string'&&x.length<=512).slice(0,500):[]);
+    renderDeadlines();
+  }catch{if(epoch===liveEpoch){coolDoneStorageKey='';coolDone=new Set();}}
+}
+function saveCoolChecks(){
+  if(!liveMode||!coolDoneStorageKey)return;
+  try{localStorage.setItem(coolDoneStorageKey,JSON.stringify([...coolDone].slice(0,500)))}catch{}
+}
+
 function renderDeadlines(){
   const list=$('cool-list');list.replaceChildren();if(!student)return;
   if(liveMode){renderLiveDeadlines();return;}
@@ -367,7 +408,7 @@ function populateLesson(c,key){
 }
 function showLesson(c,key){opened={c,key};populateLesson(c,key);$('lesson-dialog').showModal();}
 function leavePreview(){
-  liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveTimetableInfo='';liveCoolInfo='';
+  liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
@@ -505,12 +546,12 @@ async function readLiveSnapshots(){
 }
 function startLive(current){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
-  liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;
+  liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;
   if($('live-login-dialog').open)$('live-login-dialog').close();
-  renderLiveAccount();readLiveSnapshots();
+  renderLiveAccount();restoreCoolChecks(current,liveEpoch);readLiveSnapshots();
 }
 async function restoreLive(){
   $('live-restore').disabled=true;
@@ -570,7 +611,7 @@ async function endLiveAccount(){
 }
 
 function enterPreview(){
-  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;account.current=null;
+  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
   selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');
