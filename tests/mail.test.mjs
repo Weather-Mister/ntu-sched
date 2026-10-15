@@ -101,8 +101,8 @@ test('Roundcube external-window suffix is removed from plain, nested HTML, and c
  const cases=[
   ['Physics homework Open in new window','Physics homework'],
   ['Physics homeworkOpen in new window','Physics homework'],
-  ['Physics homework\\u00a0Open in new window','Physics homework'],
-  ['Physics homework\\u200bOpen in new window','Physics homework'],
+  ['Physics homework'+String.fromCharCode(160)+'Open in new window','Physics homework'],
+  ['Physics homework'+String.fromCharCode(0x200b)+'Open in new window','Physics homework'],
   ['<a href="?">Physics homework</a><span>Open in new window</span>','Physics homework'],
   ['<a href="?">Physics homework</a><span class="sr-only">Open in new window</span>','Physics homework'],
   ['<span>Physics homework</span> Open in new tab','Physics homework'],
