@@ -628,3 +628,9 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 }
 
 .cool-list .announcement-card{display:block;min-width:0}.announcement-card .cool-copy{display:block;min-width:0}.announcement-title{display:block;color:inherit;font-weight:800;text-decoration:none;overflow-wrap:anywhere;margin:6px 0}.announcement-title:hover{text-decoration:underline}.announcement-body summary{cursor:pointer;font-size:12px;margin-top:9px}.announcement-body p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:13px;max-height:340px;overflow:auto}.cool-list .announcement-card .cool-copy small{white-space:normal}
+
+/* Quiet status indicators sit inside each panel's upper-right corner. */
+.schedule-column,.cool-column,.tasks-column{position:relative}
+.sync-dot{position:absolute;inset-block-start:5px;inset-inline-end:5px;width:7px;height:7px;border-radius:50%;background:#b7bbb7;z-index:2}
+.sync-dot.is-synced{background:#42a76b;box-shadow:0 0 0 2px color-mix(in srgb,#42a76b 12%,transparent)}
+@media(max-width:790px){.sync-dot{inset-block-start:-5px;inset-inline-end:1px}}

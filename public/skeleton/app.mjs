@@ -49,7 +49,7 @@ const dict={
     doneLocally:'Marked done here only; this does not submit to COOL.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
     assignments:'Assignments',announcements:'Announcements',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',campusAccessEyebrow:'CAMPUS',campusShortcuts:'Campus shortcuts',freeDay:'Free',
     scheduleItem:'event',scheduleItems:'events',customEvent:'PERSONAL',
-    tasksSaved:'Saved to your student account · available on your other devices.',tasksLoading:'Loading your saved tasks…',tasksSaving:'Saving…',tasksLoadFailed:'Could not load tasks. Refresh tasks to try again.',tasksSaveFailed:'Could not confirm the save. Your last saved tasks are shown; please try again.',tasksConflict:'This task changed on another device. Latest tasks loaded; please try again.',tasksFull:'You have 500 tasks. Remove an old task before adding another.',tasksRetry:'Refresh tasks',tasksUndo:'Undo remove',removeTask:'Remove task',
+    tasksLoading:'Loading your saved tasks…',tasksSaving:'Saving…',tasksLoadFailed:'Could not load tasks. Refresh tasks to try again.',tasksSaveFailed:'Could not confirm the save. Your last saved tasks are shown; please try again.',tasksConflict:'This task changed on another device. Latest tasks loaded; please try again.',tasksFull:'You have 500 tasks. Remove an old task before adding another.',tasksRetry:'Refresh tasks',tasksUndo:'Undo remove',removeTask:'Remove task',
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
@@ -65,12 +65,13 @@ const dict={
     doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
     assignments:'作業',announcements:'公告',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',campusAccessEyebrow:'校園',campusShortcuts:'校園捷徑',freeDay:'無課',
     scheduleItem:'項行程',scheduleItems:'項行程',customEvent:'個人行程',
-    tasksSaved:'已儲存至你的學生帳號，可在其他裝置使用。',tasksLoading:'正在載入已儲存的任務…',tasksSaving:'儲存中…',tasksLoadFailed:'無法載入任務，請重新整理任務再試一次。',tasksSaveFailed:'無法確認是否已儲存，畫面保留上次儲存的任務，請再試一次。',tasksConflict:'此任務已在其他裝置變更，已載入最新任務，請再試一次。',tasksFull:'已達 500 項任務，請先移除舊任務。',tasksRetry:'重新整理任務',tasksUndo:'復原移除',removeTask:'移除任務',
+    tasksLoading:'正在載入已儲存的任務…',tasksSaving:'儲存中…',tasksLoadFailed:'無法載入任務，請重新整理任務再試一次。',tasksSaveFailed:'無法確認是否已儲存，畫面保留上次儲存的任務，請再試一次。',tasksConflict:'此任務已在其他裝置變更，已載入最新任務，請再試一次。',tasksFull:'已達 500 項任務，請先移除舊任務。',tasksRetry:'重新整理任務',tasksUndo:'復原移除',removeTask:'移除任務',
     days:['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],shortDays:['週一','週二','週三','週四','週五','週六','週日']
   }
 };
 let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,liveTimetableInfo='',liveCoolInfo='';
+let liveTimetableOk=false,liveCalendarOk=false;
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 const taskStore = new AccountTasks(account, {
@@ -327,6 +328,7 @@ function saveCoolChecks(){
 }
 
 function renderDeadlines(){
+  updateSyncDots();
   const list=$('cool-list'),expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));list.replaceChildren();if(!student)return;
   if(liveMode){renderLiveDeadlines(expanded);return;}
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
@@ -410,11 +412,13 @@ function renderLiveDeadlines(expanded=new Set()){
 }
 
 function renderTasks(){
+  updateSyncDots();
   const list=$('todo-list');list.replaceChildren();$('task-count').textContent=tasks.length+' '+(tasks.length===1?t('singleTask'):t('tasks'));
   const state=taskStore.state,busy=liveMode&&(!state.ready||state.saving);
   $('task-input').disabled=busy;$('task-form').querySelector('button[type="submit"]').disabled=busy;
   const errorKey=state.error?.code==='tasks_full'?'tasksFull':['task_changed','task_not_found'].includes(state.error?.code)?'tasksConflict':state.error?.phase==='load'?'tasksLoadFailed':'tasksSaveFailed';
-  $('tasks-status').textContent=t(!liveMode?'tasksOnly':state.error?errorKey:state.saving?'tasksSaving':state.loading?'tasksLoading':'tasksSaved');
+  const taskStatus=!liveMode?t('tasksOnly'):state.error?t(errorKey):state.saving?t('tasksSaving'):state.loading?t('tasksLoading'):'';
+  $('tasks-status').textContent=taskStatus;$('tasks-status').hidden=!taskStatus;
   $('tasks-retry').textContent=t('tasksRetry');$('tasks-retry').hidden=!liveMode||!state.error;$('tasks-retry').disabled=state.loading||state.saving;
   $('tasks-undo').textContent=t('tasksUndo');$('tasks-undo').hidden=!liveMode||!state.undo;$('tasks-undo').disabled=busy;
   if(!tasks.length){list.append(node('div','empty-card',liveMode&&!state.ready?t(state.error?'tasksLoadFailed':'tasksLoading'):t('noTasks')));return;}
@@ -471,7 +475,6 @@ function leavePreview(){
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
-  for(const id of ['live-timetable-status','live-cool-status'])$(id).hidden=true;
   $('app-screen').hidden=true;$('login-screen').hidden=false;$('preview-profile').focus();
 }
 /* Desktop panel resizing: widths are ratios, so they still adapt to window size.
@@ -560,16 +563,31 @@ const dashboardResize=(()=>{
 
 // Real data stays behind the existing Cloudflare account API and never enters theme storage.
 function liveNotice(e){return e?.message||(language==='zh'?'連線失敗':'Connection unavailable');}
+function updateSyncDots(){
+  const online=navigator.onLine!==false,tasksState=taskStore.state,announcements=announcementStore;
+  const entries=[
+    ['timetable',!!liveTimetable&&liveTimetableOk,liveTimetableInfo],
+    ['cool',coolView==='announcements'?!!announcements.items&&!announcements.error&&!announcements.loading&&!announcements.busy:!!liveCalendar&&liveCalendarOk,coolView==='announcements'?announcements.error?.message:liveCoolInfo],
+    ['tasks',tasksState.ready&&!tasksState.error&&!tasksState.saving&&!tasksState.loading,tasksState.error?(language==='zh'?'同步失敗':'Sync failed'):'']
+  ];
+  for(const [key,ready,detail]of entries){
+    const dot=$(key+'-sync-dot');dot.hidden=!liveMode;
+    const synced=liveMode&&online&&ready;
+    dot.classList.toggle('is-synced',!!synced);
+    const label=synced?(language==='zh'?'已同步':'Synced'):!online?(language==='zh'?'離線':'Offline'):detail||(language==='zh'?'尚未同步':'Not synced yet');
+    dot.title=label;dot.setAttribute('aria-label',label);
+  }
+}
 function updateLiveStatus(){
-  for(const id of ['live-timetable-status','live-cool-status'])$(id).hidden=!liveMode;
+  updateSyncDots();
   $('live-timetable-refresh').disabled=$('live-cool-refresh').disabled=!liveMode||livePending;
   if(!liveMode)return;
   const messageT=liveTimetableInfo||(liveTimetable?(language==='zh'?'已載入課表':'Saved timetable loaded'):t('liveNoTimetable'));
   const messageC=liveCoolInfo||(liveCalendar?(language==='zh'?'已載入 COOL 行事曆':'COOL calendar loaded'):t('noCalendar'));
   const missing=language==='en'&&liveTimetable?englishNameMissing(liveTimetable):0;
-  $('live-timetable-status').textContent=$('live-timetable-settings-status').textContent=
+  $('live-timetable-settings-status').textContent=
     messageT+(missing?' · '+t('englishNamesMissing'):'');
-  $('live-cool-status').textContent=$('live-cool-settings-status').textContent=messageC;
+  $('live-cool-settings-status').textContent=messageC;
 }
 function renderLiveAccount(){
   student=studentFromAccount(liveAccount,liveTimetable);
@@ -587,20 +605,20 @@ async function readLiveSnapshots(){
   const [tResult,cResult]=await Promise.allSettled([account.timetable(),account.coolCalendar()]);
   if(epoch!==liveEpoch||!liveMode)return;
   if(tResult.status==='fulfilled'){
-    liveTimetable=tResult.value.timetable||null;
+    liveTimetable=tResult.value.timetable||null;liveTimetableOk=tResult.value.connectionStatus==='authorized';
     liveTimetableInfo=tResult.value.connectionStatus==='reconnect_required'
       ?'Timetable reconnect required. Last saved classes are preserved.':'';
   }else{
     if(tResult.reason?.status===401){sessionExpired();return;}
-    liveTimetableInfo=liveNotice(tResult.reason);
+    liveTimetableInfo=liveNotice(tResult.reason);liveTimetableOk=false;
   }
   if(cResult.status==='fulfilled'){
-    liveCalendar=cResult.value.calendar||null;
+    liveCalendar=cResult.value.calendar||null;liveCalendarOk=cResult.value.connectionStatus==='authorized';
     liveCoolInfo=cResult.value.connectionStatus==='reconnect_required'
       ?'COOL reconnect required. Last saved deadlines are preserved.':'';
   }else{
     if(cResult.reason?.status===401){sessionExpired();return;}
-    liveCoolInfo=liveNotice(cResult.reason);
+    liveCoolInfo=liveNotice(cResult.reason);liveCalendarOk=false;
   }
   renderLiveAccount();
 }
@@ -626,16 +644,16 @@ async function restoreLive(){
 async function syncLive(which){
   if(!liveMode||!liveAccount||livePending)return;
   const epoch=liveEpoch;livePending=true;
-  if(which==='timetable')liveTimetableInfo='Checking NTU ePortfolio…';
-  else liveCoolInfo='Checking your COOL calendar…';
+  if(which==='timetable'){liveTimetableOk=false;liveTimetableInfo='Checking NTU ePortfolio…';}
+  else{liveCalendarOk=false;liveCoolInfo='Checking your COOL calendar…';}
   updateLiveStatus();
   try{
     const result=which==='timetable'
       ?await account.syncTimetable(undefined,undefined,true)
       :await account.syncCoolCalendar(undefined,undefined,true);
     if(epoch!==liveEpoch)return;
-    if(which==='timetable'){liveTimetable=result.timetable||liveTimetable;liveTimetableInfo='Timetable updated';}
-    else{liveCalendar=result.calendar||liveCalendar;liveCoolInfo='COOL calendar updated';}
+    if(which==='timetable'){liveTimetable=result.timetable||liveTimetable;liveTimetableOk=true;liveTimetableInfo='Timetable updated';}
+    else{liveCalendar=result.calendar||liveCalendar;liveCalendarOk=true;liveCoolInfo='COOL calendar updated';}
     renderLiveAccount();
   }catch(e){
     if(epoch!==liveEpoch)return;
@@ -731,6 +749,8 @@ $('lesson-dialog').addEventListener('close',()=>{opened=null;});
 setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();if(liveMode&&navigator.onLine!==false){void taskStore.refresh();eventUI.refresh();}}},30000);
 window.addEventListener('online',()=>{if(liveMode&&!document.hidden){void taskStore.refresh();eventUI.refresh();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});
+window.addEventListener('online',updateSyncDots);
+window.addEventListener('offline',updateSyncDots);
 renderTranslations();
 
 
