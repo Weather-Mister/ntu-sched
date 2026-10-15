@@ -162,6 +162,7 @@ function renderWeekTimetable(){
       block.style.left='calc('+(lane*pct)+'% + 3px)';
       block.style.width='calc('+pct+'% - 6px)';
       block.setAttribute('aria-label',longDate(key)+' · '+c[1]+'–'+c[2]+' · '+c[language==='zh'?4:3]+' · '+c[5]);
+      block.title=longDate(key)+' · '+c[1]+'–'+c[2]+' · '+c[language==='zh'?4:3]+' · '+c[5];
       block.append(node('small','timetable-lesson-time',c[1]+'–'+c[2]),
         node('strong','timetable-lesson-title',c[language==='zh'?4:3]),
         node('span','timetable-lesson-room',c[5]));
@@ -179,6 +180,38 @@ function setTimetableView(view){
   $('schedule-list').hidden=view==='week';
   $('week-timetable').hidden=view!=='week';
   if(student)renderCalendar();
+}
+
+// Expand only cards whose actual wrapped content needs more vertical room.
+// Other lessons retain the adaptive 70–116px desktop sizing.
+function fitLessonCards(){
+  if(!student||timetableView!=='day'||window.innerWidth<=790)return;
+  const list=$('schedule-list');
+  if(list.hidden||!list.isConnected)return;
+  const cards=[...list.querySelectorAll('.lesson')];
+  for(const button of cards){
+    button.style.removeProperty('min-height');
+    button.style.removeProperty('max-height');
+    button.style.removeProperty('flex');
+  }
+  for(const button of cards){
+    const card=button.querySelector('.lesson-card');
+    const parts=[...card.children].filter(n=>!n.classList.contains('lesson-arrow'));
+    const style=getComputedStyle(card);
+    const required=parts.reduce((sum,part)=>sum+part.scrollHeight,0)
+      +Math.max(0,parts.length-1)*parseFloat(style.rowGap||style.gap||0)
+      +parseFloat(style.paddingTop)+parseFloat(style.paddingBottom)
+      +parseFloat(style.borderTopWidth)+parseFloat(style.borderBottomWidth)+2;
+    if(required>button.getBoundingClientRect().height+1){
+      button.style.minHeight=Math.max(70,Math.ceil(required))+'px';
+      button.style.maxHeight='none';
+      button.style.flex='0 0 auto';
+    }
+  }
+}
+if(typeof ResizeObserver!=='undefined'){
+  new ResizeObserver(()=>{if(student&&timetableView==='day')fitLessonCards();})
+    .observe(document.querySelector('.schedule-column'));
 }
 
 function renderCalendar(){
@@ -214,6 +247,7 @@ function renderCalendar(){
     btn.append(clock,card);btn.addEventListener('click',()=>showLesson(c,selectedDate));list.append(btn);
   }
   renderWeekTimetable();
+  requestAnimationFrame(fitLessonCards);
 }
 const announcements={
   engineering:[
