@@ -116,7 +116,7 @@
   }
   .week-section .day-button .day-subtitle {display:none}
   .week-section .day-button:hover:not(.active) {
-    background:var(--card);border-color:var(--line);color:var(--accent);
+    background:var(--panel);border-color:var(--line);color:var(--text);
   }
   .week-section .day-button.active {
     background:#263f77;border-color:#263f77;color:white;
@@ -333,4 +333,55 @@
 }
 @media (prefers-reduced-motion:reduce) and (min-width:791px) {
   .week-section .day-button {transition:none}
+}
+
+/* Keep every section usable when desktop columns are resized. */
+@media (min-width:1101px) {
+  .workspace .schedule-column {container:schedule-panel / inline-size}
+  .workspace .cool-column {container:cool-panel / inline-size}
+  .workspace .shortcuts-panel {container:shortcuts-panel / inline-size}
+  .workspace .tasks-column {container:tasks-panel / inline-size}
+  .schedule-list .lesson-card {overflow:hidden}
+  .schedule-list .lesson-name,.schedule-list .lesson-room,
+  .cool-list .cool-copy strong,.cool-list .cool-copy small,
+  .tasks-column .todo-label {
+    min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;
+  }
+  .workspace .section-head>div:first-child {min-width:0}
+  .workspace .section-head h2,.workspace .section-head h3,
+  .shortcuts-heading h3 {overflow-wrap:anywhere}
+  .shortcuts-panel .ntu-link {overflow-wrap:anywhere;min-width:0}
+  .tasks-column .todo-row {grid-template-columns:29px minmax(0,1fr) 27px}
+  .tasks-column .todo-form input {min-width:0}
+  .timetable-day-head strong {min-width:0}
+}
+@container schedule-panel (max-width:350px) {
+  .schedule-list .lesson {grid-template-columns:47px minmax(0,1fr);gap:5px}
+  .schedule-list .lesson-card {padding-right:18px;padding-left:13px}
+  .schedule-list .lesson-time strong {font-size:11px}
+  .schedule-list .lesson-time span {font-size:10px}
+}
+@container cool-panel (max-width:345px) {
+  .cool-list .cool-item {grid-template-columns:34px minmax(0,1fr);column-gap:7px;row-gap:5px}
+  .cool-list .cool-due {grid-column:2;justify-self:start;white-space:normal;text-align:left}
+  .cool-list .cool-copy {grid-column:2;grid-row:1}
+  .cool-list .cool-date {grid-column:1;grid-row:1}
+}
+@container shortcuts-panel (max-width:365px) {
+  .shortcuts-panel .ntu-grid {grid-template-columns:1fr}
+  .shortcuts-panel .ntu-link {
+    justify-content:flex-start;text-align:left;min-height:34px;
+    padding:5px 8px;gap:8px;
+  }
+}
+@container tasks-panel (max-width:305px) {
+  .tasks-column .todo-row {grid-template-columns:25px minmax(0,1fr) 24px;gap:5px}
+  .tasks-column .todo-check,.tasks-column .todo-remove {width:25px;height:25px}
+  .tasks-column .todo-form {grid-template-columns:minmax(0,1fr) auto}
+  .tasks-column .todo-form .button {padding:5px 8px}
+}
+/* An outline inside the card remains visible despite scroll-container clipping. */
+.schedule-list .lesson:focus-visible {outline:none}
+.schedule-list .lesson:focus-visible .lesson-card {
+  outline:3px solid #829bd1;outline-offset:-3px;
 }
