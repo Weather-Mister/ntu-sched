@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { parseHTML } from 'linkedom';
 
 const skeleton = new URL('../public/skeleton/', import.meta.url);
 const html = readFileSync(new URL('index.html', skeleton), 'utf8');
@@ -44,4 +45,30 @@ test('main dashboard reload button refreshes the whole site instead of only data
   assert.match(js, /reloadSite:'重新載入網站'/);
   assert.match(js, /\$\('cool-refresh'\)\.addEventListener/);
   assert.match(js, /\$\('live-timetable-refresh'\)\.addEventListener/);
+});
+
+test('Lucide settings and refresh artwork is bundled in local SVG symbols', () => {
+  const {document}=parseHTML(html);
+  const settings=document.querySelector('#i-settings');
+  const refresh=document.querySelector('#i-refresh');
+  assert.ok(settings);
+  assert.ok(refresh);
+  assert.equal(settings.getAttribute('viewBox'),'0 0 24 24');
+  assert.equal(refresh.getAttribute('viewBox'),'0 0 24 24');
+  assert.ok(settings.querySelector('path').getAttribute('d').startsWith('M9.671 4.136'));
+  assert.ok(refresh.querySelector('path').getAttribute('d').startsWith('M3 12a9 9'));
+  for(const [button,icon] of [
+    ['page-refresh','i-refresh'],
+    ['open-settings','i-settings'],
+    ['cool-refresh','i-refresh']
+  ]) {
+    assert.equal(document.querySelector('#'+button+' use')?.getAttribute('href'),'#'+icon);
+  }
+  assert.equal(document.querySelector('.mailx-refresh-button use')?.getAttribute('href'),'#i-refresh');
+  assert.match(readFileSync(new URL('settings.mjs',skeleton),'utf8'),/use\.setAttribute\('href','#i-refresh'\)/);
+  const notice=readFileSync(new URL('LUCIDE-LICENSE.txt',skeleton),'utf8');
+  assert.match(notice,/ISC License/);
+  assert.match(notice,/Lucide Icons and Contributors/);
+  assert.match(notice,/Permission to use, copy, modify, and\/or distribute/);
+  assert.match(html,/License: \.\/LUCIDE-LICENSE\.txt/);
 });

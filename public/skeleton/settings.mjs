@@ -46,7 +46,10 @@ export function createSettings({account,onSessionExpired=()=>{}}){
   const data=widget||SAMPLE_WIDGET,preview=$('settings-hanzi-preview');preview.replaceChildren(companion(data));
   document.querySelector('.settings-preview-tag').textContent=widget&&context.liveMode?(context.language==='zh'?'目前進度':'Live progress'):w().widgetPreview;
   const dashboard=$('dashboard-hanzi');dashboard.hidden=!context.student||!preferences.hanziEnabled;dashboard.replaceChildren();if(dashboard.hidden)return;
-  const label=node('div','dashboard-hanzi-label'),refresh=node('button','',widgetBusy?'…':'↻');refresh.type='button';refresh.setAttribute('aria-label',w().refreshWidget);refresh.disabled=widgetBusy;refresh.addEventListener('click',()=>void loadWidget());label.append(node('span','','HANZI STEPS'),refresh);dashboard.append(label);
+  const label=node('div','dashboard-hanzi-label'),refresh=node('button');refresh.type='button';refresh.setAttribute('aria-label',w().refreshWidget);refresh.title=w().refreshWidget;refresh.disabled=widgetBusy;
+  const icon=document.createElementNS('http://www.w3.org/2000/svg','svg'),use=document.createElementNS('http://www.w3.org/2000/svg','use');
+  icon.setAttribute('aria-hidden','true');use.setAttribute('href','#i-refresh');icon.append(use);refresh.append(icon);
+  refresh.addEventListener('click',()=>void loadWidget());label.append(node('span','','HANZI STEPS'),refresh);dashboard.append(label);
   if(widget||!context.liveMode)dashboard.append(companion(data,true));
   else dashboard.append(node('p','dashboard-hanzi-status',widgetBusy?w().loadingWidget:w().widgetUnavailable));
   if(widgetError&&widget)dashboard.append(node('p','dashboard-hanzi-status',w().widgetUnavailable));
