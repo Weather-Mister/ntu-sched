@@ -47,7 +47,7 @@ class D1 {
   }
 }
 function env() {
-  const DB = new D1(); DB.sqlite.exec(readFileSync(new URL('../migrations/0001_accounts.sql', import.meta.url), 'utf8'));
+  const DB = new D1(); DB.sqlite.exec(readFileSync(new URL('../migrations/0001_accounts.sql', import.meta.url), 'utf8')); DB.sqlite.exec(readFileSync(new URL('../migrations/0004_mail.sql', import.meta.url), 'utf8'));
   return { DB, APP_ORIGIN: APP, NTU_CREDENTIAL_KEY: KEY, NTU_LOGIN_ENABLED: 'true' };
 }
 async function request(environment, path, { method = 'GET', body, cookie, csrf, origin = APP, headers = {} } = {}) {

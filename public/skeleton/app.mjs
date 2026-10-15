@@ -4,6 +4,7 @@ import { formatPeriods } from '/ntu-periods.mjs';
 import { AccountTasks } from '/account-tasks.mjs';
 import { eventsOn, nextEventDates } from '/event-model.mjs';
 import { createEventUI } from './custom-events.mjs';
+import { createMailUI } from './mail.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
 const profiles = {
@@ -445,7 +446,7 @@ function leavePreview(){
   liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
-  taskStore.bind(null);$('task-input').value='';
+  taskStore.bind(null);mailUI.bind(null);$('task-input').value='';
   eventUI.reset();
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
@@ -588,7 +589,7 @@ function startLive(current){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
   liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';
-  $('task-input').value='';taskStore.bind(current);
+  $('task-input').value='';taskStore.bind(current);mailUI.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;
   if($('live-login-dialog').open)$('live-login-dialog').close();
@@ -653,7 +654,7 @@ async function endLiveAccount(){
 
 function enterPreview(){
   liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
-  taskStore.bind(null);$('task-input').value='';
+  taskStore.bind(null);mailUI.bind(null);$('task-input').value='';
   eventUI.reset();
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
@@ -714,41 +715,4 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&
 renderTranslations();
 
 
-// Future Campus Mail entry point: an inert mail window with an official-site link.
-// Deliberately no mail requests, cookies, inbox storage, or extra dependencies.
-const mailWords={
-  en:{mail:'Campus Mail',mailPreview:'MAIL PREVIEW',officialMail:'Open official NTU Mail ↗',
-    previewStatus:'PREVIEW',mailEmpty:'Your mail will appear here after we connect the service.',
-    mailDesc:'The Campus Week mail client will be integrated after the UI is finalized.',
-    mailPreviewOnly:'No messages or credentials are loaded in this preview.',
-    inbox:'Inbox',unread:'Unread',starred:'Starred',sent:'Sent',drafts:'Drafts',trash:'Trash',archived:'Archived',
-    noMessages:'0 messages',compose:'＋ Compose',readerTitle:'Message',readerEmpty:'Select a message to read'},
-  zh:{mail:'Campus Mail',mailPreview:'信箱預覽',officialMail:'開啟臺大官方信箱 ↗',
-    previewStatus:'預覽',mailEmpty:'連線後，您的郵件將顯示在此。',
-    mailDesc:'Campus Week 郵件介面將在整體介面確認後再整合。',
-    mailPreviewOnly:'此預覽不會載入任何郵件或帳號資料。',
-    inbox:'收件匣',unread:'未讀',starred:'已加星號',sent:'寄件備份',drafts:'草稿',trash:'垃圾桶',archived:'封存',
-    noMessages:'0 封郵件',compose:'＋ 撰寫',readerTitle:'郵件',readerEmpty:'選擇一封郵件來閱讀'}
-};
-let mailFolder='inbox';
-function renderMailLocale(){
-  const words=mailWords[language];
-  document.querySelectorAll('[data-mail-i18n]').forEach(el=>{el.textContent=words[el.dataset.mailI18n]||el.dataset.mailI18n;});
-  document.querySelectorAll('[data-mail-folder]').forEach(button=>{
-    button.textContent=words[button.dataset.mailFolder];
-    button.setAttribute('aria-pressed',String(button.dataset.mailFolder===mailFolder));
-  });
-  $('mail-folder-heading').textContent=words[mailFolder];
-}
-document.querySelectorAll('[data-open-mail]').forEach(button=>button.addEventListener('click',()=>{
-  if(!student)return;
-  mailFolder='inbox';renderMailLocale();$('mail-dialog').showModal();
-}));
-document.querySelectorAll('[data-mail-folder]').forEach(button=>button.addEventListener('click',()=>{
-  mailFolder=button.dataset.mailFolder;renderMailLocale();
-}));
-$('mail-close').addEventListener('click',()=>$('mail-dialog').close());
-for(const id of ['language-en','language-zh','settings-language']){
-  $(id).addEventListener(id==='settings-language'?'change':'click',renderMailLocale);
-}
-renderMailLocale();
+const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language});

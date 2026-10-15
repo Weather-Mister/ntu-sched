@@ -35,16 +35,16 @@ export function normalizeStudentNumber(value) {
   if (!/^[a-z]\d{8}$/.test(number)) throw new ApiError(400, 'invalid_student_number', 'Use your NTU student number, such as b12345678.');
   return number;
 }
-export async function readJson(request) {
+export async function readJson(request, limit = 4096) {
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type') || '')) throw new ApiError(415, 'json_required', 'Send a JSON request.');
-  if (Number(request.headers.get('Content-Length')) > 4096) throw new ApiError(413, 'request_too_large', 'The login request is too large.');
+  if (Number(request.headers.get('Content-Length')) > limit) throw new ApiError(413, 'request_too_large', 'The request is too large.');
   const reader = request.body?.getReader();
   if (!reader) throw new ApiError(400, 'invalid_request', 'Enter your login details.');
   const chunks = []; let size = 0;
   while (true) {
     const next = await reader.read(); if (next.done) break;
     size += next.value.byteLength;
-    if (size > 4096) { await reader.cancel(); throw new ApiError(413, 'request_too_large', 'The login request is too large.'); }
+    if (size > limit) { await reader.cancel(); throw new ApiError(413, 'request_too_large', 'The request is too large.'); }
     chunks.push(next.value);
   }
   const bytes = new Uint8Array(size); let offset = 0;
