@@ -43,7 +43,7 @@ test('late sync responses from another account cannot update the dashboard',asyn
   let active=true;const updates=[];
   const p=syncInitialSources({async syncTimetable(){await gate;return {timetable:{}};}},{timetable:true,cool:false},(kind,state)=>updates.push([kind,state]),()=>active);
   active=false;release();await p;
-  assert.deepEqual(updates,[]);
+  assert.deepEqual(updates,[['timetable','syncing']]); // only the pre-switch state is allowed
 });
 
 test('live sign-in invokes first-time setup after loading saved snapshots, not on every restored session',()=>{
