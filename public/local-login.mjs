@@ -3,7 +3,8 @@ import {initMailPanel} from '/local-mail.mjs';
 import {getLanguage} from '/language.mjs';
 import {toCSV,parseTimetable} from '/timetable.mjs';
 {
- const status=await fetch('/api/ntu/status',{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);
+ const readStatus=()=>fetch('/api/ntu/status',{cache:'no-store',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null);
+ let status=await readStatus();
  if(status?.available){
   const cloudAccounts=status.mode==='accounts',accountClient=new CampusAccount();
   let signedIn=null;
@@ -36,17 +37,29 @@ import {toCSV,parseTimetable} from '/timetable.mjs';
    dialog.lastElementChild.textContent='Student accounts are the first stage. Live COOL, timetable and inbox feeds are not connected yet.';
    accountLabel.textContent='Student number';account.maxLength=9;account.pattern='[A-Za-z][0-9]{8}';passLabel.textContent='NTU Mail password';
    submit.textContent='Sign in to Campus Week';submit.disabled=!status.loginEnabled;
+   const availability=node('p','notice warning','Sign-in is temporarily unavailable. The site administrator needs to finish account setup.');availability.setAttribute('role','status');
+   const retry=node('button','secondary full','Check sign-in availability');retry.type='button';form.insertBefore(availability,submit);form.insertBefore(retry,submit);
+   let checkingAvailability=false;
    const signout=node('button','text-button','Sign out');signout.type='button';signout.hidden=true;document.querySelector('.topbar-actions').append(signout);
    function renderAccount(){
     button.textContent=signedIn?'Account: '+signedIn.studentNumber:'Sign in to Campus Week';
     button.nextElementSibling.textContent=signedIn?'Signed in on this device':'Student accounts · persistent login';
     signout.hidden=!signedIn;form.hidden=!!signedIn;accountClient.current=signedIn;dialog.querySelector('h2').textContent=signedIn?'Signed in as '+signedIn.studentNumber:'Your own Campus Week account.';
-    if(!status.loginEnabled&&!signedIn){button.textContent='Student login · setup pending';button.nextElementSibling.textContent='The Cloudflare login connection is being configured.';}
+    if(!status.loginEnabled&&!signedIn)button.nextElementSibling.textContent='Sign-in is temporarily unavailable. Open for details.';
+    availability.hidden=retry.hidden=!!status.loginEnabled;account.disabled=password.disabled=!status.loginEnabled;submit.disabled=!status.loginEnabled||checkingAvailability;
     feedMeta.textContent='Live COOL syncing is the next stage. Assignments and announcements are not connected yet.';
     list.replaceChildren(node('p','cool-empty','Your live COOL feed will appear here when the connection is ready.'));
     setMail({status:'pending',message:signedIn?'NTU Mail authorization is stored securely. The live inbox connection is the next stage; messages below are fictional.':'Sign in when student login is enabled. The messages below are a fictional preview.'});
    }
 
+   async function refreshAvailability(){
+    if(checkingAvailability||signedIn)return;
+    checkingAvailability=true;retry.disabled=true;submit.disabled=true;retry.textContent='Checking availability…';
+    try{const latest=await readStatus();status=latest?.available&&latest.mode==='accounts'?latest:{...status,loginEnabled:false};availability.textContent=latest?'Sign-in is temporarily unavailable. The site administrator needs to finish account setup.':'Could not reach sign-in. Check your connection and try again.';}
+    finally{checkingAvailability=false;retry.disabled=false;retry.textContent='Check sign-in availability';renderAccount();}
+   }
+   retry.addEventListener('click',refreshAvailability);
+   dialog.addEventListener('toggle',()=>{if(dialog.open)refreshAvailability();});
    signout.addEventListener('click',async()=>{signout.disabled=true;try{await accountClient.logout();signedIn=null;document.getElementById('clear').click();renderAccount();}catch(error){feedNotice.hidden=false;feedNotice.textContent=error.message;}finally{signout.disabled=false;}});
    const originalHandlers=[sync,document.getElementById('check-mail-access')];
    for(const original of originalHandlers){const replacement=original.cloneNode(true);original.replaceWith(replacement);replacement.addEventListener('click',()=>{if(!signedIn){message.hidden=true;dialog.showModal();return;}feedNotice.hidden=false;feedNotice.textContent='Your account is connected. Live feeds are still being added; you do not need to enter your password again.';});}
@@ -62,3 +75,4 @@ import {toCSV,parseTimetable} from '/timetable.mjs';
   });
  }
 }
+
