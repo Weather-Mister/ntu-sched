@@ -8,6 +8,7 @@ import { eventsOn, nextEventDates } from '/event-model.mjs';
 import { createEventUI } from './custom-events.mjs';
 import { createMailUI } from './mail.mjs';
 import { createSettings } from './settings.mjs';
+import { missingInitialSources, syncInitialSources } from './initial-sync.mjs';
 import { createCoolMobileOverflow } from './cool-mobile-overflow.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
@@ -74,7 +75,7 @@ const dict={
   }
 };
 let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
-let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,liveTimetableInfo='',liveCoolInfo='';
+let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,initialSyncBusy=false,liveTimetableInfo='',liveCoolInfo='';
 let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
@@ -520,7 +521,7 @@ async function saveLessonDetails(reset=false){
 }
 function previewCourseRows(profile){return profile.courses.map(c=>{const row=[...c];row[8]='preview:'+(c[6]||c[3]);return row;});}
 function leavePreview(){
-  liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);settingsUI.reset();$('task-input').value='';
@@ -634,7 +635,7 @@ function updateSyncDots(){
 }
 function updateLiveStatus(){
   updateSyncDots();
-  $('live-timetable-refresh').disabled=$('live-cool-refresh').disabled=!liveMode||livePending;
+  $('live-timetable-refresh').disabled=$('live-cool-refresh').disabled=!liveMode||livePending||initialSyncBusy;
   if(!liveMode)return;
   const messageT=liveTimetableInfo||(liveTimetable?(language==='zh'?'已載入課表':'Saved timetable loaded'):t('liveNoTimetable'));
   const messageC=liveCoolInfo||(liveCalendar?(language==='zh'?'已載入 COOL 行事曆':'COOL calendar loaded'):t('noCalendar'));
@@ -651,7 +652,7 @@ function sessionExpired(){
   account.current=null;leavePreview();
   showLoginMessage(language==='zh'?'登入已過期，請重新登入。':'Session expired. Please sign in again.');
 }
-async function readLiveSnapshots(){
+async function readLiveSnapshots({initializeMissing=false}={}){
   if(!liveMode||!liveAccount)return;
   void taskStore.refresh();
   eventUI.refresh();
@@ -677,16 +678,74 @@ async function readLiveSnapshots(){
     liveCoolInfo=liveNotice(cResult.reason);liveCalendarOk=false;
   }
   renderLiveAccount();
+  if(initializeMissing && epoch===liveEpoch && liveMode){
+    const needed=missingInitialSources(
+      tResult.status==='fulfilled'?tResult.value:null,
+      cResult.status==='fulfilled'?cResult.value:null
+    );
+    if(needed.timetable||needed.cool)void initializeLiveSources(needed,epoch,detailsRevision);
+  }
 }
-function startLive(current){
+// New accounts use the NTU credentials already saved by the authenticated backend.
+// Syncs are independent and do not block the first dashboard render.
+async function initializeLiveSources(needed,epoch,detailsRevision){
+  if(initialSyncBusy||epoch!==liveEpoch||!liveMode)return;
+  initialSyncBusy=true;
+  const notice=$('initial-sync-notice');
+  const active=()=>epoch===liveEpoch&&liveMode&&account.current?.studentNumber===liveAccount?.studentNumber;
+  const errors=[];
+  notice.hidden=false;notice.textContent=language==='zh'?'正在同步課表和 COOL…':'Connecting your timetable and COOL…';
+  updateLiveStatus();
+  try{
+    await syncInitialSources(account,needed,(kind,state,payload)=>{
+      if(!active())return;
+      if(state==='syncing'){
+        if(kind==='timetable')liveTimetableInfo=language==='zh'?'正在同步課表…':'Connecting timetable…';
+        else liveCoolInfo=language==='zh'?'正在同步 COOL…':'Connecting COOL…';
+      }else if(state==='connected'){
+        if(kind==='timetable'){
+          if(payload.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+          if(detailsRevision===liveDetailsRevision&&!lessonSaving){
+            liveTimetable=payload.timetable||liveTimetable;
+            liveCourseOverrides=payload.courseOverrides||liveCourseOverrides;
+          }else if(!lessonSaving)void readLiveSnapshots();
+          liveTimetableOk=true;
+          liveTimetableInfo=language==='zh'?'課表已同步':'Timetable connected';
+        }else{
+          liveCalendar=payload.calendar||liveCalendar;
+          liveCalendarOk=true;
+          liveCoolInfo=language==='zh'?'COOL 已同步':'COOL connected';
+          // Announcements already refresh on opening; give a first-time COOL
+          // connection another chance if its earlier announcement check failed.
+          if(announcementStore.error&&!announcementStore.busy)void announcementStore.refresh();
+        }
+        renderLiveAccount();
+      }else if(state==='failed'){
+        if(payload?.status===401){sessionExpired();return;}
+        errors.push(kind);
+        if(kind==='timetable')liveTimetableInfo=liveNotice(payload);
+        else liveCoolInfo=liveNotice(payload);
+      }
+      updateLiveStatus();
+    },active);
+  }finally{
+    if(active()){
+      initialSyncBusy=false;
+      notice.hidden=errors.length===0;
+      if(errors.length)notice.textContent=language==='zh'?'部分資料無法同步。可在設定中重試。':'Some data could not sync. Retry from Settings.';
+      updateLiveStatus();
+    }
+  }
+}
+function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
-  liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveMode=true;liveEpoch++;initialSyncBusy=false;$('initial-sync-notice').hidden=true;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';coolOverflow.reset();
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;
   
-  renderLiveAccount();announcementStore.bind(current);eventUI.reset(current);restoreCoolChecks(current,liveEpoch);readLiveSnapshots();
+  renderLiveAccount();announcementStore.bind(current);eventUI.reset(current);restoreCoolChecks(current,liveEpoch);void readLiveSnapshots({initializeMissing:firstSignIn});
 }
 function showLoginMessage(message=''){
   const status=$('live-login-status');status.textContent=message;status.hidden=!message;
@@ -705,7 +764,7 @@ async function restoreLive(){
   }
 }
 async function syncLive(which){
-  if(!liveMode||!liveAccount||livePending||lessonSaving)return;
+  if(!liveMode||!liveAccount||livePending||initialSyncBusy||lessonSaving)return;
   const epoch=liveEpoch,detailsRevision=liveDetailsRevision;livePending=true;
   if(which==='timetable'){liveTimetableOk=false;liveTimetableInfo='Checking NTU ePortfolio…';}
   else{liveCalendarOk=false;liveCoolInfo='Checking your COOL calendar…';}
@@ -737,7 +796,7 @@ async function submitLiveLogin(event){
     if(!availability.ok||(await availability.json()).loginEnabled!==true)
       throw Error('NTU sign-in is not enabled on this Campus Week server.');
     const current=await account.login(studentNumber,secret);
-    startLive(current);
+    startLive(current,{firstSignIn:true});
   }catch(e){message.textContent=liveNotice(e);message.hidden=false;showLoginMessage();}
   finally{pass.value='';if(liveMode)number.value='';livePending=false;button.disabled=false;}
 }
