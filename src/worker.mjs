@@ -196,7 +196,7 @@ export default {
         const source = syllabusUrl(search.get('source'));
         const saved = await savedTimetable(env, current.student_id);
         if (!saved.timetable?.term) throw new ApiError(409, 'exam_timetable_missing', 'Sync your NTU timetable first to identify the semester.');
-        if (new URL(source).pathname.split('/')[2] !== saved.timetable.term)
+        if (!new URL(source).pathname.includes('/courses/' + saved.timetable.term + '/'))
           throw new ApiError(409,'exam_wrong_term','The syllabus belongs to another semester.');
         const matches = saved.timetable.sessions.filter(item => item.courseId === search.get('courseId'));
         if (!matches.length) throw new ApiError(404,'exam_course_missing','Choose a course from your own imported timetable.');
