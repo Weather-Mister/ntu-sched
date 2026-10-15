@@ -255,20 +255,6 @@
   .shortcuts-panel .ntu-icon{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px}
   .shortcuts-panel .ntu-icon svg{width:13px;height:13px}
 }
-/* Gentle section identities; colors support hierarchy rather than decoration. */
-@media (min-width:791px) {
-  .workspace .schedule-column{--section-accent:#a58bc5;border-top:2px solid #bda5d5}
-  .workspace .cool-column{--section-accent:#6889be;border-top:2px solid #9ab4d8}
-  .workspace .tasks-column{--section-accent:#538e72;border-top:2px solid #92bba2}
-  .workspace .shortcuts-panel{--section-accent:#b28752;border-top:2px solid #d8b78c}
-  .workspace .section-head .eyebrow,.workspace .shortcuts-heading .eyebrow{color:var(--section-accent)}
-  .dashboard-hero .next-class{
-    background:linear-gradient(112deg,var(--banner) 0%,#293d62 100%);
-  }
-  body[data-theme=dark] .dashboard-hero .next-class{
-    background:linear-gradient(112deg,#111723 0%,#202d46 100%);
-  }
-}
 /* Grips appear on intent, not as permanent decoration. */
 @media (min-width:1101px) {
   .column-resizer {
