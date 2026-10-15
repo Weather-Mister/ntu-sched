@@ -9,8 +9,8 @@ import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
 import {encryptedPush,validateSubscription} from '../src/mail-push.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
 const APP='https://campus.example',KEY='ab'.repeat(32),realFetch=globalThis.fetch;
-let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201;
-beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;});
+let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0;
+beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;});
 after(()=>{globalThis.fetch=realFetch;});
 globalThis.fetch=async(url,init={})=>{
  const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams,action=fields.get('_action')||u.searchParams.get('_action');calls.push({url:u.href,action,init});
@@ -19,6 +19,7 @@ globalThis.fetch=async(url,init={})=>{
  if(action==='login')return new Response('rcmail.set_env('+JSON.stringify({task:'mail',request_token:'nonce',username:fields.get('_user')})+');',{headers:{'Set-Cookie':'roundcube_sessid=test'}});
  if(!action)return new Response('<input type="hidden" name="_token" value="nonce">');
  if(['list','search'].includes(action)){
+  if(failListOnce>0){failListOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
   const uid=fields.get('_mbox')==='Drafts'?'88':String(latest),subject=fields.get('_mbox')==='Drafts'?'Draft':'Hello <b>student</b>';
   return Response.json({action,env:{pagecount:1,messagecount:1},exec:'this.add_message_row('+JSON.stringify(uid)+','+JSON.stringify({subject,from:'Professor &lt;prof@ntu.edu.tw&gt;',date:'Today 12:00'})+','+JSON.stringify({seen:false})+');'});
  }
@@ -28,7 +29,10 @@ globalThis.fetch=async(url,init={})=>{
  if(action==='import'){mime=await init.body.get('_file[]').text();return Response.json({ok:true});}
  if(action==='compose')return new Response('rcmail.set_env({"compose_id":"draft-nonce","draft_id":"88"});<input type="hidden" name="_token" value="nonce">');
  if(action==='send'){if(sendMode==='disconnect')throw new Error('Network lost after delivery');return new Response('<script>parent.rcmail.sent_successfully("confirmation");</script>');}
- if(['mark','move'].includes(action))return Response.json({action,exec:''});
+ if(['mark','move'].includes(action)){
+  if(action==='mark'&&failMarkOnce>0){failMarkOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
+  return Response.json({action,exec:''});
+ }
  throw new Error('Unknown mocked action '+action);
 };
 function env(){const sqlite=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../migrations/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sqlite.exec(readFileSync(new URL('../migrations/'+f,import.meta.url),'utf8'));
@@ -46,6 +50,46 @@ test('mail list is scoped to the authenticated student; session and metadata reu
  await request(e,b,'list');assert.equal(calls.filter(c=>c.action==='login').length,2);
  const record=e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id);assert.ok(!record.upstream.includes('nonce'));assert.ok(!record.upstream.includes('test-password'));
  await request(e,a,'list?folder=sent');assert.equal(calls.filter(c=>c.action==='login').length,2);
+});
+test('NTU mail sessions expire three minutes after login even while requests keep succeeding',async()=>{
+ const e=env(),a=await identity(e),originalNow=Date.now,started=originalNow();
+ try{
+  Date.now=()=>started;
+  assert.equal((await request(e,a,'list?folder=sent')).status,200);
+  const saved=async()=>decryptAuthorization(KEY,a.student_id,'mail_session',e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id).upstream);
+  const first=await saved();assert.equal(first.issuedAt,started);assert.equal(first.expires,started+180000);
+  Date.now=()=>started+150000;
+  assert.equal((await request(e,a,'list?folder=sent')).status,200);
+  assert.deepEqual({issuedAt:(await saved()).issuedAt,expires:(await saved()).expires},{issuedAt:started,expires:started+180000});
+  assert.equal(calls.filter(c=>c.action==='login').length,1);
+  Date.now=()=>started+181000;
+  assert.equal((await request(e,a,'list?folder=sent')).status,200);
+  assert.equal(calls.filter(c=>c.action==='login').length,2);
+  const fresh=await saved();assert.equal(fresh.issuedAt,started+181000);assert.equal(fresh.expires,started+361000);
+ }finally{Date.now=originalNow;e.sqlite.close();}
+});
+test('mailbox reads recover once from an NTU action error using a fresh session',async()=>{
+ const e=env(),a=await identity(e);
+ assert.equal((await request(e,a,'list?folder=sent')).status,200);
+ failListOnce=1;
+ const r=await request(e,a,'list?folder=sent');
+ assert.equal(r.status,200);assert.equal((await r.json()).count,1);
+ assert.equal(calls.filter(c=>c.action==='login').length,2);
+ e.sqlite.close();
+});
+test('rejected mail mutations discard the faulty session without replaying the operation',async()=>{
+ const e=env(),a=await identity(e);
+ assert.equal((await request(e,a,'list?folder=sent')).status,200);
+ failMarkOnce=1;
+ const body={mailbox:'INBOX',uid:'20',action:'read'};
+ const failed=await request(e,a,'action','POST',body);
+ assert.equal(failed.status,409);assert.equal((await failed.json()).error.code,'ntu_action_failed');
+ assert.equal(calls.filter(c=>c.action==='mark').length,1);
+ assert.equal(e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id).upstream,null);
+ assert.equal((await request(e,a,'action','POST',body)).status,200);
+ assert.equal(calls.filter(c=>c.action==='login').length,2);
+ assert.equal(calls.filter(c=>c.action==='mark').length,2);
+ e.sqlite.close();
 });
 test('mail routes require login, same origin and CSRF before contacting NTU',async()=>{
  const e=env(),a=await identity(e);assert.equal((await request(e,null,'list')).status,401);
