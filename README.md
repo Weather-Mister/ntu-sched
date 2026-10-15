@@ -22,7 +22,7 @@ The personal feed link and last successful homework snapshot are encrypted in th
 
 Calendar parsing uses pinned `ical.js`, supports folded/escaped text, UTC/Taipei/timezone definitions, all-day deadlines, duplicate revisions and cancellations. Dated assignment and calendar events both appear, labeled separately; calendar events use their start time rather than an invented assignment deadline. Numeric COOL event links are preserved without arbitrary query parameters. Recurring events produce a warning, unreadable assignment deadlines fail without replacing the snapshot, and an empty valid feed removes deleted homework. The UI shows upcoming due dates in Taipei, with course/search filters; it does not infer submission status. Calendar changes depend on what COOL publishes.
 
-Open, visible pages check homework every **five minutes**, with manual refresh. The existing hourly cron checks up to ten connected accounts whose calendar snapshot is at least an hour old. Account switches clear the previous owner's homework and ignore late responses.
+Each new page opening shows saved homework immediately and fetches the upstream calendar once, even when the saved snapshot is fresh. Hidden/offline openings defer that fetch until visible/online. Further checks run every **five minutes** while visible, with manual refresh. The existing hourly cron checks up to ten connected accounts whose calendar snapshot is at least an hour old. Account switches clear the previous owner's homework and ignore late responses.
 
 **Upcoming:** Announcements should check once a minute while the site is open and active, with manual refresh. Announcements, the live inbox and Gemini calls are not implemented yet; calendar subscriptions do not provide announcements.
 

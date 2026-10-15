@@ -14,14 +14,14 @@ export function initLiveCool({ panel, client, openLogin, onSessionExpired, langu
   const form = node('form'), label = node('label', 'field-label', 'myNTU password'), password = node('input', 'login-input'); password.type = 'password'; password.id = 'cool-password'; password.name = 'password'; password.autocomplete = 'current-password'; password.required = true; password.maxLength = 1024; label.htmlFor = password.id;
   const submit = node('button', 'primary full', 'Reconnect COOL'), cancel = node('button', 'secondary full', 'Cancel'), errorText = node('p', 'notice error'); submit.type = 'submit'; cancel.type = 'button'; errorText.hidden = true; errorText.setAttribute('role', 'status');
   form.append(label, password, submit, cancel, errorText); dialog.append(node('h2', '', 'Connect NTU COOL'), node('p', '', 'Use your myNTU password if it differs from your NTU Mail password. Campus Week retrieves your personal calendar automatically and encrypts the saved connection.'), form); document.body.append(dialog);
-  let owner = null, epoch = 0, active = null, calendar = null, needsPassword = false, tab = 'assignments', lastAttempt = 0, retryAt = 0, interval = 300000;
+  let owner = null, epoch = 0, active = null, calendar = null, needsPassword = false, tab = 'assignments', lastAttempt = 0, retryAt = 0, interval = 300000, restored = false, refreshOnOpen = false;
   const format = (date, allDay = false) => new Intl.DateTimeFormat(language() === 'zh-TW' ? 'zh-TW' : 'en-GB', { timeZone: 'Asia/Taipei', year: 'numeric', month: 'short', day: 'numeric', ...(allDay ? {} : { hour: '2-digit', minute: '2-digit' }) }).format(new Date(allDay ? date+'T12:00:00+08:00' : date));
   function upcoming() { return (calendar?.assignments || []).filter(a => Date.parse(a.dueAt) >= Date.now()); }
   function render() {
     const items = upcoming(), isAssignments = tab === 'assignments';
     refresh.disabled = !!active || Date.now() < retryAt; submit.disabled = refresh.disabled;
     refresh.textContent = active ? calendar ? 'Refreshing COOL…' : 'Connecting COOL…' : needsPassword ? 'Reconnect COOL' : calendar ? 'Refresh COOL' : 'Connect COOL';
-    meta.textContent = !owner ? 'Sign in to connect your COOL homework.' : calendar ? `${items.length} upcoming calendar item(s) · Last checked ${format(calendar.syncedAt)} Taipei · Checks every 5 minutes while open · Background checks run hourly` : 'Your personal COOL calendar will be found through your NTU login.';
+    meta.textContent = !owner ? 'Sign in to connect your COOL homework.' : calendar ? `${items.length} upcoming calendar item(s) · Last checked ${format(calendar.syncedAt)} Taipei · Checks on opening and every 5 minutes while open · Background checks run hourly` : 'Your personal COOL calendar will be found through your NTU login.';
     for (const [button, selected] of [[assignmentTab, isAssignments], [announcementTab, !isAssignments]]) { button.classList.toggle('active', selected); button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1; }
     list.setAttribute('aria-labelledby', isAssignments ? assignmentTab.id : announcementTab.id);
     filters.hidden = !isAssignments || !calendar; list.replaceChildren();
@@ -43,7 +43,7 @@ export function initLiveCool({ panel, client, openLogin, onSessionExpired, langu
   function apply(result) { calendar = result.calendar; interval = result.checkIntervalMs || interval; needsPassword = result.connectionStatus === 'reconnect_required'; notice.hidden = !calendar?.warnings?.length && !needsPassword; notice.textContent = needsPassword ? 'Reconnect COOL to resume updates. Your saved homework is still available.' : (calendar?.warnings || []).join(' '); render(); }
   async function check(secret, force = false) {
     if (!owner) { openLogin(); return; } if (active || Date.now() < retryAt) return;
-    const version = epoch, controller = new AbortController(); active = controller; lastAttempt = Date.now(); notice.hidden = errorText.hidden = true; render();
+    const version = epoch, controller = new AbortController(); active = controller; refreshOnOpen = false; lastAttempt = Date.now(); notice.hidden = errorText.hidden = true; render();
     try {
       const result = await client.syncCoolCalendar(secret, controller.signal, force); if (version !== epoch) return;
       apply(result); if (dialog.open) dialog.close();
@@ -63,13 +63,13 @@ export function initLiveCool({ panel, client, openLogin, onSessionExpired, langu
   for (const [button, next] of [[assignmentTab, 'assignments'], [announcementTab, 'announcements']]) button.addEventListener('click', () => { tab = next; render(); });
   tabs.addEventListener('keydown', event => { if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); tab = event.key === 'Home' ? 'assignments' : event.key === 'End' ? 'announcements' : tab === 'assignments' ? 'announcements' : 'assignments'; render(); (tab === 'assignments' ? assignmentTab : announcementTab).focus(); });
   search.addEventListener('input', render); course.addEventListener('change', render); window.addEventListener('campus-language-change', render);
-  function automaticCheck() { if (!owner || active || needsPassword || Date.now() < retryAt || document.visibilityState === 'hidden' || navigator.onLine === false || Date.now() - lastAttempt < interval) return; if (!calendar || Date.now() - calendar.syncedAt >= interval) check(); else render(); }
+  function automaticCheck() { if (!owner || !restored || active || needsPassword || Date.now() < retryAt || document.visibilityState === 'hidden' || navigator.onLine === false || Date.now() - lastAttempt < interval) return; if (refreshOnOpen) check(undefined, true); else if (!calendar || Date.now() - calendar.syncedAt >= interval) check(); else render(); }
   setInterval(automaticCheck, 60000); document.addEventListener('visibilitychange', automaticCheck); window.addEventListener('focus', automaticCheck); window.addEventListener('online', automaticCheck);
   render();
   return { setAccount(account) {
     const next = account?.studentNumber || null; if (owner === next) return;
-    owner = next; epoch++; active?.abort(); active = null; calendar = null; needsPassword = false; lastAttempt = retryAt = 0; search.value = ''; course.value = ''; notice.hidden = true; password.value = ''; if (dialog.open) dialog.close(); render(); if (!owner) return;
+    owner = next; epoch++; active?.abort(); active = null; calendar = null; needsPassword = false; lastAttempt = retryAt = 0; restored = false; refreshOnOpen = !!owner; search.value = ''; course.value = ''; notice.hidden = true; password.value = ''; if (dialog.open) dialog.close(); render(); if (!owner) return;
     const version = epoch;
-    (async () => { try { const result = await client.coolCalendar(); if (version !== epoch) return; apply(result); automaticCheck(); } catch (error) { if (version === epoch) { if (error.status === 401) onSessionExpired?.(); else { notice.hidden = false; notice.textContent = error.message; } } } })();
+    (async () => { try { const result = await client.coolCalendar(); if (version !== epoch) return; restored = true; if (!calendar || result.calendar?.syncedAt > calendar.syncedAt) apply(result); automaticCheck(); } catch (error) { if (version === epoch) { if (error.status === 401) onSessionExpired?.(); else { notice.hidden = false; notice.textContent = error.message; } } } })();
   } };
 }
