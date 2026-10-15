@@ -629,8 +629,10 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 
 .cool-list .announcement-card{display:block;min-width:0}.announcement-card .cool-copy{display:block;min-width:0}.announcement-title{display:block;color:inherit;font-weight:800;text-decoration:none;overflow-wrap:anywhere;margin:6px 0}.announcement-title:hover{text-decoration:underline}.announcement-body summary{cursor:pointer;font-size:12px;margin-top:9px}.announcement-body p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:13px;max-height:340px;overflow:auto}.cool-list .announcement-card .cool-copy small{white-space:normal}
 
-/* Quiet status indicators sit inside each panel's upper-right corner. */
+/* Dot centers share the center of the panel corner arc. */
 .schedule-column,.cool-column,.tasks-column{position:relative}
-.sync-dot{position:absolute;inset-block-start:5px;inset-inline-end:5px;width:7px;height:7px;border-radius:50%;background:#b7bbb7;z-index:2}
-.sync-dot.is-synced{background:#42a76b;box-shadow:0 0 0 2px color-mix(in srgb,#42a76b 12%,transparent)}
+.sync-dot{--dot-size:5px;position:absolute;inset-block-start:calc(var(--panel-radius,16px) - var(--panel-border,0px) - var(--dot-size)/2);inset-inline-end:calc(var(--panel-radius,16px) - var(--panel-border,0px) - var(--dot-size)/2);width:var(--dot-size);height:var(--dot-size);border-radius:50%;background:#c0c2bc;z-index:2}
+.sync-dot.is-synced{background:#8ca294;box-shadow:none}
+body[data-theme=dark] .sync-dot{background:#56605a}
+body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 @media(max-width:790px){.sync-dot{inset-block-start:-5px;inset-inline-end:1px}}
