@@ -7,7 +7,7 @@ export function createMailUI({account,isLive,language}){
   refreshButton=dialog.querySelector('.mailx-refresh-button'),listTools=dialog.querySelector('.mailx-list-tools');
  let owner=null,epoch=0,folder='inbox',query='',busy=false,queuedLoad=null,sequence=0,reading=0,
   current=null,draft=null,pushId=null,registration=null,lastLoad=0,messages=[],nextCursor=null,totalCount=0,mutating=false,
-   translationCache=new Map(),translationShown=new Set();
+   translationCache=new Map(),translationShown=new Set(),translationRequests=new Map();
  const w=()=>words[language()==='zh'?'zh':'en'];
  const status=node('p',{class:'mail-status',role:'status','aria-live':'polite'}),
   search=node('input',{type:'search',placeholder:w().search,'aria-label':w().search}),
@@ -122,7 +122,7 @@ export function createMailUI({account,isLive,language}){
   const next=value?.studentNumber||null;if(next===owner)return;
   epoch++;sequence++;reading++;owner=next;busy=false;queuedLoad=null;folder='inbox';query='';
   messages=[];nextCursor=null;totalCount=0;search.value='';draft=null;pushId=null;
-   translationCache.clear();translationShown.clear();
+   translationCache.clear();translationShown.clear();translationRequests.clear();
   list.replaceChildren();emptyReader();tell('');locale();renderList();
   if(!next){dialog.close();void navigator.serviceWorker?.getRegistration('/').then(async r=>{await(await r?.pushManager.getSubscription())?.unsubscribe();}).catch(()=>{});}
   else if(dialog.open)void load(false);
@@ -203,14 +203,24 @@ export function createMailUI({account,isLive,language}){
       if(translationCache.has(key)){showEnglish(!translationShown.has(key));return;}
       control.disabled=true;control.textContent=w().loading;
       try{
-       const result=await request('translate',{method:'POST',body:JSON.stringify({mailbox:message.mailbox,uid:message.uid})});
-       if(identity!==epoch||generation!==reading||current!==message)return;
-       if(!result.html||!result.body)throw new Error('Gemini returned no readable text.');
-       if(translationCache.size>=30){
-        const oldest=translationCache.keys().next().value;
-        translationCache.delete(oldest);translationShown.delete(oldest);
+       // Reopening a message during a slow Gemini request must not trigger a
+       // second call. Cache the result even if this particular reader closed.
+       let pending=translationRequests.get(key);
+       if(!pending){
+        pending=request('translate',{method:'POST',body:JSON.stringify({mailbox:message.mailbox,uid:message.uid})}).then(result=>{
+         if(identity!==epoch)return null;
+         if(!result.html||!result.body)throw new Error('Gemini returned no readable text.');
+         if(translationCache.size>=30){
+          const oldest=translationCache.keys().next().value;
+          translationCache.delete(oldest);translationShown.delete(oldest);
+         }
+         translationCache.set(key,result);
+         return result;
+        }).finally(()=>{if(translationRequests.get(key)===pending)translationRequests.delete(key);});
+        translationRequests.set(key,pending);
        }
-       translationCache.set(key,result);
+       const result=await pending;
+       if(!result||identity!==epoch||generation!==reading||current!==message)return;
        showEnglish(true);tell('');
       }catch(error){
        if(identity===epoch&&generation===reading&&current===message){
