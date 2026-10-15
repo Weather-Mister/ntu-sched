@@ -5,7 +5,10 @@ import { CampusAccount } from '/campus-account.mjs';
 export const account = new CampusAccount();
 const validDay = n => Number.isInteger(n) && n >= 0 && n <= 6;
 const hhmm = n => String(Math.floor(n/60)).padStart(2,'0') + ':' + String(n%60).padStart(2,'0');
-const label = v => typeof v === 'string' ? v.slice(0,4000) : '';
+const label = v => typeof v === 'string' ? v.trim().slice(0,4000) : '';
+const hasEnglishName = value => /[A-Za-z]{2}/.test(value) && !/[\u3400-\u9fff]/.test(value);
+export const englishNameMissing = snapshot => Array.isArray(snapshot?.sessions)
+  ? snapshot.sessions.filter(s => s && !hasEnglishName(label(s.titleEn)) && !hasEnglishName(label(s.title))).length : 0;
 const coolLink = v => {
   try {
     const url = new URL(v);
@@ -20,9 +23,11 @@ export function mapTimetable(snapshot) {
     Number.isInteger(s.start) && Number.isInteger(s.end) &&
     s.start >= 0 && s.end <= 1440 && s.end > s.start)
     .map(s => {
-      const title = label(s.title) || label(s.titleEn) || label(s.titleZh) || 'Untitled class';
-      return [s.day, hhmm(s.start), hhmm(s.end),
-        label(s.titleEn) || title, label(s.titleZh) || title, label(s.room), label(s.code)];
+      const original=label(s.title),officialEn=label(s.titleEn),officialZh=label(s.titleZh);
+      const english = hasEnglishName(officialEn) ? officialEn :
+        hasEnglishName(original) ? original : officialEn || original || officialZh || 'Untitled class';
+      const chinese = officialZh || (/[\u3400-\u9fff]/.test(original) ? original : '') || original || english;
+      return [s.day, hhmm(s.start), hhmm(s.end), english, chinese, label(s.room), label(s.code)];
     });
 }
 export function mapCalendar(snapshot) {
@@ -33,6 +38,7 @@ export function mapCalendar(snapshot) {
     Date.parse(item.dueAt) >= now)
     .sort((a,b) => Date.parse(a.dueAt)-Date.parse(b.dueAt))
     .map(item => ({
+      id: label(item.id).slice(0,512) || [label(item.title),label(item.course),item.dueAt].join('|'),
       title: label(item.title), course: label(item.course) || 'NTU COOL',
       kind: item.kind === 'event' ? 'event' : 'assignment',
       dueAt: item.dueAt, allDay: item.allDay === true, url: coolLink(item.url)
