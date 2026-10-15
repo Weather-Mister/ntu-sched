@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Campus Week UI preview with fictional students.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#f6f3ed">
 <title>Campus Week · UI Preview</title>
 <link rel="stylesheet" href="./styles.css">
@@ -45,7 +45,15 @@
 <option value="social" data-i18n="socialProfile">Social sciences student (sample)</option>
 </select>
 <button id="enter-preview" type="button" class="button primary" data-i18n="enterPreview">Enter interface preview</button>
-<div class="preview-note" data-i18n="loginSafety">Preview only. No NTU passwords, actual accounts, or live integrations are used here.</div>
+<div class="preview-note" data-i18n="loginSafety">Sample profiles use fictional data and never connect to NTU.</div>
+<div class="live-entry">
+  <div class="live-entry-heading" data-i18n="liveEntryHeading">Or use your real NTU account</div>
+  <p id="live-login-status" role="status" data-i18n="liveEntryDesc">Your timetable and COOL deadlines use the existing Campus Week connection.</p>
+  <div class="live-entry-actions">
+    <button id="live-restore" class="button" type="button" data-i18n="restoreSession">Use existing session</button>
+    <button id="live-login-open" class="button primary" type="button" data-i18n="signInNtu">Sign in to NTU</button>
+  </div>
+</div>
 </div>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
@@ -84,6 +92,7 @@
 <main class="workspace">
 <section class="schedule-column" aria-labelledby="selected-day">
 <div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><span id="class-count" class="section-side"></span></div>
+<p id="live-timetable-status" class="live-sync-status" role="status" hidden></p>
 <div id="schedule-list" class="schedule-list" aria-live="polite"></div>
 <section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
 <div class="week-timetable-title">
@@ -97,6 +106,7 @@
 </section>
 <section class="cool-column" aria-labelledby="cool-heading">
 <div class="section-head"><div><p class="eyebrow" data-i18n="coursesLabel">NTU + COURSES</p><h3 id="cool-heading" data-i18n="upcomingDates">Upcoming dates</h3></div><button id="cool-refresh" class="button small" type="button" data-i18n="refresh">Refresh</button></div>
+<p id="live-cool-status" class="live-sync-status" role="status" hidden></p>
 <div class="cool-view-switch" role="tablist" aria-label="NTU content">
 <button id="cool-assignments-tab" type="button" role="tab" aria-selected="true" aria-controls="cool-list" data-cool-view="assignments" data-i18n="assignments">Assignments</button>
 <button id="cool-announcements-tab" type="button" role="tab" aria-selected="false" aria-controls="cool-list" data-cool-view="announcements" data-i18n="announcements">Announcements</button>
@@ -145,6 +155,21 @@
 <p class="micro detail-note" data-i18n="repeatsWeekly">Preview follows a repeating weekly schedule.</p>
 </div>
 </dialog>
+<dialog id="live-login-dialog" class="dialog live-login-dialog" aria-labelledby="live-login-heading">
+  <form id="live-login-form" class="live-login-form">
+    <div class="live-login-top"><p class="eyebrow" data-i18n="realAccount">REAL NTU ACCOUNT</p>
+      <button id="live-login-close" type="button" class="icon-button" aria-label="Close sign-in"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <h2 id="live-login-heading" data-i18n="signInNtu">Sign in to NTU</h2>
+    <p data-i18n="realLoginExplanation">Uses the existing secure Campus Week login. Your timetable and COOL feed are loaded through the same backend as the original site.</p>
+    <label for="live-login-number" data-i18n="studentNumber">NTU student number</label>
+    <input id="live-login-number" type="text" name="studentNumber" required maxlength="80" autocomplete="username">
+    <label for="live-login-password" data-i18n="ntuPassword">NTU Mail password</label>
+    <input id="live-login-password" type="password" name="password" required maxlength="1024" autocomplete="current-password">
+    <p id="live-login-error" class="live-login-error" role="alert" hidden></p>
+    <button id="live-login-submit" class="button primary" type="submit" data-i18n="signInNtu">Sign in to NTU</button>
+    <p class="live-login-note" data-i18n="accountSecurity">Use this form only on your trusted Campus Week HTTPS address. Passwords are not retained by the interface.</p>
+  </form>
+</dialog>
 <dialog id="settings-dialog" class="dialog settings-dialog" aria-labelledby="settings-heading">
 <div class="settings-layout">
 <aside class="settings-rail">
@@ -170,8 +195,8 @@
 </section>
 <section data-settings-panel="appearance" hidden><h2 class="settings-title" data-i18n="appearance">Appearance</h2><p class="settings-desc" data-i18n="appearanceDesc">Preview theme setting; changes are not saved.</p><div class="setting-card"><div class="setting-option"><label for="theme-select" data-i18n="theme">Theme</label><select id="theme-select"><option value="light" data-i18n="light">Light</option><option value="dark" data-i18n="dark">Dark</option></select></div></div></section>
 <section data-settings-panel="language" hidden><h2 class="settings-title" data-i18n="language">Language</h2><p class="settings-desc" data-i18n="langDesc">Select interface language. Course names reflect the sample data.</p><div class="setting-card"><div class="setting-option"><label for="settings-language" data-i18n="interfaceLanguage">Interface language</label><select id="settings-language"><option value="en">English</option><option value="zh">繁體中文</option></select></div></div></section>
-<section data-settings-panel="timetable" hidden><h2 class="settings-title" data-i18n="timetable">Timetable</h2><p class="settings-desc" data-i18n="timetableDesc">Timetable connections will be wired to the existing backend later.</p><div class="setting-card"><h3 data-i18n="previewStatus">Preview data</h3><p data-i18n="syncNotConnected">Not connected to your NTU account in this preview.</p><button type="button" class="button small" disabled data-i18n="reconnectLater">Reconnect (later)</button></div></section>
-<section data-settings-panel="cool" hidden><h2 class="settings-title">NTU COOL</h2><p class="settings-desc" data-i18n="coolDesc">Calendar deadlines will be connected after the UI is finalized.</p><div class="setting-card"><h3 data-i18n="previewStatus">Preview data</h3><p data-i18n="syncNotConnected">Not connected to your NTU account in this preview.</p><button type="button" class="button small" disabled data-i18n="reconnectLater">Reconnect (later)</button></div></section>
+<section data-settings-panel="timetable" hidden><h2 class="settings-title" data-i18n="timetable">Timetable</h2><p class="settings-desc" data-i18n="timetableDesc">Live timetable uses your existing NTU connection.</p><div class="setting-card"><h3 data-i18n="timetableConnection">Timetable connection</h3><p id="live-timetable-settings-status">Sign in to connect your NTU timetable.</p><button id="live-timetable-refresh" type="button" class="button small" data-i18n="syncTimetable">Sync timetable</button></div></section>
+<section data-settings-panel="cool" hidden><h2 class="settings-title">NTU COOL</h2><p class="settings-desc" data-i18n="coolDesc">COOL calendar uses your saved NTU connection.</p><div class="setting-card"><h3 data-i18n="coolConnection">COOL connection</h3><p id="live-cool-settings-status">Sign in to connect COOL.</p><button id="live-cool-refresh" type="button" class="button small" data-i18n="syncCool">Sync COOL</button></div></section>
 <section data-settings-panel="widgets" hidden><h2 class="settings-title" data-i18n="widgets">Widgets</h2><p class="settings-desc" data-i18n="widgetsDesc">Optional extras can be added without affecting the core schedule.</p><div class="setting-card"><h3>Hanzi Steps</h3><p data-i18n="hanziLater">Future optional widget. Disabled by default. Username input and loading will be implemented later.</p><button type="button" class="button small" disabled data-i18n="comingLater">Coming later</button></div></section>
 <section data-settings-panel="security" hidden><h2 class="settings-title" data-i18n="privacy">Privacy & security</h2><p class="settings-desc" data-i18n="securityDesc">Production account access remains exclusively with our existing Cloudflare backend.</p><div class="setting-card"><h3 data-i18n="noCredentials">No credentials in preview</h3><p data-i18n="securityPreview">This demo does not request NTU credentials, contact APIs or persist student data.</p><button type="button" class="button small" disabled data-i18n="signOutAllLater">Sign out all devices (later)</button></div></section>
 <section data-settings-panel="about" hidden><h2 class="settings-title" data-i18n="about">About</h2><p class="settings-desc" data-i18n="aboutDesc">Campus Week UI skeleton v1. Independent student project; not affiliated with National Taiwan University.</p><div class="setting-card"><h3 data-i18n="designPreview">Design preview</h3><p data-i18n="aboutDetails">Lightweight static HTML, CSS and JavaScript. Separate from the existing working site.</p></div></section>
