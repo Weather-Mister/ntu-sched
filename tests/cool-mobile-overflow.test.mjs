@@ -75,15 +75,15 @@ test('expanded announcement details survive rerenders without requiring a more b
     return article;
   }
   list.replaceChildren(...Array.from({length:25},(_,i)=>card(i)));
-  list.children[0].querySelector('details').open=true;
+  list.children[0].querySelector('details').setAttribute('open','');
   const expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));
   list.replaceChildren(...Array.from({length:25},(_,i)=>{
     const item=card(i);
-    item.querySelector('details').open=expanded.has(String(i));
+    if(expanded.has(String(i)))item.querySelector('details').setAttribute('open','');
     return item;
   }));
   controller.update('announcements');
   assert.equal(list.children.length,25);
-  assert.equal(list.children[0].querySelector('details').open,true);
+  assert.equal(list.children[0].querySelector('details').hasAttribute('open'),true);
   assert.equal(list.querySelectorAll('.cool-item').length,25);
 });
