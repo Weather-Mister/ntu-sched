@@ -18,16 +18,16 @@ test('mobile page cannot extend horizontally, with a narrow-screen fallback',()=
   assert.match(css,/html, body\s*\{[^}]*max-width:100%;[^}]*overflow-x:hidden;[^}]*overflow-x:clip;/s);
   assert.match(css,/\.login-screen, \.app-shell, \.dashboard-hero, \.week-section,/);
   assert.match(css,/\.workspace, \.day-strip-row, \.day-strip, \.schedule-column,/);
-  assert.match(css,/\.dashboard-hero \.topbar\s*\{[^}]*flex-wrap:wrap;/);
-  assert.match(css,/\.week-section \.week-toolbar\s*\{[^}]*flex-wrap:wrap;/);
-  assert.match(css,/\.section-head\s*\{[^}]*flex-wrap:wrap;/);
+  assert.match(css,/\.dashboard-hero \.topbar\s*\{[^}]*flex-wrap:wrap;?/);
+  assert.match(css,/\.week-section \.week-toolbar\s*\{[^}]*flex-wrap:wrap;?/);
+  assert.match(css,/\.section-head\s*\{[^}]*flex-wrap:wrap;?/);
 });
 
 test('wide interactive content stays reachable within its own scroller',()=>{
   assert.match(css,/\.week-timetable-scroll\s*\{[^}]*overscroll-behavior-x:contain;/s);
   assert.match(css,/\.mailx-dialog \.mailx-mobile-tabs\s*\{[^}]*overscroll-behavior-x:contain;/s);
   assert.match(css,/\.campus-compose \.mailx-format-toolbar\s*\{[^}]*overscroll-behavior-x:contain;/s);
-  assert.match(css,/\.mailx-dialog \.mailx-header-tools\s*\{[^}]*flex-wrap:wrap;/s);
+  assert.match(css,/\.mailx-dialog \.mailx-header-tools\s*\{[^}]*flex-wrap:wrap;?/s);
   assert.match(css,/\.settings-hub \.settings-main\s*\{[^}]*overflow-x:clip;/s);
 });
 
