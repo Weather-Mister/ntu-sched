@@ -14,7 +14,9 @@ const containsChinese = value => /[\u3400-\u9fff]/.test(String(value || ''));
 // Rebuild semantic markup without sender CSS, event handlers, tracking pixels, or images.
 // Apply the same treatment to both model input and model output.
 export function semanticMailMarkup(html) {
-  const { document } = parseHTML(String(html || ''));
+  const raw = String(html || '');
+  const fullDocument = /^\s*(?:<!doctype\s+html|<html[\s>])/i.test(raw);
+  const { document } = parseHTML(fullDocument ? raw : '<html><body>' + raw + '</body></html>');
   const body = document.body;
   for (const el of [...body.querySelectorAll('*')]) {
     if (!el.isConnected) continue;
