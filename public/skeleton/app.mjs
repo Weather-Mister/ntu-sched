@@ -199,7 +199,7 @@ function fitLessonCards(){
     const parts=[...card.children].filter(n=>!n.classList.contains('lesson-arrow'));
     const style=getComputedStyle(card);
     const required=parts.reduce((sum,part)=>sum+part.scrollHeight,0)
-      +Math.max(0,parts.length-1)*parseFloat(style.rowGap||style.gap||0)
+      +Math.max(0,parts.length-1)*(parseFloat(style.rowGap)||parseFloat(style.gap)||0)
       +parseFloat(style.paddingTop)+parseFloat(style.paddingBottom)
       +parseFloat(style.borderTopWidth)+parseFloat(style.borderBottomWidth)+2;
     if(required>button.getBoundingClientRect().height+1){
@@ -374,7 +374,7 @@ const dashboardResize=(()=>{
   }
   function adjust(index,shift,from,save=false){
     const next=from.slice();
-    const min=Math.min(215,Math.max(160,Math.floor(from.reduce((a,b)=>a+b,0)/5)));
+    const min=220; // Matches desktop grid minimum; both neighbors remain readable.
     const left=index===0?0:1,right=left+1;
     const delta=Math.max(min-next[left],Math.min(shift,next[right]-min));
     next[left]+=delta;next[right]-=delta;
