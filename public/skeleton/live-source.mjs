@@ -6,9 +6,20 @@ export const account = new CampusAccount();
 const validDay = n => Number.isInteger(n) && n >= 0 && n <= 6;
 const hhmm = n => String(Math.floor(n/60)).padStart(2,'0') + ':' + String(n%60).padStart(2,'0');
 const label = v => typeof v === 'string' ? v.trim().slice(0,4000) : '';
-const hasEnglishName = value => /[A-Za-z]{2}/.test(value) && !/[\u3400-\u9fff]/.test(value);
+// ePortfolio sometimes puts its two official names in the same cell or on
+// separate lines. Take the supplied English text, never guess a translation.
+const englishPart = value => {
+  const raw=label(value);
+  if(!/[A-Za-z]{2}/.test(raw))return '';
+  const lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const direct=lines.find(x=>/[A-Za-z]{2}/.test(x)&&!/[\u3400-\u9fff]/.test(x));
+  if(direct)return direct;
+  const latin=raw.replace(/[\u3400-\u9fff]+/g,' ').replace(/[（）]/g,' ')
+    .replace(/\(\s*\)/g,' ').replace(/\s+/g,' ').trim();
+  return /[A-Za-z]{2}/.test(latin)?latin:'';
+};
 export const englishNameMissing = snapshot => Array.isArray(snapshot?.sessions)
-  ? snapshot.sessions.filter(s => s && !hasEnglishName(label(s.titleEn)) && !hasEnglishName(label(s.title))).length : 0;
+  ? snapshot.sessions.filter(s => s && !englishPart(s.titleEn) && !englishPart(s.title)).length : 0;
 const coolLink = v => {
   try {
     const url = new URL(v);
@@ -24,8 +35,8 @@ export function mapTimetable(snapshot) {
     s.start >= 0 && s.end <= 1440 && s.end > s.start)
     .map(s => {
       const original=label(s.title),officialEn=label(s.titleEn),officialZh=label(s.titleZh);
-      const english = hasEnglishName(officialEn) ? officialEn :
-        hasEnglishName(original) ? original : officialEn || original || officialZh || 'Untitled class';
+      const english = englishPart(officialEn) || englishPart(original) ||
+        officialEn || original || officialZh || 'Untitled class';
       const chinese = officialZh || (/[\u3400-\u9fff]/.test(original) ? original : '') || original || english;
       return [s.day, hhmm(s.start), hhmm(s.end), english, chinese, label(s.room), label(s.code)];
     });
