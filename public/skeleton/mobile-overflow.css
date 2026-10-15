@@ -115,3 +115,71 @@
     font-size:clamp(22px,8vw,32px);
   }
 }
+
+/* Mail on phones: title + close, then every action on ONE aligned row.
+   Full labels remain readable to assistive tech; only visual copy is compact. */
+.mailx-label-mobile{display:none}
+@media (max-width:700px) {
+  .mailx-dialog .mailx-topbar {
+    display:grid;
+    grid-template-columns:max-content minmax(0,1fr);
+    grid-template-areas:"brand close" "compose tools";
+    align-items:center;
+    column-gap:6px;
+    row-gap:8px;
+  }
+  .mailx-dialog .mailx-brand {
+    grid-area:brand;
+    margin:0;
+    min-width:0;
+  }
+  .mailx-dialog .mailx-topbar > .mailx-close {
+    grid-area:close;
+    justify-self:end;
+  }
+  .mailx-dialog .mailx-compose-main {
+    grid-area:compose;
+    justify-self:start;
+    min-height:34px;
+    padding:0 10px;
+    font-size:11px!important;
+  }
+  .mailx-dialog .mailx-header-tools {
+    grid-area:tools;
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:center;
+    justify-content:flex-end;
+    gap:4px;
+    min-width:0;
+    width:100%;
+    margin:0;
+  }
+  .mailx-dialog .mailx-header-tools .mailx-top-action {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:34px;
+    min-width:0;
+    max-width:none;
+    flex:0 1 auto;
+    padding:5px 7px;
+    font-size:10px;
+    line-height:1.15;
+    white-space:nowrap;
+    text-align:center;
+  }
+  .mailx-dialog .mailx-header-tools .mailx-refresh-button {
+    display:grid;
+    flex:0 0 30px;
+    width:30px;
+    height:34px;
+  }
+  .mailx-dialog .mailx-header-tools .mailx-official-link {
+    min-height:34px;
+    margin:0;
+    white-space:nowrap;
+  }
+  .mailx-dialog .mailx-label-desktop {display:none}
+  .mailx-dialog .mailx-label-mobile {display:inline}
+}
