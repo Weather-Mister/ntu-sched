@@ -196,3 +196,41 @@ $('settings-dialog').addEventListener('close',()=>{if(student)$('open-settings')
 $('lesson-dialog').addEventListener('close',()=>{opened=null;});
 setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();}},30000);
 renderTranslations();
+
+
+// Future Campus Mail entry point: an inert mail window with an official-site link.
+// Deliberately no mail requests, cookies, inbox storage, or extra dependencies.
+const mailWords={
+  en:{mail:'Campus Mail',mailPreview:'MAIL PREVIEW',officialMail:'Open official NTU Mail ↗',
+    previewStatus:'PREVIEW',mailEmpty:'Your mail will appear here after we connect the service.',
+    mailDesc:'The Campus Week mail client will be integrated after the UI is finalized.',
+    mailPreviewOnly:'No messages or credentials are loaded in this preview.',
+    inbox:'Inbox',sent:'Sent',drafts:'Drafts',trash:'Trash'},
+  zh:{mail:'Campus Mail',mailPreview:'信箱預覽',officialMail:'開啟臺大官方信箱 ↗',
+    previewStatus:'預覽',mailEmpty:'連線後，您的郵件將顯示在此。',
+    mailDesc:'Campus Week 郵件介面將在整體介面確認後再整合。',
+    mailPreviewOnly:'此預覽不會載入任何郵件或帳號資料。',
+    inbox:'收件匣',sent:'寄件備份',drafts:'草稿',trash:'垃圾桶'}
+};
+let mailFolder='inbox';
+function renderMailLocale(){
+  const words=mailWords[language];
+  document.querySelectorAll('[data-mail-i18n]').forEach(el=>{el.textContent=words[el.dataset.mailI18n]||el.dataset.mailI18n;});
+  document.querySelectorAll('[data-mail-folder]').forEach(button=>{
+    button.textContent=words[button.dataset.mailFolder];
+    button.setAttribute('aria-pressed',String(button.dataset.mailFolder===mailFolder));
+  });
+  $('mail-folder-heading').textContent=words[mailFolder];
+}
+document.querySelectorAll('[data-open-mail]').forEach(button=>button.addEventListener('click',()=>{
+  if(!student)return;
+  mailFolder='inbox';renderMailLocale();$('mail-dialog').showModal();
+}));
+document.querySelectorAll('[data-mail-folder]').forEach(button=>button.addEventListener('click',()=>{
+  mailFolder=button.dataset.mailFolder;renderMailLocale();
+}));
+$('mail-close').addEventListener('click',()=>$('mail-dialog').close());
+for(const id of ['language-en','language-zh','settings-language']){
+  $(id).addEventListener(id==='settings-language'?'change':'click',renderMailLocale);
+}
+renderMailLocale();
