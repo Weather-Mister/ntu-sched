@@ -37,6 +37,7 @@ const dict={
     timetableDesc:'Timetable connections will be wired to the existing backend later.',previewStatus:'Preview data',syncNotConnected:'Not connected to your NTU account in this preview.',reconnectLater:'Reconnect (later)',coolDesc:'Calendar deadlines will be connected after the UI is finalized.',widgetsDesc:'Optional extras can be added without affecting the core schedule.',hanziLater:'Future optional widget. Disabled by default. Username input and loading will be implemented later.',comingLater:'Coming later',
     securityDesc:'Production account access remains exclusively with our existing Cloudflare backend.',noCredentials:'No credentials in preview',securityPreview:'This demo does not request NTU credentials, contact APIs or persist student data.',signOutAllLater:'Sign out all devices (later)',aboutDesc:'Campus Week UI skeleton v1. Independent student project; not affiliated with National Taiwan University.',designPreview:'Design preview',aboutDetails:'Lightweight static HTML, CSS and JavaScript. Separate from the existing working site.',
     next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your sample timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
+    dayView:'Day',weekView:'Week',weeklyTimetable:'Weekly timetable',calendarLabel:'CLASS TIMETABLE',weekViewScroll:'Weekly timetable; scroll vertically or sideways to explore classes',
     assignments:'Assignments',announcements:'Announcements',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',campusAccessEyebrow:'CAMPUS',campusShortcuts:'Campus shortcuts',freeDay:'Free',
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
@@ -48,11 +49,12 @@ const dict={
     timetableDesc:'課表連線將於介面定稿後接入現有後端。',previewStatus:'預覽資料',syncNotConnected:'本預覽未連線至臺大帳號。',reconnectLater:'稍後重新連線',coolDesc:'介面定稿後才會連結日曆與作業期限。',widgetsDesc:'選用小工具不會影響主要課表。',hanziLater:'未來可選擇啟用，預設關閉；使用者名稱輸入及資料載入會稍後實作。',comingLater:'稍後推出',
     securityDesc:'正式帳號存取仍由現有 Cloudflare 後端處理。',noCredentials:'預覽不需帳密',securityPreview:'此預覽不會要求臺大帳密、呼叫 API 或持久儲存學生資料。',signOutAllLater:'登出所有裝置（稍後）',aboutDesc:'Campus Week 介面骨架 v1。獨立學生專案，與國立臺灣大學無隸屬關係。',designPreview:'設計預覽',aboutDetails:'使用輕量 HTML、CSS 與 JavaScript；與現有網站完全分離。',
     next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的範例課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
+    dayView:'單日',weekView:'整週',weeklyTimetable:'每週課表',calendarLabel:'課程時間表',weekViewScroll:'每週課表；可上下及左右捲動查看課程',
     assignments:'作業',announcements:'公告',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',campusAccessEyebrow:'校園',campusShortcuts:'校園捷徑',freeDay:'無課',
     days:['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],shortDays:['週一','週二','週三','週四','週五','週六','週日']
   }
 };
-let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments';
+let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
 function iso(date){return date.toISOString().slice(0,10);}
@@ -88,6 +90,96 @@ function renderBanner(){
     badgeTime.textContent=language==='zh'?time:((hour%12)||12)+':'+String(minute).padStart(2,'0')+(hour>=12?' PM':' AM');
   }
 }
+// Time-grid layout uses real lesson start/end minutes; no additional data source.
+// Blocks in overlapping time ranges are assigned independent lanes.
+function minutes(hhmm){const [hour,minute]=hhmm.split(':').map(Number);return hour*60+minute;}
+function layoutOverlaps(entries){
+  const clusters=[];let current=[],furthest=-1;
+  for(const event of entries){
+    if(current.length&&event.start>=furthest){clusters.push(current);current=[];furthest=-1;}
+    current.push(event);furthest=Math.max(furthest,event.end);
+  }
+  if(current.length)clusters.push(current);
+  for(const cluster of clusters){
+    const lanes=[];
+    for(const event of cluster){
+      let lane=lanes.findIndex(end=>end<=event.start);
+      if(lane===-1){lane=lanes.length;lanes.push(event.end);}else lanes[lane]=event.end;
+      event.lane=lane;
+    }
+    for(const event of cluster)event.lanes=lanes.length;
+  }
+  return entries;
+}
+function renderWeekTimetable(){
+  if(!student||timetableView!=='week')return;
+  const container=$('week-timetable-grid');container.replaceChildren();
+  const courses=student.courses;
+  const dayCount=courses.some(c=>c[0]>=5)?7:5;
+  const dayNames=t('shortDays');
+  const base=monday(selectedDate),end=offset(base,dayCount-1);
+  $('week-timetable-range').textContent=pretty(base,true)+' – '+pretty(end,true);
+  $('week-timetable-scroll').setAttribute('aria-label',t('weekViewScroll'));
+  // Round the occupied time range to hours; retain a little context around lessons.
+  const earliest=Math.min(...courses.map(c=>minutes(c[1])),9*60);
+  const latest=Math.max(...courses.map(c=>minutes(c[2])),17*60);
+  const firstHour=Math.max(0,Math.floor((earliest-20)/60));
+  const finalHour=Math.min(24,Math.ceil((latest+20)/60));
+  const scale=.94; // pixels per minute
+  const origin=firstHour*60,totalHeight=(finalHour-firstHour)*60*scale;
+  container.style.gridTemplateColumns='56px repeat('+dayCount+', minmax(152px, 1fr))';
+  container.style.minWidth=(56+dayCount*152)+'px';
+  container.style.setProperty('--hour-height',(60*scale)+'px');
+  const corner=node('div','timetable-corner');
+  corner.style.gridColumn='1';corner.style.gridRow='1';container.append(corner);
+  const timeRail=node('div','timetable-time-rail');
+  timeRail.style.gridColumn='1';timeRail.style.gridRow='2';timeRail.style.height=totalHeight+'px';
+  for(let hour=firstHour;hour<=finalHour;hour++){
+    const label=node('span','timetable-hour',String(hour).padStart(2,'0')+':00');
+    label.style.top=((hour-firstHour)*60*scale)+'px';timeRail.append(label);
+  }
+  container.append(timeRail);
+  for(let day=0;day<dayCount;day++){
+    const key=offset(base,day),dayCourses=courses.filter(c=>c[0]===day);
+    const head=node('div','timetable-day-head');
+    head.style.gridColumn=String(day+2);head.style.gridRow='1';
+    if(key===taipeiToday())head.classList.add('is-today');
+    if(key===selectedDate)head.classList.add('is-selected');
+    head.append(node('strong','',dayNames[day]),node('span','',String(dateFor(key).getUTCDate())));
+    container.append(head);
+    const track=node('div','timetable-day-track');
+    track.style.gridColumn=String(day+2);track.style.gridRow='2';
+    track.style.height=totalHeight+'px';
+    const entries=layoutOverlaps(dayCourses.map(c=>({c,start:minutes(c[1]),end:minutes(c[2])}))
+      .sort((a,b)=>a.start-b.start||a.end-b.end));
+    for(const {c,start,end,lane,lanes} of entries){
+      const block=node('button','timetable-lesson');
+      block.type='button';block.dataset.color=String(courses.indexOf(c)%7);
+      const pct=100/lanes;
+      block.style.top=((start-origin)*scale+2)+'px';
+      block.style.height=Math.max(23,(end-start)*scale-4)+'px';
+      block.style.left='calc('+(lane*pct)+'% + 3px)';
+      block.style.width='calc('+pct+'% - 6px)';
+      block.setAttribute('aria-label',longDate(key)+' · '+c[1]+'–'+c[2]+' · '+c[language==='zh'?4:3]+' · '+c[5]);
+      block.append(node('small','timetable-lesson-time',c[1]+'–'+c[2]),
+        node('strong','timetable-lesson-title',c[language==='zh'?4:3]),
+        node('span','timetable-lesson-room',c[5]));
+      block.addEventListener('click',()=>showLesson(c,key));
+      track.append(block);
+    }
+    container.append(track);
+  }
+}
+function setTimetableView(view){
+  if(view!=='day'&&view!=='week')return;
+  timetableView=view;
+  $('view-day').setAttribute('aria-pressed',String(view==='day'));
+  $('view-week').setAttribute('aria-pressed',String(view==='week'));
+  document.querySelector('.workspace').hidden=view==='week';
+  $('week-timetable').hidden=view!=='week';
+  if(view==='week')renderWeekTimetable();
+}
+
 function renderCalendar(){
   if(!student)return;const base=monday(selectedDate),today=taipeiToday(),strip=$('day-strip');
   const end=offset(base,6);
@@ -118,6 +210,7 @@ function renderCalendar(){
     if(items.some(other=>other!==c&&other[1]<c[2]&&c[1]<other[2]))card.append(node('span','state-pill',t('overlap')));
     btn.append(clock,card);btn.addEventListener('click',()=>showLesson(c,selectedDate));list.append(btn);
   }
+  renderWeekTimetable();
 }
 const announcements={
   engineering:[
@@ -201,7 +294,7 @@ function showLesson(c,key){opened={c,key};populateLesson(c,key);$('lesson-dialog
 function leavePreview(){
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
-  student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';
+  student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
   for(const id of ['schedule-list','cool-list','todo-list','day-strip'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
@@ -210,11 +303,13 @@ function leavePreview(){
 function enterPreview(){
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
-  selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';
+  selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;renderAll();$('open-settings').focus();
 }
 function chooseLanguage(value){language=value;renderAll();}
 $('enter-preview').addEventListener('click',enterPreview);
+$('view-day').addEventListener('click',()=>setTimetableView('day'));
+$('view-week').addEventListener('click',()=>setTimetableView('week'));
 $('login-language-en').addEventListener('click',()=>chooseLanguage('en'));
 $('login-language-zh').addEventListener('click',()=>chooseLanguage('zh'));
 $('language-en').addEventListener('click',()=>chooseLanguage('en'));
