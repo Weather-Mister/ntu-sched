@@ -1,0 +1,117 @@
+/*
+ * Phone/tablet viewport guardrails.
+ * Keep the document at viewport width; allow horizontal scrolling only inside
+ * deliberately scrollable components (timetable, mail tabs and editor toolbar).
+ */
+@media (max-width:790px) {
+  html, body {
+    min-width:0;
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden; /* fallback for older mobile browsers */
+    overflow-x:clip;
+  }
+
+  .login-screen, .app-shell, .dashboard-hero, .week-section,
+  .workspace, .day-strip-row, .day-strip, .schedule-column,
+  .cool-column, .tasks-column, .shortcuts-panel {
+    min-width:0;
+    max-width:100%;
+  }
+
+  /* Header and date navigation may wrap, never force a wider page. */
+  .dashboard-hero .topbar {flex-wrap:wrap;min-width:0;max-width:100%}
+  .dashboard-hero .topbar > * {min-width:0}
+  .dashboard-hero .topbar-actions {
+    min-width:0;max-width:100%;margin-left:auto;
+    flex-wrap:wrap;justify-content:flex-end;
+  }
+  .week-section .week-toolbar {min-width:0;max-width:100%;flex-wrap:wrap}
+  .week-section .week-toolbar > *,
+  .week-section .week-actions, .week-section .week-switch {
+    min-width:0;max-width:100%;
+  }
+  .week-section .week-actions {flex-wrap:wrap}
+  .week-section .week-range {
+    min-width:0;max-width:100%;overflow-wrap:anywhere;
+  }
+  .week-section .day-button {min-width:0;overflow-wrap:anywhere}
+
+  /* Long translated titles, course names and user-entered text. */
+  .section-head {min-width:0;max-width:100%;flex-wrap:wrap}
+  .section-head > *, .section-head .section-action {min-width:0;max-width:100%}
+  .section-head .section-action {flex-wrap:wrap}
+  .section-side {white-space:normal}
+  .cool-view-switch, .timetable-view-switch {min-width:0;max-width:100%}
+  .cool-view-switch button {min-width:0;white-space:normal}
+  .lesson, .lesson-card, .cool-item, .todo-row,
+  .cool-copy, .todo-label {min-width:0;overflow-wrap:anywhere}
+
+  /* The week timetable is intentionally scrollable inside its own pane. */
+  .week-timetable-scroll {
+    max-width:100%;
+    overscroll-behavior-x:contain;
+  }
+
+  /* Settings are a vertical sheet: only the content should scroll. */
+  .settings-hub, .settings-hub .settings-main,
+  .settings-hub .settings-section, .settings-hub .settings-section-heading,
+  .settings-hub .settings-account, .settings-hub .settings-install-grid {
+    min-width:0;max-width:100%;
+  }
+  .settings-hub .settings-main {
+    overflow-x:hidden;
+    overflow-x:clip;
+  }
+  .settings-hub .settings-section-heading > *,
+  .settings-hub .settings-account > *,
+  .settings-hub .settings-install-grid > *,
+  .settings-hub .settings-stats-strip > div {min-width:0}
+  .settings-hub .settings-connection-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  /* Mail controls remain visible and may wrap on narrower translations. */
+  .mailx-dialog .mailx-topbar {min-width:0;max-width:100%}
+  .mailx-dialog .mailx-header-tools {
+    min-width:0;max-width:100%;flex-wrap:wrap;
+  }
+  .mailx-dialog .mailx-header-tools .mailx-top-action {
+    min-width:0;max-width:100%;flex:0 1 auto;
+    white-space:normal;overflow-wrap:anywhere;text-align:center;
+  }
+  .mailx-dialog .mailx-mobile-tabs {
+    max-width:100%;overscroll-behavior-x:contain;
+  }
+  .mailx-dialog .mailx-reader-toolbar-buttons {
+    min-width:0;max-width:100%;flex-wrap:wrap;
+  }
+  .mailx-dialog .mailx-reader, .mailx-dialog .mailx-list-pane,
+  .mailx-dialog .mailx-message {
+    min-width:0;max-width:100%;
+  }
+  .mailx-dialog img, .campus-compose img {max-width:100%;height:auto}
+  .campus-compose {max-width:100%}
+  .campus-compose .mailx-format-toolbar {
+    max-width:calc(100% - 28px);overscroll-behavior-x:contain;
+  }
+}
+
+@media (max-width:600px) {
+  .settings-hub .settings-install-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .settings-hub .settings-hanzi-layout {
+    grid-template-columns:minmax(0,1fr);
+  }
+  .settings-hub .install-phone-scene {grid-column:1/-1}
+}
+
+@media (max-width:380px) {
+  .settings-hub .settings-connection-grid {
+    grid-template-columns:minmax(0,1fr);
+  }
+  .settings-hub .settings-stats-strip strong {
+    font-size:clamp(22px,8vw,32px);
+  }
+}
