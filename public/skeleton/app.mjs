@@ -155,6 +155,7 @@ function renderWeekTimetable(){
     for(const {c,start,end,lane,lanes} of entries){
       const block=node('button','timetable-lesson');
       block.type='button';block.dataset.color=String(courses.indexOf(c)%7);
+      if(end-start<70)block.classList.add('is-short');
       const pct=100/lanes;
       block.style.top=((start-origin)*scale+2)+'px';
       block.style.height=Math.max(23,(end-start)*scale-4)+'px';
@@ -295,7 +296,7 @@ function leavePreview(){
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
-  for(const id of ['schedule-list','cool-list','todo-list','day-strip'])$(id).replaceChildren();
+  for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
   $('app-screen').hidden=true;$('login-screen').hidden=false;$('preview-profile').focus();
