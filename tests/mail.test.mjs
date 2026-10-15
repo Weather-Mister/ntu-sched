@@ -78,7 +78,7 @@ test('two unconfirmed NTU logins show a temporary error, not false reauthorizati
  assert.equal(response.status,502);
  const body=await response.json();
  assert.equal(body.error.code,'ntu_login_unconfirmed');
- assert.notMatch(body.error.message,/sign in again/i);
+ assert.doesNotMatch(body.error.message,/sign in again/i);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
  // A later request can recover using the retained verified connection.
  assert.equal((await request(e,a,'list?folder=sent&limit=25')).status,200);
