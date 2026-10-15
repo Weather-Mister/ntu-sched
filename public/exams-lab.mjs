@@ -27,11 +27,13 @@ button.addEventListener('click',async()=>{
  button.disabled=true;results.hidden=true;say('Checking the public NTU syllabus…');
  try {
   const query=new URLSearchParams({source:source.value.trim(),courseId:course.value});
+  for(const field of ['serial','section','code']){const val=document.getElementById(field).value.trim();if(val)query.set(field,val);}
   const data=await get('/api/exams/preview?'+query);
   match.replaceChildren();details.replaceChildren();exams.replaceChildren();
   const valid=['matched-identifiers','code-only'].includes(data.matching.status);
   match.append(node('strong',valid?'Course '+data.matching.status.replace('-',' '):'Not matched'));
   match.append(node('span',' · '+data.matching.reason,'muted'));
+  if(data.matching.identifierSource==='student-entered')match.append(node('p','Compared against identifiers you entered manually, not independently imported from NTU.','fine'));
   details.textContent='NTU course '+(data.course.courseCode||'—')+
    ' · Section '+(data.course.section||'unavailable')+' · Offering '+data.course.serial+' · Semester '+data.course.term;
   if(!valid) {
