@@ -5,6 +5,7 @@
  */
 @media (max-width:790px) {
   html, body {
+    min-width:0;
     width:100%;
     max-width:100%;
     overflow-x:hidden; /* fallback for older mobile browsers */
