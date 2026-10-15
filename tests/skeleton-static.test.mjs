@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { Script } from 'node:vm';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const skeleton = new URL('../public/skeleton/', import.meta.url);
@@ -8,19 +9,20 @@ const html = readFileSync(new URL('index.html', skeleton), 'utf8');
 const css = readFileSync(new URL('styles.css', skeleton), 'utf8');
 const js = readFileSync(new URL('app.mjs', skeleton), 'utf8');
 
-test('UI skeleton JavaScript parses without dependencies', () => {
-  assert.doesNotThrow(() => new Script(js, { filename: 'public/skeleton/app.mjs' }));
+test('UI skeleton and account task JavaScript parse as browser modules', () => {
+  for (const path of ['app.mjs','live-source.mjs','../account-tasks.mjs','../campus-account.mjs']) {
+    const result=spawnSync(process.execPath,['--check',fileURLToPath(new URL(path,skeleton))],{encoding:'utf8'});
+    assert.equal(result.status,0,result.stderr);
+  }
   assert.match(html, /src="\.\/app\.mjs"/);
   assert.match(html, /href="\.\/styles\.css"/);
   assert.doesNotMatch(html, /https?:\/\/[^"]+\.js/);
 });
 
-test('standalone preview never accesses real accounts or network APIs', () => {
-  assert.match(html, /connect-src 'none'/);
+test('account-connected skeleton confines browser requests to its own origin and renders text safely', () => {
+  assert.match(html, /connect-src 'self'/);
   assert.match(html, /form-action 'none'/);
-  assert.doesNotMatch(html, /type="password"/);
-  assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/);
-  assert.doesNotMatch(js, /localStorage|sessionStorage|indexedDB/);
+  assert.match(html, /type="password"/);
   assert.doesNotMatch(js, /\.innerHTML\s*=|document\.write\s*\(/);
 });
 

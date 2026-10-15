@@ -123,7 +123,8 @@
 <label for="task-input" class="sr-only" data-i18n="newTask">New task</label><input id="task-input" type="text" maxlength="140" autocomplete="off" placeholder="Add a task…">
 <button type="submit" class="button primary small" data-i18n="add">Add</button>
 </form>
-<p class="preview-footnote" data-i18n="tasksOnly">Preview tasks stay in memory and disappear on reload.</p>
+<p id="tasks-status" class="preview-footnote" role="status" aria-live="polite"></p>
+<div class="task-actions"><button id="tasks-retry" class="button small" type="button" hidden>Refresh tasks</button><button id="tasks-undo" class="button small" type="button" hidden>Undo remove</button></div>
 </section>
 
 <section class="shortcuts-panel">

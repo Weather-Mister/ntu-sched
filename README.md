@@ -56,12 +56,20 @@ Do not commit `.env`, `.dev.vars`, `.wrangler`, node_modules, local SQLite data,
 
 ## API
 
+**Manual tasks:** Each student's tasks are stored in D1 under the permanent account ID associated with their normalized student number. The authenticated session supplies ownership for every read and mutation; clients cannot choose another student. Tasks retain their text and completion state across sign-ins and devices. The skeleton reloads them on account entry, manual refresh, and every 30 seconds while visible and online. Preview profiles continue to use fictional in-memory tasks.
+
+Apply `migrations/0002_manual_tasks.sql` to the existing database **before** deploying this release. This additive migration creates only the task table and index. It does not change students, sessions, connections, or timetable data. The API accepts up to 500 active tasks per account, each 140 characters. Create UUIDs make retries idempotent; version checks prevent stale devices from overwriting newer changes. Remove is a soft delete, and the latest removal offers Undo in the interface. Unsaved input survives a failed save; failures preserve the last acknowledged list. Switching accounts clears tasks, undo state, drafts and pending responses before loading the next account.
+
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/health` | Current implementation stage; never claims live feeds |
 | POST | `/api/auth/login` | Verify NTU Mail, provision/reuse the student account, retain encrypted authorization, issue cookie |
 | GET | `/api/auth/me` | Restore the current account and CSRF nonce |
 | GET | `/api/connections` | Current student's connection status; no credentials or other students' data |
+| GET | `/api/tasks` | Current student's saved active tasks |
+| POST | `/api/tasks` | Create a task with `{id, text}`; retry the same UUID safely |
+| PATCH | `/api/tasks/:id` | Save `{version, done}` or undo removal with `{version, deleted: false}` |
+| DELETE | `/api/tasks/:id` | Soft remove an owned task using `{version}` |
 | GET | `/api/timetable` | Current student's saved timetable and connection state |
 | POST | `/api/timetable/sync` | Read ePortfolio using retained authorization or a supplied myNTU password; optional `force: true` for manual refresh |
 | GET | `/api/cool/calendar` | Current student’s saved homework and connection state; never the private feed link |
@@ -70,6 +78,8 @@ Do not commit `.env`, `.dev.vars`, `.wrangler`, node_modules, local SQLite data,
 | POST | `/api/auth/logout-all` | Revoke the current student's device sessions |
 
 JSON login accepts only `studentNumber` and `password`. Timetable and COOL sync accept only optional `password` and `force`; neither accepts a student ID or upstream URL. Mutation requests require the same Origin as the app; logout and all sync actions additionally require `X-CSRF-Token`. Password fields are masked and cleared after submission. Never put authorization or session tokens in localStorage or URL parameters.
+
+All task mutations also require `X-CSRF-Token`. Task responses include the authenticated student number so a tab can reject responses after another tab changes the shared login cookie. No task content is stored in localStorage or shared between preview and real accounts.
 
 ## Next stages
 

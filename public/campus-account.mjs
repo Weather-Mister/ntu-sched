@@ -6,7 +6,7 @@ export class CampusAccount {
     const activeAccount = this.current;
     const headers = new Headers(options.headers);
     if (options.body) headers.set('Content-Type', 'application/json');
-    if (options.method === 'POST' && this.current?.csrfToken) headers.set('X-CSRF-Token', this.current.csrfToken);
+    if (options.method && !['GET', 'HEAD'].includes(options.method) && this.current?.csrfToken) headers.set('X-CSRF-Token', this.current.csrfToken);
     const response = await fetch(`/api/${path}`, { ...options, headers, credentials: 'same-origin', cache: 'no-store' });
     const result = await response.json();
     if (!response.ok) {
@@ -24,6 +24,10 @@ export class CampusAccount {
     return this.current = await this.request('auth/login', { method: 'POST', signal, body: JSON.stringify({ studentNumber, password }) });
   }
   async connections() { return (await this.request('connections')).connections; }
+  async tasks() { return this.request('tasks'); }
+  async createTask(id, text) { return this.request('tasks', { method: 'POST', body: JSON.stringify({ id, text }) }); }
+  async changeTask(id, version, change) { return this.request('tasks/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ version, ...change }) }); }
+  async removeTask(id, version) { return this.request('tasks/' + encodeURIComponent(id), { method: 'DELETE', body: JSON.stringify({ version }) }); }
   async timetable() { return this.request('timetable'); }
   async syncTimetable(password, signal, force = false) {
     return this.request('timetable/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });

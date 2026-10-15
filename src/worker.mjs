@@ -2,6 +2,7 @@ import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudent
 import { verifyNtuMail } from './ntu-mail.mjs';
 import { savedTimetable, syncTimetable, refreshDueTimetables } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars } from './cool-store.mjs';
+import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -101,6 +102,17 @@ export default {
       if (path === '/api/connections' && request.method === 'GET') {
         const current = await session(request, env);
         return json({ connections: await connections(env, current.student_id) });
+      }
+      if (path === '/api/tasks' || path.startsWith('/api/tasks/')) {
+        const current = await session(request, env, request.method !== 'GET');
+        const owner = { studentNumber: current.student_number };
+        // Ownership always comes from the authenticated session, never a URL or body ID.
+        if (new URL(request.url).search) throw new ApiError(400, 'invalid_task', 'Task requests do not accept query parameters.');
+        if (path === '/api/tasks' && request.method === 'GET') return json({ ...owner, tasks: await listTasks(env, current.student_id) });
+        if (path === '/api/tasks' && request.method === 'POST') return json({ ...owner, task: await createTask(env, current.student_id, await readJson(request)) }, 201);
+        const id = /^\/api\/tasks\/([^/]+)$/.exec(path)?.[1];
+        if (id && ['PATCH', 'DELETE'].includes(request.method)) return json({ ...owner, task: await changeTask(env, current.student_id, id, await readJson(request), request.method === 'DELETE') });
+        throw new ApiError(404, 'not_found', 'This task action is not available.');
       }
       if (path === '/api/timetable' && request.method === 'GET') {
         const current = await session(request, env);

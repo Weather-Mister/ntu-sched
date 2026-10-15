@@ -1,6 +1,7 @@
 // Campus Week theme-ready interface: fictional preview and opt-in live NTU data.
 import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
 import { formatPeriods } from '/ntu-periods.mjs';
+import { AccountTasks } from '/account-tasks.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
 const profiles = {
@@ -43,6 +44,7 @@ const dict={
     liveEntryHeading:'Or use your real NTU account',liveEntryDesc:'Connect through the existing Campus Week account and backend.',restoreSession:'Use existing session',signInNtu:'Sign in to NTU',realAccount:'REAL NTU ACCOUNT',realLoginExplanation:'Uses the existing secure Campus Week login and the same timetable/COOL backend as the original site.',studentNumber:'NTU student number',ntuPassword:'NTU Mail password',accountSecurity:'Only sign in on your trusted Campus Week HTTPS address. Your password is not saved by this page.',timetableConnection:'Timetable connection',coolConnection:'COOL connection',syncTimetable:'Sync timetable',syncCool:'Sync COOL',realAssignmentsNote:'Live COOL calendar · ✓ marks done only here; submit assignments in COOL',realAnnouncementsNote:'Announcements are not available from the connected calendar yet.',noCalendar:'No connected COOL calendar. Select Refresh or connect from Settings.',liveNoAssignments:'No upcoming calendar deadlines.',liveNoTimetable:'No saved classes yet. Use Settings → Timetable → Sync timetable.',
     doneLocally:'Marked done here only; this does not submit to COOL.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
     assignments:'Assignments',announcements:'Announcements',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',campusAccessEyebrow:'CAMPUS',campusShortcuts:'Campus shortcuts',freeDay:'Free',
+    tasksSaved:'Saved to your student account · available on your other devices.',tasksLoading:'Loading your saved tasks…',tasksSaving:'Saving…',tasksLoadFailed:'Could not load tasks. Refresh tasks to try again.',tasksSaveFailed:'Could not confirm the save. Your last saved tasks are shown; please try again.',tasksConflict:'This task changed on another device. Latest tasks loaded; please try again.',tasksFull:'You have 500 tasks. Remove an old task before adding another.',tasksRetry:'Refresh tasks',tasksUndo:'Undo remove',removeTask:'Remove task',
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
@@ -57,6 +59,7 @@ const dict={
     liveEntryHeading:'或使用真正的臺大帳號',liveEntryDesc:'使用現有 Campus Week 帳號與後端連線。',restoreSession:'使用現有登入狀態',signInNtu:'登入臺大帳號',realAccount:'真實臺大帳號',realLoginExplanation:'沿用既有安全的 Campus Week 登入與課表、COOL 後端。',studentNumber:'臺大學號',ntuPassword:'臺大郵件密碼',accountSecurity:'請只在可信任的 Campus Week HTTPS 網址登入；此頁不會儲存密碼。',timetableConnection:'課表連線',coolConnection:'COOL 連線',syncTimetable:'同步課表',syncCool:'同步 COOL',realAssignmentsNote:'COOL 行事曆；✓ 僅在此標記完成，作業仍需至 COOL 提交',realAnnouncementsNote:'COOL 行事曆不包含公告，目前尚未連接公告。',noCalendar:'尚無 COOL 行事曆，請按重新整理或至設定連線。',liveNoAssignments:'目前沒有近期行事曆截止日期。',liveNoTimetable:'尚無已儲存課表，請到設定 → 課表同步。',
     doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
     assignments:'作業',announcements:'公告',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',campusAccessEyebrow:'校園',campusShortcuts:'校園捷徑',freeDay:'無課',
+    tasksSaved:'已儲存至你的學生帳號，可在其他裝置使用。',tasksLoading:'正在載入已儲存的任務…',tasksSaving:'儲存中…',tasksLoadFailed:'無法載入任務，請重新整理任務再試一次。',tasksSaveFailed:'無法確認是否已儲存，畫面保留上次儲存的任務，請再試一次。',tasksConflict:'此任務已在其他裝置變更，已載入最新任務，請再試一次。',tasksFull:'已達 500 項任務，請先移除舊任務。',tasksRetry:'重新整理任務',tasksUndo:'復原移除',removeTask:'移除任務',
     days:['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],shortDays:['週一','週二','週三','週四','週五','週六','週日']
   }
 };
@@ -64,6 +67,10 @@ let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,liveTimetableInfo='',liveCoolInfo='';
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
+const taskStore = new AccountTasks(account, {
+  onChange(state){if(liveMode){tasks=state.items;renderTasks();}},
+  onSessionExpired:()=>sessionExpired()
+});
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
 function iso(date){return date.toISOString().slice(0,10);}
 function dateFor(key){if(!/^\d{4}-\d{2}-\d{2}$/.test(key))throw Error('Invalid date');const d=new Date(key+'T00:00:00Z');if(!Number.isFinite(+d)||iso(d)!==key)throw Error('Invalid date');return d;}
@@ -374,13 +381,20 @@ function renderLiveDeadlines(){
 
 function renderTasks(){
   const list=$('todo-list');list.replaceChildren();$('task-count').textContent=tasks.length+' '+(tasks.length===1?t('singleTask'):t('tasks'));
-  if(!tasks.length){list.append(node('div','empty-card',t('noTasks')));return;}
+  const state=taskStore.state,busy=liveMode&&(!state.ready||state.saving);
+  $('task-input').disabled=busy;$('task-form').querySelector('button[type="submit"]').disabled=busy;
+  const errorKey=state.error?.code==='tasks_full'?'tasksFull':['task_changed','task_not_found'].includes(state.error?.code)?'tasksConflict':state.error?.phase==='load'?'tasksLoadFailed':'tasksSaveFailed';
+  $('tasks-status').textContent=t(!liveMode?'tasksOnly':state.error?errorKey:state.saving?'tasksSaving':state.loading?'tasksLoading':'tasksSaved');
+  $('tasks-retry').textContent=t('tasksRetry');$('tasks-retry').hidden=!liveMode||!state.error;$('tasks-retry').disabled=state.loading||state.saving;
+  $('tasks-undo').textContent=t('tasksUndo');$('tasks-undo').hidden=!liveMode||!state.undo;$('tasks-undo').disabled=busy;
+  if(!tasks.length){list.append(node('div','empty-card',liveMode&&!state.ready?t(state.error?'tasksLoadFailed':'tasksLoading'):t('noTasks')));return;}
   for(const task of tasks){
     const row=node('div','todo-row card'),check=node('button','todo-check',task.done?'✓':''),label=node('span','todo-label',task.text),remove=node('button','todo-remove','×');
     row.classList.toggle('done',task.done);check.type='button';remove.type='button';
-    check.setAttribute('aria-label',task.done?'Mark not done':'Mark done');remove.setAttribute('aria-label','Remove task');
-    check.addEventListener('click',()=>{task.done=!task.done;renderTasks();});
-    remove.addEventListener('click',()=>{tasks=tasks.filter(x=>x.id!==task.id);renderTasks();});
+    check.setAttribute('aria-label',t(task.done?'markUndone':'markDone'));check.setAttribute('aria-pressed',String(task.done));remove.setAttribute('aria-label',t('removeTask'));
+    check.disabled=remove.disabled=busy;
+    check.addEventListener('click',()=>{if(liveMode){void taskStore.setDone(task,!task.done);return;}task.done=!task.done;renderTasks();});
+    remove.addEventListener('click',()=>{if(liveMode){void taskStore.remove(task);return;}tasks=tasks.filter(x=>x.id!==task.id);renderTasks();});
     row.append(check,label,remove);list.append(row);
   }
 }
@@ -420,6 +434,7 @@ function leavePreview(){
   liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
+  taskStore.bind(null);$('task-input').value='';
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
@@ -534,6 +549,7 @@ function sessionExpired(){
 }
 async function readLiveSnapshots(){
   if(!liveMode||!liveAccount)return;
+  void taskStore.refresh();
   const epoch=liveEpoch;
   const [tResult,cResult]=await Promise.allSettled([account.timetable(),account.coolCalendar()]);
   if(epoch!==liveEpoch||!liveMode)return;
@@ -559,6 +575,7 @@ function startLive(current){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
   liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';
+  $('task-input').value='';taskStore.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;
   if($('live-login-dialog').open)$('live-login-dialog').close();
@@ -623,6 +640,7 @@ async function endLiveAccount(){
 
 function enterPreview(){
   liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
+  taskStore.bind(null);$('task-input').value='';
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
   selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');
@@ -660,10 +678,13 @@ $('cool-refresh').addEventListener('click',()=>{
 document.querySelectorAll('[data-cool-view]').forEach(button=>button.addEventListener('click',()=>{
   coolView=button.dataset.coolView;renderDeadlines();
 }));
-$('task-form').addEventListener('submit',e=>{
+$('task-form').addEventListener('submit',async e=>{
   e.preventDefault();if(!student)return;const content=$('task-input').value.trim();if(!content)return;
+  if(liveMode){const epoch=liveEpoch;if(await taskStore.add(content)&&epoch===liveEpoch&&$('task-input').value.trim()===content)$('task-input').value='';return;}
   tasks.unshift({id:++counter,text:content,done:false});$('task-input').value='';renderTasks();
 });
+$('tasks-retry').addEventListener('click',()=>{if(liveMode)void taskStore.refresh();});
+$('tasks-undo').addEventListener('click',()=>{if(liveMode)void taskStore.undo();});
 $('open-settings').addEventListener('click',()=>{showPanel('account');$('settings-dialog').showModal();});
 document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(btn=>btn.addEventListener('click',()=>showPanel(btn.dataset.settingsTab)));
 $('settings-close-desktop').addEventListener('click',()=>$('settings-dialog').close());
@@ -673,7 +694,8 @@ $('switch-account').addEventListener('click',()=>{if(liveMode)endLiveAccount();e
 $('log-out').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('settings-dialog').addEventListener('close',()=>{if(student)$('open-settings').focus();});
 $('lesson-dialog').addEventListener('close',()=>{opened=null;});
-setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();}},30000);
+setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();if(liveMode&&navigator.onLine!==false)void taskStore.refresh();}},30000);
+window.addEventListener('online',()=>{if(liveMode&&!document.hidden)void taskStore.refresh();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});
 renderTranslations();
 
