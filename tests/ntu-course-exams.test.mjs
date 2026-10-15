@@ -46,6 +46,7 @@ test('course identifier match cannot substitute a wrong semester, course or sect
   const info=parseNtuCourseExams(html,source);
   assert.equal(match({code:'CSIE5734',serial:'23006'},info).status,'matched-identifiers');
   assert.equal(match({code:'922 U0830'},info).status,'code-only');
+  assert.equal(match({courseIdentifier:'922 U0830',serial:'23006'},info).status,'matched-identifiers');
   assert.equal(match({code:'ME2001'},info).status,'different-course');
   assert.equal(match({code:'CSIE5734',serial:'99999'},info).status,'different-section');
   assert.equal(match({code:'CSIE5734'}, {...info,term:'114-1'}).status,'different-term');
