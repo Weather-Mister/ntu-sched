@@ -723,3 +723,15 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 .login-preview-inner .button{min-height:38px;margin-top:10px;font-size:12px}
 .login-preview-inner>p{color:var(--muted);font-size:10px;line-height:1.5;margin:10px 0 0}
 @media(prefers-reduced-motion:reduce){.login-spinner{animation:none}}
+
+/* Brief, unobtrusive progress for a student's first COOL/timetable connection. */
+.initial-sync-notice{
+  position:fixed;inset:auto 14px calc(16px + env(safe-area-inset-bottom)) auto;
+  z-index:35;max-width:min(420px,calc(100vw - 28px));
+  padding:11px 14px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);color:var(--text);box-shadow:var(--shadow);
+  font-size:12px;line-height:1.45;
+}
+@media(max-width:790px){
+  .initial-sync-notice{inset-inline:14px;max-width:none;text-align:center}
+}
