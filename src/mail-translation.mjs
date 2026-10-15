@@ -41,12 +41,18 @@ const escape = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;
 const plainMarkup = value => '<p>' + escape(value).replace(/\r\n?/g, '\n')
   .replace(/\n/g, '<br>') + '</p>';
 
+// Match the personal Mail service's 12 requests per 60 seconds; never reuse
+// the old 10-minute counter. The student ID is scoped to one fixed window.
 async function checkTranslationLimit(env, owner) {
-  const window = Math.floor(Date.now() / 600000);
-  const key = await digest('campus:gemini:translation:' + owner.student_id + ':' + window);
+  const current = Date.now(), window = Math.floor(current / 60000);
+  const key = await digest('campus:gemini:translation:minute:' + owner.student_id + ':' + window);
   const row = await env.DB.prepare('INSERT INTO login_limits(key, attempts, expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=attempts+1 RETURNING attempts')
-    .bind(key, (window + 1) * 600).first();
-  if (row.attempts > 12) throw new ApiError(429, 'translation_limit', 'Too many translations. Please try again in ten minutes.');
+    .bind(key, (window + 1) * 60).first();
+  if (row.attempts > 12) {
+    const error = new ApiError(429, 'translation_limit', 'Translation is briefly busy. Please try again shortly.');
+    error.retryAfterSeconds = Math.max(1, Math.ceil(((window + 1) * 60000 - current) / 1000));
+    throw error;
+  }
 }
 
 export async function translateMail(env, owner, input, { messageReader = readMail, googleFetch = fetch } = {}) {
@@ -58,7 +64,6 @@ export async function translateMail(env, owner, input, { messageReader = readMai
   if (typeof key !== 'string' || !key || typeof model !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(model)) {
     throw new ApiError(503, 'translation_unconfigured', 'Gemini translation is not configured for Campus Week.');
   }
-  await checkTranslationLimit(env, owner);
   // Read the actual message using this student's stored NTU authorization. Never
   // trust subject or body supplied by the browser, even if the UID is valid.
   const url = new URL('https://campus.invalid/api/mail/message?' + new URLSearchParams(ref));
@@ -68,6 +73,8 @@ export async function translateMail(env, owner, input, { messageReader = readMai
   const source = mailText(markup).trim().slice(0, 16000);
   if (!source) throw new ApiError(400, 'translation_empty', 'This message has no readable text to translate.');
   if (!containsChinese(subject + ' ' + source)) throw new ApiError(400, 'translation_not_chinese', 'This message does not appear to contain Chinese.');
+  // Invalid/empty mail and NTU read failures are not Gemini requests.
+  await checkTranslationLimit(env, owner);
   const sourceHtml = markup.slice(0, 14000);
   let response;
   try {
