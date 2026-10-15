@@ -459,6 +459,7 @@ body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--le
   }
 }
 /* Leave room for a card's hover shadow within the scrolling task panel. */
+.task-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.task-actions:has(button:not([hidden])){margin-bottom:5px}.todo-check:disabled,.todo-remove:disabled{opacity:.55;cursor:wait}
 .tasks-column .todo-list {padding-top:3px;padding-bottom:5px}
 .calendar-picker:focus-within {outline:3px solid #829bd1;outline-offset:2px}
 @media (prefers-reduced-motion:reduce) {
