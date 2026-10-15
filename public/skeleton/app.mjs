@@ -303,11 +303,95 @@ function leavePreview(){
   $('account-name').textContent='';$('account-id').textContent='';
   $('app-screen').hidden=true;$('login-screen').hidden=false;$('preview-profile').focus();
 }
+/* Desktop panel resizing: widths are ratios, so they still adapt to window size.
+   Only these visual ratios are persisted, never student data. */
+const dashboardResize=(()=>{
+  const workspace=document.querySelector('.workspace');
+  const panels=[
+    workspace.querySelector('.schedule-column'),
+    workspace.querySelector('.cool-column'),
+    workspace.querySelector('.side-column')
+  ];
+  const handles=[...workspace.querySelectorAll('.column-resizer')];
+  const largeDesktop=window.matchMedia('(min-width:1101px)');
+  const storageKey='campus-week-preview-panel-widths-v1';
+  let dragging=null;
+  const widths=()=>panels.map(panel=>panel.getBoundingClientRect().width);
+  function place(){
+    const show=Boolean(student&&largeDesktop.matches&&!$('app-screen').hidden);
+    for(const handle of handles)handle.hidden=!show;
+    if(!show)return;
+    const rect=workspace.getBoundingClientRect();
+    const sections=panels.map(p=>p.getBoundingClientRect());
+    handles[0].style.left=(sections[0].right+sections[1].left)/2-rect.left+'px';
+    handles[1].style.left=(sections[1].right+sections[2].left)/2-rect.left+'px';
+    const total=widths().reduce((a,b)=>a+b,0);
+    for(let i=0;i<handles.length;i++)
+      handles[i].setAttribute('aria-valuenow',String(Math.round((widths().slice(0,i+1).reduce((a,b)=>a+b,0)/total)*100)));
+  }
+  function apply(values,save=false){
+    const total=values.reduce((a,b)=>a+b,0);
+    if(!Number.isFinite(total)||total<=0)return;
+    for(let i=0;i<3;i++)workspace.style.setProperty(
+      ['--column-schedule','--column-ntu','--column-tasks'][i],(values[i]/total).toFixed(6)+'fr'
+    );
+    place();
+    if(save){try{localStorage.setItem(storageKey,JSON.stringify(values.map(v=>Math.round(v/total*10000)/10000)));}catch{}}
+  }
+  function adjust(index,shift,from,save=false){
+    const next=from.slice();
+    const min=Math.min(215,Math.max(160,Math.floor(from.reduce((a,b)=>a+b,0)/5)));
+    const left=index===0?0:1,right=left+1;
+    const delta=Math.max(min-next[left],Math.min(shift,next[right]-min));
+    next[left]+=delta;next[right]-=delta;
+    apply(next,save);
+  }
+  function stop(event){
+    if(!dragging||dragging.pointerId!==event.pointerId)return;
+    const handle=dragging.handle;
+    dragging=null;handle.classList.remove('is-dragging');
+    document.body.classList.remove('is-resizing-dashboard');
+    if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+    apply(widths(),true);
+  }
+  for(const handle of handles){
+    const index=handle.dataset.divider==='left'?0:1;
+    handle.addEventListener('pointerdown',event=>{
+      if(event.button!==0||!largeDesktop.matches||!student)return;
+      dragging={handle,index,pointerId:event.pointerId,x:event.clientX,from:widths()};
+      handle.setPointerCapture(event.pointerId);handle.classList.add('is-dragging');
+      document.body.classList.add('is-resizing-dashboard');event.preventDefault();
+    });
+    handle.addEventListener('pointermove',event=>{
+      if(dragging?.handle!==handle||dragging.pointerId!==event.pointerId)return;
+      adjust(index,event.clientX-dragging.x,dragging.from);
+    });
+    handle.addEventListener('pointerup',stop);
+    handle.addEventListener('pointercancel',stop);
+    handle.addEventListener('keydown',event=>{
+      if(!largeDesktop.matches||!student||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+      event.preventDefault();adjust(index,(event.key==='ArrowRight'?1:-1)*(event.shiftKey?48:18),widths(),true);
+    });
+    handle.addEventListener('dblclick',()=>{
+      for(const key of ['--column-schedule','--column-ntu','--column-tasks'])workspace.style.removeProperty(key);
+      try{localStorage.removeItem(storageKey);}catch{}
+      place();
+    });
+  }
+  try{
+    const values=JSON.parse(localStorage.getItem(storageKey)||'null');
+    if(Array.isArray(values)&&values.length===3&&values.every(x=>Number.isFinite(x)&&x>=.1&&x<=.8)
+      &&Math.abs(values.reduce((a,b)=>a+b,0)-1)<.01)apply(values);
+  }catch{}
+  window.addEventListener('resize',place,{passive:true});
+  return{place};
+})();
+
 function enterPreview(){
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
   selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');
-  $('login-screen').hidden=true;$('app-screen').hidden=false;renderAll();$('open-settings').focus();
+  $('login-screen').hidden=true;$('app-screen').hidden=false;renderAll();dashboardResize.place();$('open-settings').focus();
 }
 function chooseLanguage(value){language=value;renderAll();}
 $('enter-preview').addEventListener('click',enterPreview);
