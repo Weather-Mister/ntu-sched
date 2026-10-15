@@ -56,6 +56,10 @@ Do not commit `.env`, `.dev.vars`, `.wrangler`, node_modules, local SQLite data,
 
 ## API
 
+**Personal schedule events:** Add one-time events on a specific date or weekly events on any selected weekdays, with an optional inclusive end date. Each event has an editable name, optional location/notes, and start/end times in Taipei time. Weekly edits apply to the entire series. Personal entries join imported classes in the day list, weekday counts, week grid, overlap display, and Up Next without altering imported timetable data. Tap a personal entry to edit or remove it; removal offers Undo. Events belong to the authenticated student account and persist across devices. Fictional profiles keep only in-memory preview events.
+
+Apply `migrations/0003_custom_events.sql` before deploying this release; it adds only `custom_events` and its owner lookup index. Event writes use the same session, CSRF, acknowledged-save, retry identity, version, and account-switch protections as manual tasks. Up to 500 active event definitions are supported per account; recurring occurrences are expanded only for the displayed dates, rather than stored as separate rows.
+
 **Manual tasks:** Each student's tasks are stored in D1 under the permanent account ID associated with their normalized student number. The authenticated session supplies ownership for every read and mutation; clients cannot choose another student. Tasks retain their text and completion state across sign-ins and devices. The skeleton reloads them on account entry, manual refresh, and every 30 seconds while visible and online. Preview profiles continue to use fictional in-memory tasks.
 
 Apply `migrations/0002_manual_tasks.sql` to the existing database **before** deploying this release. This additive migration creates only the task table and index. It does not change students, sessions, connections, or timetable data. The API accepts up to 500 active tasks per account, each 140 characters. Create UUIDs make retries idempotent; version checks prevent stale devices from overwriting newer changes. Remove is a soft delete, and the latest removal offers Undo in the interface. Unsaved input survives a failed save; failures preserve the last acknowledged list. Switching accounts clears tasks, undo state, drafts and pending responses before loading the next account.
@@ -67,6 +71,10 @@ Apply `migrations/0002_manual_tasks.sql` to the existing database **before** dep
 | GET | `/api/auth/me` | Restore the current account and CSRF nonce |
 | GET | `/api/connections` | Current student's connection status; no credentials or other students' data |
 | GET | `/api/tasks` | Current student's saved active tasks |
+| GET | `/api/events` | Current student's saved custom event definitions |
+| POST | `/api/events` | Create an event with a retry-safe UUID and its schedule fields |
+| PATCH | `/api/events/:id` | Edit an owned event using its version, or restore a removed event |
+| DELETE | `/api/events/:id` | Soft remove an owned event using its version |
 | POST | `/api/tasks` | Create a task with `{id, text}`; retry the same UUID safely |
 | PATCH | `/api/tasks/:id` | Save `{version, done}` or undo removal with `{version, deleted: false}` |
 | DELETE | `/api/tasks/:id` | Soft remove an owned task using `{version}` |

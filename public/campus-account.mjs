@@ -25,6 +25,10 @@ export class CampusAccount {
   }
   async connections() { return (await this.request('connections')).connections; }
   async tasks() { return this.request('tasks'); }
+  async events() { return this.request('events'); }
+  async createEvent(id,values) { return this.request('events',{method:'POST',body:JSON.stringify({id,...values})}); }
+  async changeEvent(id,version,values) { return this.request('events/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({version,...values})}); }
+  async removeEvent(id,version) { return this.request('events/'+encodeURIComponent(id),{method:'DELETE',body:JSON.stringify({version})}); }
   async createTask(id, text) { return this.request('tasks', { method: 'POST', body: JSON.stringify({ id, text }) }); }
   async changeTask(id, version, change) { return this.request('tasks/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ version, ...change }) }); }
   async removeTask(id, version) { return this.request('tasks/' + encodeURIComponent(id), { method: 'DELETE', body: JSON.stringify({ version }) }); }

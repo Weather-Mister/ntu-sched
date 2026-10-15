@@ -10,7 +10,7 @@ const css = readFileSync(new URL('styles.css', skeleton), 'utf8');
 const js = readFileSync(new URL('app.mjs', skeleton), 'utf8');
 
 test('UI skeleton and account task JavaScript parse as browser modules', () => {
-  for (const path of ['app.mjs','live-source.mjs','../account-tasks.mjs','../campus-account.mjs']) {
+  for (const path of ['app.mjs','live-source.mjs','custom-events.mjs','../account-tasks.mjs','../account-events.mjs','../event-model.mjs','../campus-account.mjs']) {
     const result=spawnSync(process.execPath,['--check',fileURLToPath(new URL(path,skeleton))],{encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
   }
