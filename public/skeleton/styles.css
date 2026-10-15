@@ -653,14 +653,14 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 .lesson-edit-form>textarea{resize:vertical;line-height:1.5}.lesson-edit-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:18px}.lesson-edit-actions>span{flex:1}.lesson-edit-actions .button{font-size:11px}.lesson-edit-message{font-size:12px;color:#a44d45;margin:12px 0 0}.lesson-edit-form .detail-note{margin:13px 0 0}
 @media(max-width:410px){.lesson-edit-actions #lesson-reset{flex-basis:100%;margin-bottom:3px}.lesson-edit-actions>span{display:none}.lesson-edit-actions #lesson-edit-cancel,.lesson-edit-actions #lesson-save{flex:1}}
 
-/* COOL mobile feed: show four complete cards, then scroll inside a four-card-high list. */
-.cool-mobile-more{display:none}
+/* On mobile both COOL tabs occupy the same viewport-height panel.
+   Every card stays in the list and the list itself is the only scroll area. */
 @media(max-width:790px){
-  /* Announcement bodies can be far taller than assignment cards. Cap the viewport,
-     not the cards: shrinking flex items used to overlap their disclosure content. */
-  .cool-list{
+  .cool-column .cool-list{
+    height:343px;
     max-height:343px;
-    min-height:0;
+    min-height:343px;
+    flex:0 0 343px;
     overflow-y:auto;
     overflow-x:hidden;
     scrollbar-width:thin;
@@ -669,35 +669,16 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
     -webkit-overflow-scrolling:touch;
     padding:1px 4px 4px 1px;
   }
-  .cool-list>.cool-item{
+  .cool-column .cool-list>.cool-item{
     flex:0 0 auto;
     min-width:0;
     width:100%;
   }
-  /* Show the full body in the feed's one scroll area instead of creating a
-     second scrollable text box inside the announcement card. */
-  .cool-list .announcement-body p{max-height:none;overflow:visible}
-  .cool-list:not(.cool-list-expanded)>.cool-item:nth-child(n+5){display:none}
-  .cool-mobile-more:not([hidden]){
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    width:100%;
-    min-height:36px;
-    margin-top:9px;
-    padding:8px 12px;
-    color:var(--text);
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    font:inherit;
-    font-size:12px;
-    font-weight:750;
-    cursor:pointer;
-    transition:background .15s,border-color .15s;
+  /* Announcements expand inside the feed instead of adding nested scrollbars. */
+  .cool-column .cool-list .announcement-body p{
+    max-height:none;
+    overflow:visible;
   }
-  .cool-mobile-more:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-  @media(hover:hover){.cool-mobile-more:hover{background:var(--accent-soft);border-color:var(--accent)}}
 }
 
 /* Direct sign-in: the session check is shown briefly, then the inline form. */

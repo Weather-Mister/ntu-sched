@@ -1,85 +1,89 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseHTML} from 'linkedom';
-import {createCoolMobileOverflow,COOL_MOBILE_VISIBLE_COUNT} from '../public/skeleton/cool-mobile-overflow.mjs';
 import {readFileSync} from 'node:fs';
+import {parseHTML} from 'linkedom';
+import {createCoolFeedScroll} from '../public/skeleton/cool-feed-scroll.mjs';
+
+const base=new URL('../public/skeleton/',import.meta.url);
+const css=readFileSync(new URL('styles.css',base),'utf8');
+const html=readFileSync(new URL('index.html',base),'utf8');
+const app=readFileSync(new URL('app.mjs',base),'utf8');
 
 function setup(){
-  const {document}=parseHTML('<div id="cool-list" class="cool-list"></div><button id="cool-mobile-more" hidden aria-controls="cool-list"></button>');
+  const {document}=parseHTML('<div id="cool-list" class="cool-list"></div>');
   const list=document.getElementById('cool-list');
-  const button=document.getElementById('cool-mobile-more');
-  const controller=createCoolMobileOverflow({
-    list,button,
-    showMore:n=>`Show ${n} more`,
-    showLess:()=>`Show less`
-  });
-  function cards(n){
-    list.replaceChildren(...Array.from({length:n},()=>{const item=document.createElement('article');item.className='cool-item';return item;}));
-  }
-  return {document,list,button,controller,cards};
+  const controller=createCoolFeedScroll({list});
+  const cards=n=>list.replaceChildren(...Array.from({length:n},()=>{
+    const item=document.createElement('article');
+    item.className='cool-item';
+    return item;
+  }));
+  return {list,controller,cards};
 }
 
-test('mobile COOL list shows a count only when there are more than four cards',()=>{
-  const {list,button,controller,cards}=setup();
-  assert.equal(COOL_MOBILE_VISIBLE_COUNT,4);
-  cards(0);controller.update('assignments');assert.equal(button.hidden,true);
-  cards(4);controller.update('assignments');assert.equal(button.hidden,true);
-  cards(7);controller.update('assignments');assert.equal(button.hidden,false);
-  assert.equal(button.textContent,'Show 3 more');
-  assert.equal(button.getAttribute('aria-expanded'),'false');
-  assert.equal(list.classList.contains('cool-list-expanded'),false);
-  button.click();assert.equal(button.textContent,'Show less');
-  assert.equal(button.getAttribute('aria-expanded'),'true');
-  assert.equal(list.classList.contains('cool-list-expanded'),true);
-  button.click();assert.equal(button.textContent,'Show 3 more');
-  assert.equal(list.classList.contains('cool-list-expanded'),false);
+test('mobile COOL tabs share a fixed-height scroll area without hiding cards',()=>{
+  const mobile=css.slice(css.indexOf('/* On mobile both COOL tabs'),css.indexOf('/* Direct sign-in:'));
+  assert.match(mobile,/@media\(max-width:790px\)/);
+  assert.match(mobile,/\.cool-column \.cool-list\{[^}]*height:343px;[^}]*max-height:343px;[^}]*min-height:343px;[^}]*flex:0 0 343px;/s);
+  assert.match(mobile,/overflow-y:auto;/);
+  assert.match(mobile,/overscroll-behavior:contain;/);
+  assert.match(mobile,/\.cool-column \.cool-list>\.cool-item\{[^}]*flex:0 0 auto;/s);
+  assert.match(mobile,/\.announcement-body p\{[^}]*max-height:none;[^}]*overflow:visible;/s);
+  assert.doesNotMatch(css,/nth-child\(n\+5\)|cool-list-expanded|cool-mobile-more/);
+  assert.doesNotMatch(html,/id="cool-mobile-more"/);
+  assert.doesNotMatch(app,/coolShowMore|coolShowLess|cool-mobile-more/);
+  assert.match(app,/for\(const item of items\)\{/);
+  assert.doesNotMatch(app,/items\.slice\(0,40\)/);
 });
 
-test('mobile COOL list preserves expansion per tab and inner scroll across rerenders',()=>{
-  const {list,button,controller,cards}=setup();
-  cards(12);controller.update('assignments');button.click();
-  list.scrollTop=150;
-  cards(11);controller.update('assignments',150);
-  assert.equal(list.scrollTop,150);
-  assert.equal(button.textContent,'Show less');
-  cards(6);controller.update('announcements',150);
-  assert.equal(button.textContent,'Show 2 more');
+test('all assignments remain in DOM and same-tab rerenders preserve scroll position',()=>{
+  const {list,controller,cards}=setup();
+  cards(80);
+  assert.equal(list.children.length,80);
+  list.scrollTop=176;
+  cards(125);
+  controller.update('assignments',176);
+  assert.equal(list.children.length,125);
+  assert.equal(list.scrollTop,176);
+});
+
+test('switching tabs resets the scroll while preserving each tab content',()=>{
+  const {list,controller,cards}=setup();
+  cards(15);list.scrollTop=120;
+  controller.update('announcements',120);
   assert.equal(list.scrollTop,0);
-  button.click();assert.equal(list.classList.contains('cool-list-expanded'),true);
-  cards(9);controller.update('assignments');assert.equal(button.textContent,'Show less');
-  controller.reset();assert.equal(button.textContent,'Show 5 more');
-  assert.equal(button.getAttribute('aria-expanded'),'false');
+  cards(42);list.scrollTop=75;
+  controller.update('announcements',75);
+  assert.equal(list.children.length,42);
+  assert.equal(list.scrollTop,75);
+  controller.update('assignments',75);
+  assert.equal(list.scrollTop,0);
+  controller.reset();
+  assert.equal(list.scrollTop,0);
 });
 
-test('mobile COOL feed cutoff is limited to small screens and does not hide desktop cards',()=>{
-  const css=readFileSync(new URL('../public/skeleton/styles.css',import.meta.url),'utf8');
-  const selector='.cool-list:not(.cool-list-expanded)>.cool-item:nth-child(n+5)';
-  assert.ok(css.includes(selector));
-  assert.ok(css.includes('@media(max-width:790px){'));
-  assert.ok(css.includes('max-height:343px'));
-  assert.ok(css.includes('overscroll-behavior:contain'));
-  assert.match(css,/\.cool-list>\.cool-item\s*\{\s*flex:0 0 auto;/);
-  assert.ok(css.includes('.cool-list .announcement-body p{max-height:none;overflow:visible}'));
-  const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
-  assert.match(html,/id="cool-mobile-more"[^>]*aria-controls="cool-list"/);
-});
-
-test('long announcement cards keep their disclosure and toggle without losing the count',()=>{
-  const {document,list,button,controller}=setup();
-  const cards=Array.from({length:7},(_,index)=>{
-    const article=document.createElement('article');article.className='cool-item announcement-card';
-    const details=document.createElement('details');details.className='announcement-body';details.dataset.announcement=String(index);
-    const summary=document.createElement('summary');summary.textContent='Read announcement';
-    const body=document.createElement('p');body.textContent='Full announcement content. '.repeat(100);
-    details.append(summary,body);article.append(details);return article;
-  });
-  list.replaceChildren(...cards);
-  cards[0].querySelector('details').open=true;
+test('expanded announcement details survive rerenders without requiring a more button',()=>{
+  const {list,controller}=setup();
+  function card(index){
+    const article=list.ownerDocument.createElement('article');
+    article.className='cool-item announcement-card';
+    const details=list.ownerDocument.createElement('details');
+    details.dataset.announcement=String(index);
+    const summary=list.ownerDocument.createElement('summary');summary.textContent='Read announcement';
+    const body=list.ownerDocument.createElement('p');body.textContent='Long announcement '.repeat(200);
+    details.append(summary,body);article.append(details);
+    return article;
+  }
+  list.replaceChildren(...Array.from({length:25},(_,i)=>card(i)));
+  list.children[0].querySelector('details').setAttribute('open','');
+  const expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));
+  list.replaceChildren(...Array.from({length:25},(_,i)=>{
+    const item=card(i);
+    if(expanded.has(String(i)))item.querySelector('details').setAttribute('open','');
+    return item;
+  }));
   controller.update('announcements');
-  assert.equal(button.textContent,'Show 3 more');
-  assert.equal(cards[0].querySelector('details').open,true);
-  button.click();
-  assert.equal(button.textContent,'Show less');
-  assert.equal(list.children.length,7);
-  assert.equal(cards[0].querySelector('details').open,true);
+  assert.equal(list.children.length,25);
+  assert.equal(list.children[0].querySelector('details').hasAttribute('open'),true);
+  assert.equal(list.querySelectorAll('.cool-item').length,25);
 });
