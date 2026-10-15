@@ -40,7 +40,17 @@ export async function withMailbox(env,owner,work,{retryRead=false}={}){
     s.cookies=new Map(saved.cookies);s.env=saved.env;s.folders=saved.folders;issuedAt=saved.issuedAt;
    }
   }catch{}
-  if(!s.env.request_token){await s.login();issuedAt=clock();}
+  if(!s.env.request_token){
+   try{await s.login();}
+   catch(error){
+    // Only repeat the safe session establishment for read operations.
+    // An initial Roundcube login-page response does not mean the user's
+    // verified Campus Week or saved NTU connection has expired.
+    if(!retryRead||!['ntu_login_unconfirmed','ntu_unavailable'].includes(error?.code))throw error;
+    s.close();await wait(650);s=newSession();await s.login();
+   }
+   issuedAt=clock();
+  }
   let result;
   try{result=await work(s,row);}
   catch(error){
