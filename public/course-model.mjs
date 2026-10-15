@@ -15,3 +15,11 @@ export function applyCourseOverrides(rows, overrides = {}) {
     return row;
   });
 }
+
+// Stable across row ordering, weeks, language changes, devices and reloads.
+export function scheduleAccent(row) {
+  const key=row[7] ? 'event:'+normalized(row[7].title) : 'course:'+(row[8] || normalized(row[6] || row[4] || row[3]));
+  let hash=2166136261;
+  for(let i=0;i<key.length;i++)hash=Math.imul(hash^key.charCodeAt(i),16777619);
+  return (hash>>>0)%7;
+}

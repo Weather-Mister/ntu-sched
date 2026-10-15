@@ -1,7 +1,7 @@
 // Campus Week theme-ready interface: fictional preview and opt-in live NTU data.
 import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
 import { AccountAnnouncements } from '/account-announcements.mjs';
-import { applyCourseOverrides } from '/course-model.mjs';
+import { applyCourseOverrides, scheduleAccent } from '/course-model.mjs';
 import { formatPeriods } from '/ntu-periods.mjs';
 import { AccountTasks } from '/account-tasks.mjs';
 import { eventsOn, nextEventDates } from '/event-model.mjs';
@@ -182,7 +182,7 @@ function renderWeekTimetable(){
       .sort((a,b)=>a.start-b.start||a.end-b.end));
     for(const {c,start,end,lane,lanes} of entries){
       const block=node('button','timetable-lesson');
-      block.type='button';block.dataset.color=String(Math.max(0,student.courses.indexOf(c))%7);block.classList.toggle('custom-event',!!c[7]);
+      block.type='button';block.dataset.color=String(scheduleAccent(c));block.classList.toggle('custom-event',!!c[7]);
       if(end-start<70)block.classList.add('is-short');
       const pct=100/lanes;
       block.style.top=((start-origin)*scale+2)+'px';
@@ -272,7 +272,7 @@ function renderCalendar(){
     if(selectedDate===today){btn.classList.toggle('live',lessonState(c,selectedDate)===t('live'));btn.classList.toggle('completed',lessonState(c,selectedDate)===t('completed'));}
     const clock=node('span','lesson-time');clock.append(node('strong','',c[1]),node('span','',c[2]));
     const period=lessonPeriod(c);if(period)clock.append(node('small','lesson-period',period));
-    const card=node('span','lesson-card');card.dataset.color=String(student.courses.indexOf(c)%7);
+    const card=node('span','lesson-card');card.dataset.color=String(scheduleAccent(c));
     card.append(node('span','lesson-name',c[language==='zh'?4:3]),node('span','lesson-room',c[5]));
     if(c[7])card.append(node('small','event-kind',t('customEvent')));
     if(items.some(other=>other!==c&&other[1]<c[2]&&c[1]<other[2]))card.append(node('span','state-pill',t('overlap')));

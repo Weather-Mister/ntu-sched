@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import worker from '../src/worker.mjs';
 import { mapTimetable } from '../public/skeleton/live-source.mjs';
-import { applyCourseOverrides,courseIdentity } from '../public/course-model.mjs';
+import { applyCourseOverrides,courseIdentity,scheduleAccent } from '../public/course-model.mjs';
 import { decryptAuthorization, encryptAuthorization } from '../src/security.mjs';
 
 const APP = 'https://campus.example';
@@ -580,4 +580,17 @@ test('theme adapter applies account overrides without confusing imported classes
   const row=mapTimetable(snapshot,{'class-id':{nameEn:'Eng Math',room:'114',description:'Bring book'}})[0];
   assert.equal(row[3],'Eng Math');assert.equal(row[4],'工程數學');assert.equal(row[5],'114');assert.equal(row[7],null);assert.equal(row[8],'class-id');assert.equal(row[9],'Bring book');
   const reset=mapTimetable(snapshot,{'class-id':{nameEn:null,nameZh:null,room:null,description:null}})[0];assert.equal(reset[3],'Engineering Mathematics');assert.equal(reset[5],'Original');
+});
+
+test('class accents follow stable identity through meeting changes, reordering and display overrides',()=>{
+  const rows=[[0,'09:10','10:00','Math','數學','A','ME1',null,'math-id'],[2,'10:20','12:10','Math','數學','B','ME1',null,'math-id']];
+  const color=scheduleAccent(rows[0]);assert.equal(scheduleAccent(rows[1]),color);
+  const edited=applyCourseOverrides([...rows].reverse(),{'math-id':{nameEn:'Renamed',nameZh:'新名稱',room:'114'}});
+  assert.ok(edited.every(r=>scheduleAccent(r)===color));assert.ok(Number.isInteger(color)&&color>=0&&color<7);
+});
+test('personal event accents match case-insensitive names, independent of event IDs, dates and repeat rules',()=>{
+  const row=title=>[0,'09:00','10:00',title,title,'','',{id:crypto.randomUUID(),title},undefined];
+  const color=scheduleAccent(row('Study Group'));
+  for(const title of ['study group','STUDY GROUP','  Study Group  ','Study   Group'])assert.equal(scheduleAccent(row(title)),color);
+  const first=row('Study Group'),later=row('study group');later[0]=4;later[1]='14:00';later[7].frequency='weekly';assert.equal(scheduleAccent(first),scheduleAccent(later));
 });
