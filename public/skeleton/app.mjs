@@ -1,7 +1,6 @@
 // Campus Week standalone preview. Fictional, in-memory data only; no API requests or credentials.
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
-const palette = ['#b55d50','#5f67af','#47796b','#b07838','#7a629e','#4382a0','#aa5f86'];
 const profiles = {
   engineering: {
     name:['Engineering student','工程學院學生'],id:'PREVIEW-A',tasks:['Read chapter 3','Review lab notes'],
@@ -95,7 +94,7 @@ function renderCalendar(){
     const btn=node('button','lesson');btn.type='button';
     if(selectedDate===today){btn.classList.toggle('live',lessonState(c,selectedDate)===t('live'));btn.classList.toggle('completed',lessonState(c,selectedDate)===t('completed'));}
     const clock=node('span','lesson-time');clock.append(node('strong','',c[1]),node('span','',c[2]));
-    const card=node('span','lesson-card');card.style.setProperty('--course-color',palette[student.courses.indexOf(c)%palette.length]);
+    const card=node('span','lesson-card');card.dataset.color=String(student.courses.indexOf(c)%7);
     card.append(node('span','lesson-name',c[language==='zh'?4:3]),node('span','lesson-room',c[5]));
     if(items.some(other=>other!==c&&other[1]<c[2]&&c[1]<other[2]))card.append(node('span','state-pill',t('overlap')));
     btn.append(clock,card);btn.addEventListener('click',()=>showLesson(c,selectedDate));list.append(btn);
