@@ -363,3 +363,108 @@ body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--le
   /* Arrows must retain vertical centering even with reduced motion. */
   .lesson-arrow{transform:translateY(-50%)!important}
 }
+
+/* Consistent personal-site hover feedback for the requested controls.
+   Opt-in only for a real hovering pointer; visual feedback, not layout changes. */
+@media (hover:hover) and (pointer:fine) {
+  .language-toggle button,
+  #open-settings,
+  .settings-nav button,
+  .settings-choices button,
+  .settings-main .button:not(:disabled),
+  .calendar-picker,
+  .timetable-view-switch button,
+  .todo-row,
+  .todo-check,
+  .todo-remove,
+  .todo-form .button,
+  .todo-form input {
+    transition:background-color .16s ease,color .16s ease,
+      border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+  }
+
+  /* English / 中文 — both the inactive choice and selected language respond. */
+  .language-toggle button:not([aria-pressed=true]):hover {
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .language-toggle button[aria-pressed=true]:hover {
+    color:var(--accent);box-shadow:0 3px 9px rgba(45,39,31,.11);
+  }
+
+  /* Settings control and choices. */
+  #open-settings:hover,
+  .settings-rail-head .icon-button:hover,
+  .settings-mobile-back .icon-button:hover {
+    transform:translateY(-1px);border-color:#cbc5bb;
+    background:var(--panel);box-shadow:0 6px 16px rgba(45,39,31,.08);
+  }
+  .settings-nav button:not([aria-selected=true]):hover {
+    background:var(--accent-soft);color:var(--accent);
+    transform:translateX(2px);
+  }
+  .settings-nav button[aria-selected=true]:hover {
+    box-shadow:0 3px 10px rgba(45,39,31,.09);
+  }
+  .settings-choices button:hover {
+    border-color:var(--accent);background:var(--accent-soft);color:var(--accent);
+  }
+  .settings-choices button[aria-selected=true]:hover {
+    background:var(--accent);color:white;filter:brightness(1.1);
+  }
+  .settings-main .button:not(:disabled):hover {
+    border-color:#cbc5bb;box-shadow:0 5px 13px rgba(45,39,31,.075);
+    transform:translateY(-1px);
+  }
+
+  /* Date-picker wrapper is the real clickable surface; the input is transparent. */
+  .calendar-picker:hover,.calendar-picker:focus-within {
+    transform:translateY(-1px);background:var(--panel);
+    border-color:#cbc5bb;color:var(--accent);
+    box-shadow:0 6px 16px rgba(45,39,31,.08);
+  }
+  .timetable-view-switch button:not([aria-pressed=true]):hover {
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .timetable-view-switch button[aria-pressed=true]:hover {
+    box-shadow:0 3px 9px rgba(45,39,31,.1);
+  }
+
+  /* Lessons match Eren's card lift; completed ones respond more quietly. */
+  .lesson.completed:hover .lesson-card {
+    transform:translateY(-1px);border-color:var(--line);
+    box-shadow:0 6px 15px rgba(45,39,31,.07);
+  }
+
+  /* Manual tasks: row lift, and clearly discoverable check/remove controls. */
+  .todo-row:hover {
+    transform:translateY(-1px);border-color:#d7d1c8;
+    box-shadow:0 7px 18px rgba(45,39,31,.075);
+  }
+  .todo-check:hover {
+    transform:scale(1.07);border-color:#93a99c;
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .todo-row.done .todo-check:hover {
+    background:#47796b;color:white;border-color:#47796b;
+    filter:brightness(1.08);
+  }
+  .todo-remove:hover {
+    background:var(--panel);color:var(--text);transform:scale(1.07);
+  }
+  .todo-form input:hover {
+    border-color:#b6c3d7;
+  }
+  .todo-form .button:not(:disabled):hover {
+    transform:translateY(-1px);box-shadow:0 6px 16px rgba(45,39,31,.09);
+  }
+}
+/* Leave room for a card's hover shadow within the scrolling task panel. */
+.tasks-column .todo-list {padding-top:3px;padding-bottom:5px}
+.calendar-picker:focus-within {outline:3px solid #829bd1;outline-offset:2px}
+@media (prefers-reduced-motion:reduce) {
+  .language-toggle button,#open-settings,.settings-nav button,.settings-choices button,
+  .settings-main .button,.calendar-picker,.timetable-view-switch button,
+  .todo-row,.todo-check,.todo-remove,.todo-form .button,.todo-form input{
+    transition:none!important;transform:none!important;
+  }
+}
