@@ -802,3 +802,7 @@ const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language});
 
 const settingsUI=createSettings({account,onSessionExpired:sessionExpired});
 renderTranslations();
+// Explicit design-preview links always use the labelled fictional profile.
+if(new URL(location.href).searchParams.get('preview')==='settings'){
+  enterPreview();showPanel('account');settingsUI.open();$('settings-dialog').showModal();
+}
