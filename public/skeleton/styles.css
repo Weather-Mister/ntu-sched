@@ -595,8 +595,8 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 .campus-mail-snippet{color:#858a80;font-size:12px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .campus-mail-provider{color:#acb0a2;font-size:10px;line-height:1.35;margin-top:4px}
 .campus-mail-item.is-unread .campus-mail-sender,.campus-mail-item.is-unread .campus-mail-subject{font-weight:750;color:#233223}
-.campus-mail-actions{position:absolute;top:11px;right:10px;z-index:2;display:flex;gap:2px;align-items:center;padding:5px 6px;border:1px solid #dce3d8;border-radius:12px;background:#fffefa;box-shadow:0 5px 16px #3a4f3020;opacity:0;transform:translateY(2px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}
-.campus-mail-item:hover .campus-mail-actions{opacity:1;transform:translateY(0);pointer-events:auto}
+.campus-mail-actions{position:absolute;top:11px;right:10px;z-index:2;display:flex;gap:2px;align-items:center;padding:5px 6px;border:1px solid #dce3d8;border-radius:12px;background:#fffefa;box-shadow:0 5px 16px #3a4f3020;visibility:hidden;opacity:0;transform:translateY(2px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}
+.campus-mail-item:hover .campus-mail-actions{visibility:visible;opacity:1;transform:translateY(0);pointer-events:auto}
 .campus-mail-item:hover .campus-mail-date{opacity:0}
 .campus-mail-icon{width:29px;height:29px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#859282;cursor:pointer;transition:background .15s ease,color .15s ease,transform .15s ease}
 .campus-mail-icon svg{width:17px;height:17px;stroke:currentColor}
