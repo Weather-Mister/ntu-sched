@@ -20,9 +20,14 @@ export function mailListText(value,{subject=false}={}){
    if(![...element.children].some(child=>child.textContent.trim()===element.textContent.trim()))element.remove();
   }
  }
- let valueText=body.textContent.replace(/\s+/g,' ').trim();
- if(subject&&/<[a-z][\s>]/i.test(raw))
-  valueText=valueText.replace(/\s+(?:open in (?:a )?new window|open in new tab|在新視窗開啟)$/i,'').trim();
+ let valueText=body.textContent.replace(/[\u200b-\u200d\ufeff]/g,'').replace(/\s+/g,' ').trim();
+ if(subject){
+  // NTU sometimes appends this screen-reader label as PLAIN TEXT, not HTML.
+  // The label can also touch the subject directly with no separating space.
+  // Preserve a legitimate subject that consists entirely of this phrase.
+  const withoutLabel=valueText.replace(/\s*(?:open\s+in\s+(?:a\s+)?new\s+window|open\s+in\s+new\s+tab|在新視窗開啟)\s*$/i,'').trim();
+  if(withoutLabel)valueText=withoutLabel;
+ }
  return valueText;
 }
 
@@ -60,7 +65,7 @@ export function messageFromPage(html,ref){
   const part=url.searchParams.get('_part');if(!part||!/^\d+(?:\.\d+)*$/.test(part)||seen.has(part))continue;seen.add(part);
   attachments.push({part,name:link.textContent.trim()||'Attachment'});
  }
- const subject=document.querySelector('.subject')?.textContent?.trim()||text(env.subject)||'(No subject)';
+ const subject=mailListText(document.querySelector('.subject')?.innerHTML||env.subject||'',{subject:true})||'(No subject)';
  const header=document.querySelector('#message-headers')||document.querySelector('.message-headers');
  const headers=header?.textContent?.trim()||'';
  return {...ref,subject,headers,body:body.innerHTML,attachments};
