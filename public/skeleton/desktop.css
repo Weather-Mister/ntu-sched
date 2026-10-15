@@ -159,7 +159,8 @@
 
   /* Content columns use the available space and only their lists scroll. */
   .workspace{
-    display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.95fr);
+    position:relative;display:grid;
+    grid-template-columns:minmax(0,var(--column-schedule,1.15fr)) minmax(0,var(--column-ntu,1fr)) minmax(0,var(--column-tasks,.95fr));
     grid-template-rows:minmax(0,1fr);gap:12px;margin:0;padding:0;
     min-height:0;min-width:0;align-items:stretch;height:100%;
   }
@@ -253,6 +254,33 @@
   }
   .shortcuts-panel .ntu-icon{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px}
   .shortcuts-panel .ntu-icon svg{width:13px;height:13px}
+}
+/* Grips appear on intent, not as permanent decoration. */
+@media (min-width:1101px) {
+  .column-resizer {
+    position:absolute;top:50%;z-index:5;
+    display:flex;align-items:center;justify-content:center;
+    width:16px;height:90px;transform:translate(-50%,-50%);
+    padding:0;border:0;border-radius:12px;background:transparent;
+    cursor:col-resize;touch-action:none;
+  }
+  .column-resizer .resize-grip {
+    display:block;width:4px;height:42px;border-radius:9px;
+    background:color-mix(in srgb,var(--accent) 35%,var(--card));
+    box-shadow:0 0 0 3px var(--bg);
+    opacity:.26;
+    transition:opacity .14s ease,width .14s ease,background .14s ease;
+  }
+  .column-resizer:hover .resize-grip,
+  .column-resizer:focus-visible .resize-grip,
+  .column-resizer.is-dragging .resize-grip {
+    opacity:1;width:5px;background:var(--accent);
+  }
+  body.is-resizing-dashboard {cursor:col-resize;user-select:none}
+  body.is-resizing-dashboard * {cursor:col-resize!important}
+}
+@media (max-width:1100px) {
+  .column-resizer {display:none!important}
 }
 @media (min-width:791px) and (max-width:1100px) {
   .app-shell {padding:12px 15px;gap:9px}
