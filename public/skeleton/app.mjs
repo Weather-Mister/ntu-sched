@@ -1,6 +1,7 @@
 // Campus Week theme-ready interface: fictional preview and opt-in live NTU data.
 import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
 import { AccountAnnouncements } from '/account-announcements.mjs';
+import { applyCourseOverrides } from '/course-model.mjs';
 import { formatPeriods } from '/ntu-periods.mjs';
 import { AccountTasks } from '/account-tasks.mjs';
 import { eventsOn, nextEventDates } from '/event-model.mjs';
@@ -39,6 +40,7 @@ const dict={
   en:{
     loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Your week, organized.',loginIntro:'Your courses, deadlines and tasks, in one place. Explore the design using fictional student profiles.',previewLabel:'Choose a fictional preview profile',engineeringProfile:'Engineering student (sample)',socialProfile:'Social sciences student (sample)',enterPreview:'Enter interface preview',loginSafety:'Sample profiles use fictional data. Real NTU access is optional and uses the existing Campus Week connection.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK PREVIEW',mySchedule:'My Schedule',
     chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Preview tasks stay in memory and disappear on reload.',
+    lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Preview edits last until you leave this preview.',
     classDetails:'CLASS DETAILS',time:'Time',location:'Location',courseCode:'Course code',status:'Status',repeatsWeekly:'Preview follows a repeating weekly schedule.',preferences:'PREFERENCES',settings:'Settings',account:'Account',appearance:'Appearance',language:'Language',timetable:'Timetable',widgets:'Widgets',privacy:'Privacy & security',about:'About',
     accountDesc:'Your Campus Week identity and sessions.',demoAccount:'Fictional account · design preview only',accountActions:'Account actions',switchHelp:"Switching accounts clears the current student's preview before returning to sign-in.",switchAccount:'Switch account',logOut:'Log out',appearanceDesc:'Preview theme setting; changes are not saved.',theme:'Theme',light:'Light',dark:'Dark',langDesc:'Select interface language. Course names reflect the sample data.',interfaceLanguage:'Interface language',
     timetableDesc:'Live account mode uses the existing NTU ePortfolio timetable connection.',previewStatus:'Preview data',syncNotConnected:'Not connected to your NTU account in this preview.',reconnectLater:'Reconnect (later)',coolDesc:'Live COOL calendar deadlines use your existing NTU connection. Announcements refresh every two minutes while this page is focused.',widgetsDesc:'Optional extras can be added without affecting the core schedule.',hanziLater:'Future optional widget. Disabled by default. Username input and loading will be implemented later.',comingLater:'Coming later',
@@ -55,7 +57,7 @@ const dict={
   zh:{
     loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'讓每週行程更有條理。',loginIntro:'在同一個地方查看課表、期限與待辦事項。請使用虛構學生資料預覽設計。',previewLabel:'選擇虛構學生資料',engineeringProfile:'工程學院學生（範例）',socialProfile:'社會科學院學生（範例）',enterPreview:'進入介面預覽',loginSafety:'範例資料皆為虛構；如選擇使用真實帳號，會透過既有 Campus Week 後端連線。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK 預覽',mySchedule:'我的課表',
     chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'預覽任務僅暫存於記憶體，重新整理後會消失。',
-    classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'此預覽使用每週重複課表。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
+    lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'預覽編輯僅保留至離開此預覽。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'此預覽使用每週重複課表。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
     accountDesc:'Campus Week 身分與登入狀態。',demoAccount:'虛構帳號 · 僅供設計預覽',accountActions:'帳號操作',switchHelp:'切換帳號前會清除畫面上的上一位虛構學生資料。',switchAccount:'切換帳號',logOut:'登出',appearanceDesc:'預覽主題設定；不會儲存變更。',theme:'主題',light:'淺色',dark:'深色',langDesc:'選擇介面語言。課程名稱來自範例資料。',interfaceLanguage:'介面語言',
     timetableDesc:'真實帳號模式沿用現有臺大 ePortfolio 課表連線。',previewStatus:'預覽資料',syncNotConnected:'本預覽未連線至臺大帳號。',reconnectLater:'稍後重新連線',coolDesc:'真實帳號模式沿用現有 COOL 行事曆；公告尚未連接。',widgetsDesc:'選用小工具不會影響主要課表。',hanziLater:'未來可選擇啟用，預設關閉；使用者名稱輸入及資料載入會稍後實作。',comingLater:'稍後推出',
     securityDesc:'正式帳號存取仍由現有 Cloudflare 後端處理。',noCredentials:'預覽不需帳密',securityPreview:'範例模式使用虛構資料。真實模式沿用既有安全 API，介面不儲存密碼。',signOutAllLater:'登出所有裝置（稍後）',aboutDesc:'Campus Week 介面骨架 v1。獨立學生專案，與國立臺灣大學無隸屬關係。',designPreview:'設計預覽',aboutDetails:'可切換視覺主題的 Classic 介面，沿用既有帳號、課表與 COOL API。',
@@ -71,7 +73,7 @@ const dict={
 };
 let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,liveTimetableInfo='',liveCoolInfo='';
-let liveTimetableOk=false,liveCalendarOk=false;
+let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 const taskStore = new AccountTasks(account, {
@@ -336,7 +338,7 @@ function renderDeadlines(){
   $('cool-heading').textContent=coolView==='assignments'?t('upcomingDates'):t('announcements');
   $('cool-preview-note').textContent=coolView==='assignments'?t('sampleDeadlines'):t('sampleAnnouncements');
   if(coolView==='announcements'){
-    const profile=student===profiles.engineering?'engineering':'social';
+    const profile=student.id===profiles.engineering.id?'engineering':'social';
     for(const entry of announcements[profile]){
       const card=node('article','cool-item announcement-card card'),date=node('span','cool-date'),copy=node('span','cool-copy');
       const key=offset(taipeiToday(),-entry[4]);date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
@@ -461,13 +463,60 @@ function renderAll(){
   if(opened&&$('lesson-dialog').open)populateLesson(opened.c,opened.key);
 }
 function populateLesson(c,key){
-  $('lesson-dialog-name').textContent=c[language==='zh'?4:3];
+  const current=student?.courses.find(row=>row[8]===c[8]&&row[0]===c[0]&&row[1]===c[1]&&row[2]===c[2])||c;
+  $('lesson-dialog-name').textContent=current[language==='zh'?4:3];
   $('lesson-dialog-time').textContent=longDate(key)+' · '+c[1]+'–'+c[2];
-  $('lesson-dialog-room').textContent=c[5];$('lesson-dialog-code').textContent=c[6];$('lesson-dialog-status').textContent=lessonState(c,key);
+  $('lesson-dialog-status').textContent=lessonState(c,key);
+  $('lesson-name-label').textContent=t(lessonDraft?.language==='zh'?'lessonNameZh':'lessonNameEn');
+  $('lesson-edit-help').textContent=t(!liveMode?'lessonPreview':lessonDraft?.language==='zh'?'lessonHelpZh':'lessonHelpEn');
 }
-function showLesson(c,key){if(c[7]){eventUI.open(c[7],key);return;}opened={c,key};populateLesson(c,key);$('lesson-dialog').showModal();}
+function lessonControls(){
+  for(const control of $('lesson-edit-form').querySelectorAll('input,textarea,button'))control.disabled=lessonSaving;
+  $('close-lesson').disabled=lessonSaving;
+  $('lesson-save').textContent=t(lessonSaving?'lessonSaving':'lessonSave');
+}
+function showLesson(c,key){
+  if(c[7]){eventUI.open(c[7],key);return;}
+  opened={c,key};
+  const version=(liveMode?liveCourseOverrides:previewCourseOverrides)[c[8]]?.version||0;
+  lessonDraft={id:c[8],language,version,initial:{name:c[language==='zh'?4:3],room:c[5],description:c[9]||''}};
+  $('lesson-name-input').value=lessonDraft.initial.name;$('lesson-room-input').value=lessonDraft.initial.room;
+  $('lesson-description-input').value=lessonDraft.initial.description;$('lesson-edit-message').hidden=true;
+  lessonSaving=false;lessonControls();populateLesson(c,key);$('lesson-dialog').showModal();
+}
+async function saveLessonDetails(reset=false){
+  if(!opened||!lessonDraft||lessonSaving||!$('lesson-edit-form').reportValidity())return;
+  const draft=lessonDraft,epoch=liveEpoch,body={version:draft.version,...(reset?{reset:true}:{language:draft.language})};
+  if(!reset)for(const [key,id]of [['name','lesson-name-input'],['room','lesson-room-input'],['description','lesson-description-input']]){
+    const value=$(id).value.trim();if(value!==draft.initial[key])body[key]=key==='name'&&!value?null:value;
+  }
+  if(!reset&&Object.keys(body).length===2){$('lesson-dialog').close();return;}
+  lessonSaving=true;liveDetailsRevision++;lessonControls();$('lesson-edit-message').hidden=true;
+  try{
+    if(liveMode){
+      const result=await account.changeCourseDetails(draft.id,body);
+      if(epoch!==liveEpoch||lessonDraft!==draft)return;
+      if(result.studentNumber!==liveAccount?.studentNumber){sessionExpired();return;}
+      liveDetailsRevision++;liveTimetable=result.timetable;liveCourseOverrides=result.courseOverrides||{};
+      renderLiveAccount();
+    }else{
+      const previous=previewCourseOverrides[draft.id]||{},next=reset?{}:{...previous};
+      if(!reset)for(const key of ['name','room','description'])if(Object.hasOwn(body,key))next[key==='name'?(draft.language==='en'?'nameEn':'nameZh'):key]=body[key];
+      next.version=draft.version+1;previewCourseOverrides={...previewCourseOverrides,[draft.id]:next};
+      const profile=profiles[$('preview-profile').value];student={...profile,courses:applyCourseOverrides(previewCourseRows(profile),previewCourseOverrides)};
+      renderAll();
+    }
+    if(epoch===liveEpoch&&lessonDraft===draft)$('lesson-dialog').close();
+  }catch(error){
+    if(epoch!==liveEpoch||lessonDraft!==draft)return;
+    if(error.status===401){sessionExpired();return;}
+    $('lesson-edit-message').textContent=error.code==='course_changed'?t('lessonChanged'):t('lessonSaveFailed');$('lesson-edit-message').hidden=false;
+    if(error.code==='course_changed')void readLiveSnapshots();
+  }finally{if(epoch===liveEpoch&&lessonDraft===draft){lessonSaving=false;lessonControls();}}
+}
+function previewCourseRows(profile){return profile.courses.map(c=>{const row=[...c];row[8]='preview:'+(c[6]||c[3]);return row;});}
 function leavePreview(){
-  liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveEpoch++;liveMode=false;livePending=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);$('task-input').value='';
@@ -591,7 +640,7 @@ function updateLiveStatus(){
   $('live-cool-settings-status').textContent=messageC;
 }
 function renderLiveAccount(){
-  student=studentFromAccount(liveAccount,liveTimetable);
+  student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides);
   renderAll();dashboardResize.place();
 }
 function sessionExpired(){
@@ -602,14 +651,16 @@ async function readLiveSnapshots(){
   if(!liveMode||!liveAccount)return;
   void taskStore.refresh();
   eventUI.refresh();
-  const epoch=liveEpoch;
+  const epoch=liveEpoch,detailsRevision=liveDetailsRevision;
   const [tResult,cResult]=await Promise.allSettled([account.timetable(),account.coolCalendar()]);
   if(epoch!==liveEpoch||!liveMode)return;
-  if(tResult.status==='fulfilled'){
+  if(tResult.status==='fulfilled'&&detailsRevision===liveDetailsRevision&&!lessonSaving){
+    if(tResult.value.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+    liveCourseOverrides=tResult.value.courseOverrides||{};
     liveTimetable=tResult.value.timetable||null;liveTimetableOk=tResult.value.connectionStatus==='authorized';
     liveTimetableInfo=tResult.value.connectionStatus==='reconnect_required'
       ?'Timetable reconnect required. Last saved classes are preserved.':'';
-  }else{
+  }else if(tResult.status==='rejected'){
     if(tResult.reason?.status===401){sessionExpired();return;}
     liveTimetableInfo=liveNotice(tResult.reason);liveTimetableOk=false;
   }
@@ -625,7 +676,7 @@ async function readLiveSnapshots(){
 }
 function startLive(current){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
-  liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveMode=true;liveEpoch++;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
@@ -643,8 +694,8 @@ async function restoreLive(){
   finally{$('live-restore').disabled=false;}
 }
 async function syncLive(which){
-  if(!liveMode||!liveAccount||livePending)return;
-  const epoch=liveEpoch;livePending=true;
+  if(!liveMode||!liveAccount||livePending||lessonSaving)return;
+  const epoch=liveEpoch,detailsRevision=liveDetailsRevision;livePending=true;
   if(which==='timetable'){liveTimetableOk=false;liveTimetableInfo='Checking NTU ePortfolio…';}
   else{liveCalendarOk=false;liveCoolInfo='Checking your COOL calendar…';}
   updateLiveStatus();
@@ -653,7 +704,8 @@ async function syncLive(which){
       ?await account.syncTimetable(undefined,undefined,true)
       :await account.syncCoolCalendar(undefined,undefined,true);
     if(epoch!==liveEpoch)return;
-    if(which==='timetable'){liveTimetable=result.timetable||liveTimetable;liveTimetableOk=true;liveTimetableInfo='Timetable updated';}
+    if(which==='timetable'&&result.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+    if(which==='timetable'){if(detailsRevision===liveDetailsRevision&&!lessonSaving){liveCourseOverrides=result.courseOverrides||{};liveTimetable=result.timetable||liveTimetable;}else if(!lessonSaving)void readLiveSnapshots();liveTimetableOk=true;liveTimetableInfo='Timetable updated';}
     else{liveCalendar=result.calendar||liveCalendar;liveCalendarOk=true;liveCoolInfo='COOL calendar updated';}
     renderLiveAccount();
   }catch(e){
@@ -691,11 +743,11 @@ async function endLiveAccount(){
 }
 
 function enterPreview(){
-  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
+  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);$('task-input').value='';
   eventUI.reset();
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
-  student=profiles[key];tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
+  previewCourseOverrides={};student={...profiles[key],courses:previewCourseRows(profiles[key])};tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
   selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;renderAll();dashboardResize.place();$('open-settings').focus();
 }
@@ -742,11 +794,15 @@ $('open-settings').addEventListener('click',()=>{showPanel('account');$('setting
 document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(btn=>btn.addEventListener('click',()=>showPanel(btn.dataset.settingsTab)));
 $('settings-close-desktop').addEventListener('click',()=>$('settings-dialog').close());
 $('settings-close-mobile').addEventListener('click',()=>$('settings-dialog').close());
-$('close-lesson').addEventListener('click',()=>$('lesson-dialog').close());
+$('close-lesson').addEventListener('click',()=>{if(!lessonSaving)$('lesson-dialog').close();});
+$('lesson-edit-cancel').addEventListener('click',()=>{if(!lessonSaving)$('lesson-dialog').close();});
+$('lesson-edit-form').addEventListener('submit',event=>{event.preventDefault();void saveLessonDetails();});
+$('lesson-reset').addEventListener('click',()=>void saveLessonDetails(true));
+$('lesson-dialog').addEventListener('cancel',event=>{if(lessonSaving)event.preventDefault();});
 $('switch-account').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('log-out').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('settings-dialog').addEventListener('close',()=>{if(student)$('open-settings').focus();});
-$('lesson-dialog').addEventListener('close',()=>{opened=null;});
+$('lesson-dialog').addEventListener('close',()=>{opened=null;lessonDraft=null;lessonSaving=false;lessonControls();});
 setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();if(liveMode&&navigator.onLine!==false){void taskStore.refresh();eventUI.refresh();}}},30000);
 window.addEventListener('online',()=>{if(liveMode&&!document.hidden){void taskStore.refresh();eventUI.refresh();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});

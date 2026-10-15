@@ -652,3 +652,10 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
  .cool-panel-header .cool-header-refresh{grid-row:1;width:26px;height:24px;min-height:24px;justify-self:end}
  .cool-column .cool-panel-header .cool-view-switch button{font-size:11px;padding-inline:5px}
 }
+
+/* Account-specific class details use one shared editor for every meeting. */
+.detail-dialog{max-height:calc(100dvh - 30px);overflow:auto;border-radius:21px}
+.lesson-edit-form{margin-top:17px}.lesson-edit-form>label{display:block;margin:13px 0 6px;font-size:12px;font-weight:750}
+.lesson-edit-form>input,.lesson-edit-form>textarea{display:block;width:100%;min-width:0;min-height:40px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:13px}
+.lesson-edit-form>textarea{resize:vertical;line-height:1.5}.lesson-edit-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:18px}.lesson-edit-actions>span{flex:1}.lesson-edit-actions .button{font-size:11px}.lesson-edit-message{font-size:12px;color:#a44d45;margin:12px 0 0}.lesson-edit-form .detail-note{margin:13px 0 0}
+@media(max-width:410px){.lesson-edit-actions #lesson-reset{flex-basis:100%;margin-bottom:3px}.lesson-edit-actions>span{display:none}.lesson-edit-actions #lesson-edit-cancel,.lesson-edit-actions #lesson-save{flex:1}}

@@ -36,6 +36,7 @@ export class CampusAccount {
   async syncTimetable(password, signal, force = false) {
     return this.request('timetable/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });
   }
+  async changeCourseDetails(id,details) { return this.request('timetable/courses/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(details)}); }
   async coolCalendar() { return this.request('cool/calendar'); }
   async syncCoolCalendar(password, signal, force = false) {
     return this.request('cool/calendar/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });

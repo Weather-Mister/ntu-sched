@@ -171,10 +171,15 @@
 <button id="close-lesson" class="icon-button dialog-close" aria-label="Close" type="button"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
 <p class="eyebrow" data-i18n="classDetails">CLASS DETAILS</p><h2 id="lesson-dialog-name" class="detail-title"></h2>
 <div class="detail-line"><span data-i18n="time">Time</span><strong id="lesson-dialog-time"></strong></div>
-<div class="detail-line"><span data-i18n="location">Location</span><strong id="lesson-dialog-room"></strong></div>
-<div class="detail-line"><span data-i18n="courseCode">Course code</span><strong id="lesson-dialog-code"></strong></div>
 <div class="detail-line"><span data-i18n="status">Status</span><strong id="lesson-dialog-status"></strong></div>
-<p class="micro detail-note" data-i18n="repeatsWeekly">Preview follows a repeating weekly schedule.</p>
+<form id="lesson-edit-form" class="lesson-edit-form">
+<label id="lesson-name-label" for="lesson-name-input">Name (English)</label><input id="lesson-name-input" type="text" maxlength="160" autocomplete="off">
+<label for="lesson-room-input" data-i18n="location">Location</label><input id="lesson-room-input" type="text" maxlength="200" autocomplete="off">
+<label for="lesson-description-input" data-i18n="lessonDescription">Description</label><textarea id="lesson-description-input" rows="3" maxlength="1000"></textarea>
+<p id="lesson-edit-help" class="micro detail-note"></p>
+<p id="lesson-edit-message" class="lesson-edit-message" role="status" hidden></p>
+<div class="lesson-edit-actions"><button id="lesson-reset" type="button" class="button small" data-i18n="lessonReset">Restore original details</button><span></span><button id="lesson-edit-cancel" type="button" class="button" data-i18n="lessonCancel">Cancel</button><button id="lesson-save" type="submit" class="button primary" data-i18n="lessonSave">Save changes</button></div>
+</form>
 </div>
 </dialog>
 <dialog id="live-login-dialog" class="dialog live-login-dialog" aria-labelledby="live-login-heading">

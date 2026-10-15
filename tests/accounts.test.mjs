@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import worker from '../src/worker.mjs';
+import { mapTimetable } from '../public/skeleton/live-source.mjs';
+import { applyCourseOverrides,courseIdentity } from '../public/course-model.mjs';
 import { decryptAuthorization, encryptAuthorization } from '../src/security.mjs';
 
 const APP = 'https://campus.example';
@@ -523,4 +525,59 @@ test('announcement refresh recovers an expired provider session once and preserv
   announcementsMode='expired';assert.equal((await syncAnnouncements(e,auth)).status,200);assert.equal(coolPosts,before+1);
   announcementsMode='unavailable';try{assert.equal((await syncAnnouncements(e,auth)).status,502);assert.equal((await(await request(e,'cool/announcements',{cookie:auth.cookie})).json()).announcements.items.length,2);}finally{announcementsMode='ok';}
   announcementsMode='empty';try{assert.deepEqual((await(await syncAnnouncements(e,auth)).json()).announcements.items,[]);}finally{announcementsMode='ok';}
+});
+
+const editCourse=(e,auth,id,body)=>request(e,'timetable/courses/'+id,{method:'PATCH',cookie:auth?.cookie,csrf:auth?.csrf,body});
+test('course details belong to the student, persist across sign-ins and NTU sync, and have independent names per language',async()=>{
+  const e=env(),a=await login(e),b=await login(e,'r23456789');
+  const original=await(await sync(e,a)).json();await sync(e,b);const id=original.timetable.sessions[0].courseId;
+  assert.match(id,/^[A-Za-z0-9_-]{43}$/);
+  const english=await editCourse(e,a,id,{version:0,language:'en',name:'Engineering Maths',room:'Room 114',description:'Bring calculator'});
+  assert.equal(english.status,200,await english.clone().text());const saved=await english.json();
+  assert.equal(saved.courseOverrides[id].nameEn,'Engineering Maths');assert.equal(saved.courseOverrides[id].nameZh,undefined);
+  assert.equal(saved.timetable.sessions[0].title,original.timetable.sessions[0].title); // Source stays original.
+  assert.deepEqual((await(await request(e,'timetable',{cookie:b.cookie})).json()).courseOverrides,{});
+  assert.equal((await editCourse(e,a,id,{version:1,language:'zh',name:'工程數學'})).status,200);
+  const fresh=await login(e),restored=await(await request(e,'timetable',{cookie:fresh.cookie})).json();
+  assert.equal(restored.courseOverrides[id].nameEn,'Engineering Maths');assert.equal(restored.courseOverrides[id].nameZh,'工程數學');assert.equal(restored.courseOverrides[id].room,'Room 114');
+  portfolioVersion=2;
+  try{const synced=await(await sync(e,fresh,{force:true})).json();assert.equal(synced.timetable.sessions[0].courseId,id);assert.equal(synced.courseOverrides[id].description,'Bring calculator');}finally{portfolioVersion=1;}
+  const row=e.DB.sqlite.prepare("SELECT encrypted_authorization FROM student_connections WHERE student_id=(SELECT id FROM students WHERE student_number='b12345678') AND provider='timetable'").get();assert.doesNotMatch(row.encrypted_authorization,/Engineering Maths|calculator/);
+});
+test('course edits require session, CSRF, valid fields, ownership and current version; restore keeps a version tombstone',async()=>{
+  const e=env(),a=await login(e),b=await login(e,'r23456789');const id=(await(await sync(e,a)).json()).timetable.sessions[0].courseId;
+  const body={version:0,language:'en',name:'Custom'};
+  assert.equal((await editCourse(e,null,id,body)).status,401);
+  assert.equal((await request(e,'timetable/courses/'+id,{method:'PATCH',cookie:a.cookie,body})).status,403);
+  assert.equal((await editCourse(e,b,id,body)).status,404);
+  for(const patch of [{...body,studentId:'other'},{...body,language:'fr'},{...body,version:-1},{...body,room:99},{...body,name:'Bad\nName'},{...body,description:'x'.repeat(1001)}])assert.equal((await editCourse(e,a,id,patch)).status,400);
+  assert.equal((await editCourse(e,a,'a'.repeat(43),body)).status,404);
+  const writes=await Promise.all([editCourse(e,a,id,body),editCourse(e,a,id,{...body,name:'Concurrent'})]);assert.deepEqual(writes.map(r=>r.status).sort(),[200,409]);
+  assert.equal((await editCourse(e,a,id,{version:0,reset:true})).status,409);
+  const reset=await(await editCourse(e,a,id,{version:1,reset:true})).json();assert.deepEqual(reset.courseOverrides[id],{nameEn:null,nameZh:null,room:null,description:null,version:2});
+  assert.equal((await editCourse(e,a,id,{version:1,language:'en',room:'stale'})).status,409);
+});
+test('an in-flight timetable sync preserves a course edit saved while NTU is being read',async()=>{
+  const e=env(),auth=await login(e);const id=(await(await sync(e,auth)).json()).timetable.sessions[0].courseId;
+  const provider=globalThis.fetch;let reached,release;
+  const ready=new Promise(resolve=>{reached=resolve;}),pause=new Promise(resolve=>{release=resolve;});let held=false;
+  globalThis.fetch=async(url,options)=>{if(!held&&new URL(url).href===portfolioTarget&&options.headers.get('Cookie')?.includes('portfolio_session=')){held=true;reached();await pause;}return provider(url,options);};
+  try{const pending=sync(e,auth,{force:true});await ready;assert.equal((await editCourse(e,auth,id,{version:0,language:'en',name:'Saved during import'})).status,200);release();const result=await(await pending).json();assert.equal(result.courseOverrides[id].nameEn,'Saved during import');}
+  finally{release();globalThis.fetch=provider;}
+});
+test('course mapping updates every meeting, separates courses and languages, and does not mutate imported rows',()=>{
+  const rows=[[0,'09:10','10:00','Math','數學','A','ME1',null,'same'],[2,'10:20','12:10','Math','數學','B','ME1',null,'same'],[1,'09:10','10:00','Physics','物理','C','PH1',null,'other']];
+  const mapped=applyCourseOverrides(rows,{same:{nameEn:'Eng Math',room:'114',description:'Notebook'}});
+  for(const r of mapped.slice(0,2)){assert.equal(r[3],'Eng Math');assert.equal(r[4],'數學');assert.equal(r[5],'114');assert.equal(r[9],'Notebook');}
+  assert.equal(mapped[2][3],'Physics');assert.equal(rows[0][3],'Math');assert.equal(rows[1][5],'B');
+  assert.equal(courseIdentity({term:'115-1'},{code:'ME1',title:'Old'}),courseIdentity({term:'115-1'},{code:'ME1',title:'New',room:'114',day:4}));
+  assert.equal(courseIdentity({term:'115-1'},{titleZh:'工程數學',title:'Math'}),courseIdentity({term:'115-1'},{titleZh:'工程數學',title:'工程數學'}));
+  assert.notEqual(courseIdentity({term:'115-1'},{code:'ME1'}),courseIdentity({term:'115-2'},{code:'ME1'}));
+});
+
+test('theme adapter applies account overrides without confusing imported classes with personal events',()=>{
+  const snapshot={sessions:[{day:0,start:550,end:600,title:'工程數學',titleEn:'Engineering Mathematics',titleZh:'工程數學',room:'Original',code:'ME1',courseId:'class-id'}]};
+  const row=mapTimetable(snapshot,{'class-id':{nameEn:'Eng Math',room:'114',description:'Bring book'}})[0];
+  assert.equal(row[3],'Eng Math');assert.equal(row[4],'工程數學');assert.equal(row[5],'114');assert.equal(row[7],null);assert.equal(row[8],'class-id');assert.equal(row[9],'Bring book');
+  const reset=mapTimetable(snapshot,{'class-id':{nameEn:null,nameZh:null,room:null,description:null}})[0];assert.equal(reset[3],'Engineering Mathematics');assert.equal(reset[5],'Original');
 });

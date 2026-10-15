@@ -1,6 +1,6 @@
 import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson } from './security.mjs';
 import { verifyNtuMail } from './ntu-mail.mjs';
-import { savedTimetable, syncTimetable, refreshDueTimetables } from './timetable-store.mjs';
+import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
@@ -161,15 +161,19 @@ export default {
         if (id && ['PATCH', 'DELETE'].includes(request.method)) return json({ ...owner, task: await changeTask(env, current.student_id, id, await readJson(request), request.method === 'DELETE') });
         throw new ApiError(404, 'not_found', 'This task action is not available.');
       }
+      if (path.startsWith('/api/timetable/courses/') && request.method === 'PATCH') {
+        const current=await session(request,env,true),courseId=path.slice('/api/timetable/courses/'.length);
+        return json({studentNumber:current.student_number,...await changeCourseDetails(env,current.student_id,courseId,await readJson(request,12000))});
+      }
       if (path === '/api/timetable' && request.method === 'GET') {
         const current = await session(request, env);
-        return json(await savedTimetable(env, current.student_id));
+        return json({studentNumber:current.student_number,...await savedTimetable(env, current.student_id)});
       }
       if (path === '/api/timetable/sync' && request.method === 'POST') {
         const current = await session(request, env, true);
         const body = await readJson(request);
         if (Object.keys(body).some(key => !['password', 'force'].includes(key)) || body.force !== undefined && typeof body.force !== 'boolean' || body.password !== undefined && (typeof body.password !== 'string' || !body.password || body.password.length > 1024 || /[\r\n\0]/.test(body.password))) throw new ApiError(400, 'invalid_request', 'Enter your myNTU password, or use your saved connection.');
-        try { return json(await syncTimetable(env, current, body.password, body.force === true)); }
+        try { return json({studentNumber:current.student_number,...await syncTimetable(env, current, body.password, body.force === true)}); }
         finally { body.password = ''; }
       }
       if (path === '/api/cool/announcements' && request.method === 'GET') {
