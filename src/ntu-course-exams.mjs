@@ -79,8 +79,8 @@ export function parseNtuCourseExams(html, source) {
 export function matchImportedCourse(timetable, selected, info) {
   if (!timetable?.term || timetable.term !== info.term) return { status:'different-term', reason:'The syllabus is from a different academic semester.' };
   if (!selected) return { status:'missing', reason:'This course is not in your saved timetable.' };
-  if (!selected.code) return { status:'unverified', reason:'The imported timetable has no official course code for this class.' };
-  if (asCode(selected.code) !== asCode(info.courseCode) && asCode(selected.code) !== asCode(info.courseIdentifier))
+  if (!selected.code && !selected.courseIdentifier) return { status:'unverified', reason:'The imported timetable has no official course code for this class.' };
+  if (![selected.code, selected.courseIdentifier].filter(Boolean).some(value => asCode(value) === asCode(info.courseCode) || asCode(value) === asCode(info.courseIdentifier)))
     return { status:'different-course', reason:'Official course codes do not match.' };
   if (selected.serial && selected.serial !== info.serial)
     return { status:'different-section', reason:'The NTU offering serial numbers do not match.' };
