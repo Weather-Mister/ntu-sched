@@ -699,3 +699,27 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
   .cool-mobile-more:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
   @media(hover:hover){.cool-mobile-more:hover{background:var(--accent-soft);border-color:var(--accent)}}
 }
+
+/* Direct sign-in: the session check is shown briefly, then the inline form. */
+.login-screen[data-auth-check="checking"] .login-auth-content{display:none}
+.login-screen[data-auth-check="ready"] .login-checking{display:none}
+.login-checking{display:flex;align-items:center;justify-content:center;gap:12px;padding:25px 6px;color:var(--muted);font-size:13px}
+.login-spinner{width:18px;height:18px;flex:none;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:login-spin .85s linear infinite}
+@keyframes login-spin{to{transform:rotate(360deg)}}
+.login-inline-form{display:flex;flex-direction:column;gap:7px}
+.login-inline-form>label{margin:5px 0 0;font-size:12px;font-weight:750}
+.login-inline-form>input{width:100%;min-height:45px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--text);padding:10px 12px;font-size:14px}
+.login-inline-form>.button{margin:12px 0 0;min-height:45px}
+.login-inline-form>.live-login-error{margin:4px 0 0;color:#a44d45;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.login-session-status{color:var(--muted);font-size:11px;line-height:1.5;margin:10px 0 0}
+.login-privacy{color:var(--muted);font-size:10px;line-height:1.5;margin:11px 0 0}
+.login-preview{border-top:1px solid var(--line);margin-top:19px;padding-top:13px}
+.login-preview>summary{width:max-content;max-width:100%;cursor:pointer;color:var(--muted);font-size:11px;font-weight:700;line-height:1.5}
+.login-preview>summary:hover{color:var(--text)}
+.login-preview>summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.login-preview-inner{margin-top:14px}
+.login-preview-inner>label{margin-bottom:7px}
+.login-preview-inner select{min-height:40px}
+.login-preview-inner .button{min-height:38px;margin-top:10px;font-size:12px}
+.login-preview-inner>p{color:var(--muted);font-size:10px;line-height:1.5;margin:10px 0 0}
+@media(prefers-reduced-motion:reduce){.login-spinner{animation:none}}

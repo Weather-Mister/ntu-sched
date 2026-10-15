@@ -40,7 +40,7 @@ const profiles = {
 };
 const dict={
   en:{
-    loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Your week, organized.',loginIntro:'Your courses, deadlines and tasks, in one place. Explore the design using fictional student profiles.',previewLabel:'Choose a fictional preview profile',engineeringProfile:'Engineering student (sample)',socialProfile:'Social sciences student (sample)',enterPreview:'Enter interface preview',loginSafety:'Sample profiles use fictional data. Real NTU access is optional and uses the existing Campus Week connection.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK PREVIEW',mySchedule:'My Schedule',
+    loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Sign in',loginIntro:'Use your NTU student number and Mail password.',checkingSession:'Checking your session…',tryPreview:'Try a sample timetable',previewLabel:'Sample student',engineeringProfile:'Engineering student',socialProfile:'Social sciences student',enterPreview:'Open sample timetable',loginSafety:'Sample data only. No NTU account is required.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK PREVIEW',mySchedule:'My Schedule',
     chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Preview tasks stay in memory and disappear on reload.',
     lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Preview edits last until you leave this preview.',
     classDetails:'CLASS DETAILS',time:'Time',location:'Location',courseCode:'Course code',status:'Status',repeatsWeekly:'Preview follows a repeating weekly schedule.',preferences:'PREFERENCES',settings:'Settings',account:'Account',appearance:'Appearance',language:'Language',timetable:'Timetable',widgets:'Widgets',privacy:'Privacy & security',about:'About',
@@ -49,7 +49,7 @@ const dict={
     securityDesc:'Production account access remains exclusively with our existing Cloudflare backend.',noCredentials:'No credentials in preview',securityPreview:'Sample mode is entirely fictional. Live mode uses the existing secure Campus Week API; this interface never stores passwords.',signOutAllLater:'Sign out all devices (later)',aboutDesc:'Campus Week UI skeleton v1. Independent student project; not affiliated with National Taiwan University.',designPreview:'Design preview',aboutDetails:'Theme-ready Classic interface sharing the production account, timetable and COOL APIs.',
     next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your sample timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
     dayView:'Day',weekView:'Week',weeklyTimetable:'Weekly timetable',calendarLabel:'CLASS TIMETABLE',weekViewScroll:'Weekly timetable; scroll vertically or sideways to explore classes',
-    liveEntryHeading:'Or use your real NTU account',liveEntryDesc:'Connect through the existing Campus Week account and backend.',restoreSession:'Use existing session',signInNtu:'Sign in to NTU',realAccount:'REAL NTU ACCOUNT',realLoginExplanation:'Uses the existing secure Campus Week login and the same timetable/COOL backend as the original site.',studentNumber:'NTU student number',ntuPassword:'NTU Mail password',accountSecurity:'Only sign in on your trusted Campus Week HTTPS address. Your password is not saved by this page.',timetableConnection:'Timetable connection',coolConnection:'COOL connection',syncTimetable:'Sync timetable',syncCool:'Sync COOL',realAssignmentsNote:'Live COOL calendar · ✓ marks done only here; submit assignments in COOL',realAnnouncementsNote:'Live COOL announcements · Last 90 days · Refreshes every 2 minutes while focused',noCalendar:'No connected COOL calendar. Select Refresh or connect from Settings.',liveNoAssignments:'No upcoming calendar deadlines.',liveNoTimetable:'No saved classes yet. Use Settings → Timetable → Sync timetable.',
+    liveEntryHeading:'Or use your real NTU account',liveEntryDesc:'Connect through the existing Campus Week account and backend.',restoreSession:'Use existing session',signInNtu:'Sign in',realAccount:'REAL NTU ACCOUNT',realLoginExplanation:'Uses the existing secure Campus Week login and the same timetable/COOL backend as the original site.',studentNumber:'NTU student number',ntuPassword:'NTU Mail password',accountSecurity:'Only sign in on your trusted Campus Week website.',timetableConnection:'Timetable connection',coolConnection:'COOL connection',syncTimetable:'Sync timetable',syncCool:'Sync COOL',realAssignmentsNote:'Live COOL calendar · ✓ marks done only here; submit assignments in COOL',realAnnouncementsNote:'Live COOL announcements · Last 90 days · Refreshes every 2 minutes while focused',noCalendar:'No connected COOL calendar. Select Refresh or connect from Settings.',liveNoAssignments:'No upcoming calendar deadlines.',liveNoTimetable:'No saved classes yet. Use Settings → Timetable → Sync timetable.',
     doneLocally:'Marked done here only; this does not submit to COOL.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
     assignments:'Assignments',announcements:'Announcements',coolShowMore:count=>`Show ${count} more`,coolShowLess:'Show less',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',campusAccessEyebrow:'CAMPUS',campusShortcuts:'Campus shortcuts',freeDay:'Free',
     scheduleItem:'event',scheduleItems:'events',customEvent:'PERSONAL',
@@ -57,7 +57,7 @@ const dict={
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
-    loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'讓每週行程更有條理。',loginIntro:'在同一個地方查看課表、期限與待辦事項。請使用虛構學生資料預覽設計。',previewLabel:'選擇虛構學生資料',engineeringProfile:'工程學院學生（範例）',socialProfile:'社會科學院學生（範例）',enterPreview:'進入介面預覽',loginSafety:'範例資料皆為虛構；如選擇使用真實帳號，會透過既有 Campus Week 後端連線。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK 預覽',mySchedule:'我的課表',
+    loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'登入',loginIntro:'使用臺大學號和電子郵件密碼登入。',checkingSession:'正在檢查登入狀態…',tryPreview:'試用範例課表',previewLabel:'範例學生',engineeringProfile:'工程學院學生',socialProfile:'社會科學院學生',enterPreview:'開啟範例課表',loginSafety:'僅使用範例資料，不需要臺大帳號。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK 預覽',mySchedule:'我的課表',
     chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'預覽任務僅暫存於記憶體，重新整理後會消失。',
     lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'預覽編輯僅保留至離開此預覽。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'此預覽使用每週重複課表。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
     accountDesc:'Campus Week 身分與登入狀態。',demoAccount:'虛構帳號 · 僅供設計預覽',accountActions:'帳號操作',switchHelp:'切換帳號前會清除畫面上的上一位虛構學生資料。',switchAccount:'切換帳號',logOut:'登出',appearanceDesc:'預覽主題設定；不會儲存變更。',theme:'主題',light:'淺色',dark:'深色',langDesc:'選擇介面語言。課程名稱來自範例資料。',interfaceLanguage:'介面語言',
@@ -65,7 +65,7 @@ const dict={
     securityDesc:'正式帳號存取仍由現有 Cloudflare 後端處理。',noCredentials:'預覽不需帳密',securityPreview:'範例模式使用虛構資料。真實模式沿用既有安全 API，介面不儲存密碼。',signOutAllLater:'登出所有裝置（稍後）',aboutDesc:'Campus Week 介面骨架 v1。獨立學生專案，與國立臺灣大學無隸屬關係。',designPreview:'設計預覽',aboutDetails:'可切換視覺主題的 Classic 介面，沿用既有帳號、課表與 COOL API。',
     next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的範例課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
     dayView:'單日',weekView:'整週',weeklyTimetable:'每週課表',calendarLabel:'課程時間表',weekViewScroll:'每週課表；可上下及左右捲動查看課程',
-    liveEntryHeading:'或使用真正的臺大帳號',liveEntryDesc:'使用現有 Campus Week 帳號與後端連線。',restoreSession:'使用現有登入狀態',signInNtu:'登入臺大帳號',realAccount:'真實臺大帳號',realLoginExplanation:'沿用既有安全的 Campus Week 登入與課表、COOL 後端。',studentNumber:'臺大學號',ntuPassword:'臺大郵件密碼',accountSecurity:'請只在可信任的 Campus Week HTTPS 網址登入；此頁不會儲存密碼。',timetableConnection:'課表連線',coolConnection:'COOL 連線',syncTimetable:'同步課表',syncCool:'同步 COOL',realAssignmentsNote:'COOL 行事曆；✓ 僅在此標記完成，作業仍需至 COOL 提交',realAnnouncementsNote:'COOL 公告 · 最近 90 天 · 頁面使用中每兩分鐘更新',noCalendar:'尚無 COOL 行事曆，請按重新整理或至設定連線。',liveNoAssignments:'目前沒有近期行事曆截止日期。',liveNoTimetable:'尚無已儲存課表，請到設定 → 課表同步。',
+    liveEntryHeading:'或使用真正的臺大帳號',liveEntryDesc:'使用現有 Campus Week 帳號與後端連線。',restoreSession:'使用現有登入狀態',signInNtu:'登入',realAccount:'真實臺大帳號',realLoginExplanation:'沿用既有安全的 Campus Week 登入與課表、COOL 後端。',studentNumber:'臺大學號',ntuPassword:'臺大郵件密碼',accountSecurity:'請只在正確的 Campus Week 網址登入。',timetableConnection:'課表連線',coolConnection:'COOL 連線',syncTimetable:'同步課表',syncCool:'同步 COOL',realAssignmentsNote:'COOL 行事曆；✓ 僅在此標記完成，作業仍需至 COOL 提交',realAnnouncementsNote:'COOL 公告 · 最近 90 天 · 頁面使用中每兩分鐘更新',noCalendar:'尚無 COOL 行事曆，請按重新整理或至設定連線。',liveNoAssignments:'目前沒有近期行事曆截止日期。',liveNoTimetable:'尚無已儲存課表，請到設定 → 課表同步。',
     doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
     assignments:'作業',announcements:'公告',coolShowMore:count=>`顯示另外 ${count} 筆`,coolShowLess:'收起',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',campusAccessEyebrow:'校園',campusShortcuts:'校園捷徑',freeDay:'無課',
     scheduleItem:'項行程',scheduleItems:'項行程',customEvent:'個人行程',
@@ -529,7 +529,7 @@ function leavePreview(){
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
-  $('app-screen').hidden=true;$('login-screen').hidden=false;$('preview-profile').focus();
+  $('app-screen').hidden=true;$('login-screen').hidden=false;$('login-screen').dataset.authCheck='ready';showLoginMessage();$('live-login-form').reset();$('live-login-error').hidden=true;$('live-login-number').focus();
 }
 /* Desktop panel resizing: widths are ratios, so they still adapt to window size.
    Only these visual ratios are persisted, never student data. */
@@ -649,7 +649,7 @@ function renderLiveAccount(){
 }
 function sessionExpired(){
   account.current=null;leavePreview();
-  $('live-login-status').textContent=language==='zh'?'登入已過期，請重新登入。':'Session expired. Please sign in again.';
+  showLoginMessage(language==='zh'?'登入已過期，請重新登入。':'Session expired. Please sign in again.');
 }
 async function readLiveSnapshots(){
   if(!liveMode||!liveAccount)return;
@@ -685,17 +685,24 @@ function startLive(current){
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;
-  if($('live-login-dialog').open)$('live-login-dialog').close();
+  
   renderLiveAccount();announcementStore.bind(current);eventUI.reset(current);restoreCoolChecks(current,liveEpoch);readLiveSnapshots();
 }
+function showLoginMessage(message=''){
+  const status=$('live-login-status');status.textContent=message;status.hidden=!message;
+}
 async function restoreLive(){
-  $('live-restore').disabled=true;
-  $('live-login-status').textContent=language==='zh'?'正在檢查登入狀態…':'Checking your current session…';
-  try{const current=await account.restore();
+  $('login-screen').dataset.authCheck='checking';
+  showLoginMessage();
+  try{
+    const current=await account.restore();
     if(current)startLive(current);
-    else $('live-login-status').textContent=language==='zh'?'尚未登入，請使用登入按鈕。':'No active session. Please sign in.';
-  }catch(e){$('live-login-status').textContent=liveNotice(e);}
-  finally{$('live-restore').disabled=false;}
+  }catch(e){
+    // A failed session check must not trap students behind the loading screen.
+    showLoginMessage(language==='zh'?'無法檢查登入狀態，請直接登入。':'Could not check your session. You can sign in.');
+  }finally{
+    $('login-screen').dataset.authCheck='ready';
+  }
 }
 async function syncLive(which){
   if(!liveMode||!liveAccount||livePending||lessonSaving)return;
@@ -718,24 +725,21 @@ async function syncLive(which){
     if(which==='timetable')liveTimetableInfo=liveNotice(e);else liveCoolInfo=liveNotice(e);
   }finally{if(epoch===liveEpoch){livePending=false;updateLiveStatus();}}
 }
-function openLiveLogin(){
-  $('live-login-form').reset();$('live-login-error').hidden=true;
-  $('live-login-dialog').showModal();$('live-login-number').focus();
-}
 async function submitLiveLogin(event){
   event.preventDefault();
   if(livePending||!event.currentTarget.reportValidity())return;
   livePending=true;const button=$('live-login-submit'),pass=$('live-login-password'),number=$('live-login-number');
   button.disabled=true;const secret=pass.value,studentNumber=number.value.trim();pass.value='';
-  const message=$('live-login-error');message.hidden=false;message.textContent='Verifying NTU account…';
+  const message=$('live-login-error');message.hidden=true;message.textContent='';
+  showLoginMessage(language==='zh'?'正在驗證臺大帳號…':'Signing in…');
   try{
     const availability=await fetch('/api/ntu/status',{credentials:'same-origin',cache:'no-store'});
     if(!availability.ok||(await availability.json()).loginEnabled!==true)
       throw Error('NTU sign-in is not enabled on this Campus Week server.');
     const current=await account.login(studentNumber,secret);
     startLive(current);
-  }catch(e){message.textContent=liveNotice(e);}
-  finally{pass.value='';number.value='';livePending=false;button.disabled=false;}
+  }catch(e){message.textContent=liveNotice(e);message.hidden=false;showLoginMessage();}
+  finally{pass.value='';if(liveMode)number.value='';livePending=false;button.disabled=false;}
 }
 async function endLiveAccount(){
   if(liveMode&&account.current){
@@ -757,11 +761,7 @@ function enterPreview(){
 }
 function chooseLanguage(value){language=value;renderAll();}
 $('enter-preview').addEventListener('click',enterPreview);
-$('live-restore').addEventListener('click',restoreLive);
-$('live-login-open').addEventListener('click',openLiveLogin);
 $('live-login-form').addEventListener('submit',submitLiveLogin);
-$('live-login-close').addEventListener('click',()=>$('live-login-dialog').close());
-$('live-login-dialog').addEventListener('close',()=>{$('live-login-password').value='';});
 $('live-timetable-refresh').addEventListener('click',()=>syncLive('timetable'));
 $('live-cool-refresh').addEventListener('click',()=>{void syncLive('cool');void announcementStore.refresh();});
 $('view-day').addEventListener('click',()=>setTimetableView('day'));
@@ -816,5 +816,10 @@ const settingsUI=createSettings({account,onSessionExpired:sessionExpired});
 renderTranslations();
 // Explicit design-preview links always use the labelled fictional profile.
 if(new URL(location.href).searchParams.get('preview')==='settings'){
+  $('login-screen').dataset.authCheck='ready';
   enterPreview();showPanel('account');settingsUI.open();$('settings-dialog').showModal();
+}else{
+  // Same-origin HttpOnly session cookies survive reloads and installed PWA launches.
+  // Restore once on startup; show the sign-in form only if no session is available.
+  void restoreLive();
 }

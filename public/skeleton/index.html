@@ -38,29 +38,39 @@
 <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18m-2-1v16H5V5m4-2h6m-6 7v7m6-7v7"/></symbol>
 <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v13h14V8m-10 5h6"/></symbol>
 </svg>
-<section id="login-screen" class="login-screen" aria-labelledby="login-heading">
+<section id="login-screen" class="login-screen" aria-labelledby="login-heading" data-auth-check="checking">
 <div class="login-wrap">
 <div class="login-lang-bar"><div class="language-toggle" role="group" aria-label="Language"><button id="login-language-en" type="button" aria-pressed="true">EN</button><button id="login-language-zh" type="button" aria-pressed="false">中文</button></div></div>
 <div class="login-mark"><svg aria-hidden="true"><use href="#i-week"/></svg></div>
 <p class="eyebrow" data-i18n="loginEyebrow">NTU · CAMPUS WEEK</p>
-<h1 id="login-heading" data-i18n="loginTitle">Your week, organized.</h1>
-<p class="login-intro" data-i18n="loginIntro">Your courses, deadlines and tasks, in one place. Explore the design using fictional student profiles.</p>
+<h1 id="login-heading" data-i18n="loginTitle">Sign in</h1>
+<p class="login-intro" data-i18n="loginIntro">Use your NTU student number and Mail password.</p>
 <div class="login-panel card">
-<label for="preview-profile" data-i18n="previewLabel">Choose a fictional preview profile</label>
-<select id="preview-profile">
-<option value="engineering" data-i18n="engineeringProfile">Engineering student (sample)</option>
-<option value="social" data-i18n="socialProfile">Social sciences student (sample)</option>
-</select>
-<button id="enter-preview" type="button" class="button primary" data-i18n="enterPreview">Enter interface preview</button>
-<div class="preview-note" data-i18n="loginSafety">Sample profiles use fictional data and never connect to NTU.</div>
-<div class="live-entry">
-  <div class="live-entry-heading" data-i18n="liveEntryHeading">Or use your real NTU account</div>
-  <p id="live-login-status" role="status" data-i18n="liveEntryDesc">Your timetable and COOL deadlines use the existing Campus Week connection.</p>
-  <div class="live-entry-actions">
-    <button id="live-restore" class="button" type="button" data-i18n="restoreSession">Use existing session</button>
-    <button id="live-login-open" class="button primary" type="button" data-i18n="signInNtu">Sign in to NTU</button>
+  <div class="login-checking" role="status" aria-live="polite"><span class="login-spinner" aria-hidden="true"></span><span data-i18n="checkingSession">Checking your session…</span></div>
+  <div class="login-auth-content">
+    <form id="live-login-form" class="login-inline-form">
+      <label for="live-login-number" data-i18n="studentNumber">NTU student number</label>
+      <input id="live-login-number" type="text" name="studentNumber" required maxlength="80" autocomplete="username" autocapitalize="none" spellcheck="false">
+      <label for="live-login-password" data-i18n="ntuPassword">NTU Mail password</label>
+      <input id="live-login-password" type="password" name="password" required maxlength="1024" autocomplete="current-password">
+      <p id="live-login-error" class="live-login-error" role="alert" hidden></p>
+      <button id="live-login-submit" class="button primary" type="submit" data-i18n="signInNtu">Sign in</button>
+    </form>
+    <p id="live-login-status" class="login-session-status" role="status" aria-live="polite" hidden></p>
+    <p class="login-privacy" data-i18n="accountSecurity">Only sign in on your trusted Campus Week website.</p>
+    <details class="login-preview">
+      <summary data-i18n="tryPreview">Try a sample timetable</summary>
+      <div class="login-preview-inner">
+        <label for="preview-profile" data-i18n="previewLabel">Sample student</label>
+        <select id="preview-profile">
+          <option value="engineering" data-i18n="engineeringProfile">Engineering student</option>
+          <option value="social" data-i18n="socialProfile">Social sciences student</option>
+        </select>
+        <button id="enter-preview" type="button" class="button" data-i18n="enterPreview">Open sample timetable</button>
+        <p data-i18n="loginSafety">Sample data only. No NTU account is required.</p>
+      </div>
+    </details>
   </div>
-</div>
 </div>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
@@ -188,21 +198,6 @@
 <div class="lesson-edit-actions"><button id="lesson-reset" type="button" class="button small" data-i18n="lessonReset">Restore original details</button><span></span><button id="lesson-edit-cancel" type="button" class="button" data-i18n="lessonCancel">Cancel</button><button id="lesson-save" type="submit" class="button primary" data-i18n="lessonSave">Save changes</button></div>
 </form>
 </div>
-</dialog>
-<dialog id="live-login-dialog" class="dialog live-login-dialog" aria-labelledby="live-login-heading">
-  <form id="live-login-form" class="live-login-form">
-    <div class="live-login-top"><p class="eyebrow" data-i18n="realAccount">REAL NTU ACCOUNT</p>
-      <button id="live-login-close" type="button" class="icon-button" aria-label="Close sign-in"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
-    <h2 id="live-login-heading" data-i18n="signInNtu">Sign in to NTU</h2>
-    <p data-i18n="realLoginExplanation">Uses the existing secure Campus Week login. Your timetable and COOL feed are loaded through the same backend as the original site.</p>
-    <label for="live-login-number" data-i18n="studentNumber">NTU student number</label>
-    <input id="live-login-number" type="text" name="studentNumber" required maxlength="80" autocomplete="username">
-    <label for="live-login-password" data-i18n="ntuPassword">NTU Mail password</label>
-    <input id="live-login-password" type="password" name="password" required maxlength="1024" autocomplete="current-password">
-    <p id="live-login-error" class="live-login-error" role="alert" hidden></p>
-    <button id="live-login-submit" class="button primary" type="submit" data-i18n="signInNtu">Sign in to NTU</button>
-    <p class="live-login-note" data-i18n="accountSecurity">Use this form only on your trusted Campus Week HTTPS address. Passwords are not retained by the interface.</p>
-  </form>
 </dialog>
 <dialog id="settings-dialog" class="dialog settings-dialog settings-hub" aria-labelledby="settings-heading">
 <header class="settings-topbar"><div class="settings-brand"><span class="settings-brand-mark"><svg aria-hidden="true"><use href="#i-week"/></svg></span><span id="settings-heading" data-settings-copy="settings">Settings</span></div><button id="settings-close-desktop" class="icon-button settings-close" type="button" aria-label="Close settings"><svg aria-hidden="true"><use href="#i-close"/></svg></button><button id="settings-close-mobile" type="button" hidden aria-label="Close settings"></button></header>
