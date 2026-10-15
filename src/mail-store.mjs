@@ -53,16 +53,61 @@ export async function withMailbox(env,owner,work,{retryRead=false}={}){
   }finally{s?.close();}
  }
 }
+function mailPageCursor(page,offset){
+ return btoa(JSON.stringify({page,offset})).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+}
+function readMailPageCursor(value){
+ if(typeof value!=='string'||value.length>128||!/^[A-Za-z0-9_-]+$/.test(value))throw new ApiError(400,'invalid_mail','Invalid mailbox cursor.');
+ let data;try{data=JSON.parse(atob(value.replaceAll('-','+').replaceAll('_','/')));}catch{}
+ if(!data||!Number.isInteger(data.page)||data.page<1||data.page>1000||!Number.isInteger(data.offset)||data.offset<0||data.offset>1000)throw new ApiError(400,'invalid_mail','Invalid mailbox cursor.');
+ return data;
+}
 export async function listMail(env,owner,url){
  const folder=url.searchParams.get('folder')||'inbox',query=(url.searchParams.get('q')||'').trim(),page=Number(url.searchParams.get('page')||1);
- if(!['inbox','unread','starred','sent','drafts','trash','archived'].includes(folder)||query.length>200||!Number.isInteger(page)||page<1||page>1000)throw new ApiError(400,'invalid_mail','Invalid mailbox search.');
- const cached=await env.DB.prepare('SELECT inbox,inbox_at FROM mail_state WHERE student_id=?').bind(owner.student_id).first();
- if(folder==='inbox'&&!query&&page===1&&cached?.inbox&&clock()-cached.inbox_at<60000)return {...JSON.parse(cached.inbox),cached:true,updatedAt:cached.inbox_at};
+ const progressive=url.searchParams.has('limit')||url.searchParams.has('cursor'),limit=Number(url.searchParams.get('limit'));
+ if(!['inbox','unread','starred','sent','drafts','trash','archived'].includes(folder)||query.length>200||
+    !Number.isInteger(page)||page<1||page>1000||
+    progressive&&(![25,50].includes(limit)||url.searchParams.has('page')))throw new ApiError(400,'invalid_mail','Invalid mailbox search.');
+ const cursor=progressive&&url.searchParams.has('cursor')?readMailPageCursor(url.searchParams.get('cursor')):{page:1,offset:0};
+ const cacheable=folder==='inbox'&&!query&&(!progressive&&page===1||progressive&&limit===25&&!url.searchParams.has('cursor'));
+ if(cacheable){
+  const cached=await env.DB.prepare('SELECT inbox,inbox_at FROM mail_state WHERE student_id=?').bind(owner.student_id).first();
+  if(cached?.inbox&&clock()-cached.inbox_at<60000){
+   const stored=JSON.parse(cached.inbox);
+   if((!progressive&&!stored.progressive)||(progressive&&stored.progressive&&stored.limit===25))
+    return {...stored,cached:true,updatedAt:cached.inbox_at};
+  }
+ }
  return withMailbox(env,owner,async s=>{
   const mailbox=['inbox','unread','starred'].includes(folder)?'INBOX':s.folders[folder==='archived'?'archive':folder];
-  const data=await s.list(mailbox,page,query,folder==='unread'?'UNSEEN':folder==='starred'?'FLAGGED':'');
-  const result={folder,mailbox,page,hasMore:data.hasMore,count:data.count,messages:data.rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailText(r.columns.subject)||'(No subject)',from:mailText(r.columns.from||r.columns.to),date:mailText(r.columns.date),unread:!r.flags.seen,starred:!!r.flags.flagged,attachment:!!(r.flags.attachment||r.columns.attachment) }))};
-  if(folder==='inbox'&&!query&&page===1)await env.DB.prepare('UPDATE mail_state SET inbox=?,inbox_at=? WHERE student_id=?').bind(JSON.stringify(result),clock(),owner.student_id).run();
+  const filter=folder==='unread'?'UNSEEN':folder==='starred'?'FLAGGED':'';
+  const mapped=rows=>rows.map(r=>({...mailReference(mailbox,r.uid),subject:mailText(r.columns.subject)||'(No subject)',from:mailText(r.columns.from||r.columns.to),
+   date:mailText(r.columns.date),snippet:mailText(r.columns.snippet||r.columns.preview||r.columns.text||''),unread:!r.flags.seen,
+   starred:!!r.flags.flagged,attachment:!!(r.flags.attachment||r.columns.attachment)}));
+  let result;
+  if(!progressive){
+   const data=await s.list(mailbox,page,query,filter);
+   result={folder,mailbox,page,hasMore:data.hasMore,count:data.count,messages:mapped(data.rows)};
+  }else{
+   const collected=[];let position=cursor.page,skip=cursor.offset,nextCursor=null,total=0,done=false;
+   // Follow Roundcube's real page size (which may differ between accounts),
+   // returning no more than requested even when NTU provides a larger page.
+   for(let attempts=0;attempts<12;attempts++){
+    const data=await s.list(mailbox,position,query,filter);
+    total=data.count;
+    if(skip>data.rows.length)throw new ApiError(409,'mail_changed','Mailbox changed while loading. Refresh Mail to start again.');
+    const take=Math.min(limit-collected.length,data.rows.length-skip);
+    collected.push(...data.rows.slice(skip,skip+take));
+    if(skip+take<data.rows.length){nextCursor=mailPageCursor(position,skip+take);done=true;break;}
+    if(!data.hasMore){done=true;break;}
+    if(position===1000)throw new ApiError(409,'mail_changed','Reached the end of supported mailbox pages.');
+    position++;skip=0;
+    if(collected.length===limit){nextCursor=mailPageCursor(position,0);done=true;break;}
+   }
+   if(!done)throw new ApiError(502,'ntu_unavailable','NTU returned unusually small mailbox pages. Please retry.');
+   result={folder,mailbox,progressive:true,limit,hasMore:!!nextCursor,nextCursor,count:total,messages:mapped(collected)};
+  }
+  if(cacheable)await env.DB.prepare('UPDATE mail_state SET inbox=?,inbox_at=? WHERE student_id=?').bind(JSON.stringify(result),clock(),owner.student_id).run();
   return {...result,updatedAt:clock()};
  },{retryRead:true});
 }
