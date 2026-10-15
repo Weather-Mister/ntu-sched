@@ -17,9 +17,9 @@ test('calendar deadlines decode folded text, UTC, Taipei and all-day dates with 
   assert.equal(result.assignments[1].url, 'https://cool.ntu.edu.tw/courses/42/assignments/1');
   assert.equal(result.assignments[2].allDay, true); assert.equal(result.assignments[2].date, '2026-10-18');
 });
-test('calendar updates use the latest revision, remove cancelled assignments and distinguish other events', () => {
+test('calendar updates use the latest revision, remove cancelled assignments and retain other dated events', () => {
   const result = parseCoolCalendar(wrap(event(1, ':20261017T155900Z','SEQUENCE:1\r\n'),event(1, ':20261019T155900Z','SEQUENCE:2\r\n'),event(2, ':20261017T155900Z','STATUS:CANCELLED\r\n'),'BEGIN:VEVENT\r\nUID:calendar-event-3\r\nSUMMARY:Exam\r\nDTSTART:20261017T155900Z\r\nEND:VEVENT'));
-  assert.equal(result.assignments.length,1); assert.equal(result.assignments[0].dueAt,'2026-10-19T15:59:00.000Z'); assert.match(result.warnings[0],/other calendar/);
+  assert.equal(result.assignments.length,2); assert.equal(result.assignments[0].title,'Exam'); assert.equal(result.assignments[0].kind,'event'); assert.equal(result.assignments[1].dueAt,'2026-10-19T15:59:00.000Z'); assert.deepEqual(result.warnings,[]);
   assert.equal(parseCoolCalendar(wrap()).assignments.length,0);
 });
 test('unknown timezone, missing deadline and incomplete calendar fail without partial homework', () => {
@@ -36,4 +36,14 @@ test('calendar fetch blocks redirects before sending feed tokens outside the all
   globalThis.fetch=async (_url,options)=>{calls++;assert.equal(options.redirect,'manual'); assert.equal(options.headers.Cookie,undefined);return new Response(null,{status:302,headers:{Location:'https://evil.example/steal'}});};
   try { await assert.rejects(readCoolCalendar(feed),{code:'cool_calendar_redirect'});assert.equal(calls,1); }
   finally {globalThis.fetch=original;}
+});
+
+test('a final non-assignment calendar entry is retained with its date and event link, not converted into homework', () => {
+  const result = parseCoolCalendar(wrap(event(1, ':20261017T155900Z'), 'BEGIN:VEVENT\r\nUID:event-calendar-event-99\r\nSUMMARY:Final exam [Calculus]\r\nDTSTART:20270112T020000Z\r\nURL:https://cool.ntu.edu.tw/calendar?include_contexts=course_42&event_id=99&untrusted=secret\r\nEND:VEVENT'));
+  assert.equal(result.assignments.length, 2);
+  const last = result.assignments.at(-1);
+  assert.equal(last.title, 'Final exam'); assert.equal(last.kind, 'event'); assert.equal(last.course, 'Calculus');
+  assert.equal(last.dueAt, '2027-01-12T02:00:00.000Z');
+  assert.equal(last.url, 'https://cool.ntu.edu.tw/calendar?include_contexts=course_42&event_id=99');
+  assert.deepEqual(result.warnings, []);
 });

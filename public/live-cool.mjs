@@ -3,11 +3,11 @@ export function initLiveCool({ panel, client, openLogin, onSessionExpired, langu
   const toolbar = node('div', 'schedule-toolbar'), heading = node('div'); heading.append(node('p', 'eyebrow', 'NTU COOL / YOUR COURSES'), node('h2', '', 'Your COOL feed'));
   const refresh = node('button', 'secondary', 'Connect COOL'); refresh.type = 'button'; refresh.id = 'cool-refresh'; toolbar.append(heading, refresh);
   const tabs = node('div', 'cool-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'COOL feed');
-  const assignmentTab = node('button', 'active', 'Assignments'), announcementTab = node('button', '', 'Announcements');
+  const assignmentTab = node('button', 'active', 'Homework & events'), announcementTab = node('button', '', 'Announcements');
   for (const [tab, id] of [[assignmentTab, 'assignments'], [announcementTab, 'announcements']]) { tab.id = 'cool-'+id+'-tab'; tab.type = 'button'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-controls', 'cool-list'); tabs.append(tab); }
-  const meta = node('p', 'micro'), copy = node('p', 'micro', 'Homework connects automatically through your saved NTU login. Due dates come from the COOL calendar; check submission status in COOL.');
+  const meta = node('p', 'micro'), copy = node('p', 'micro', 'Homework and events connect automatically through your saved NTU login. Dates come from the COOL calendar; check submission status in COOL.');
   const notice = node('p', 'notice warning'); notice.id = 'cool-notice'; notice.hidden = true; notice.setAttribute('role', 'status');
-  const filters = node('div', 'cool-filters'), course = node('select', 'login-input'), search = node('input', 'login-input'); course.setAttribute('aria-label', 'Filter assignments by course'); search.type = 'search'; search.setAttribute('aria-label', 'Search assignments'); search.placeholder = 'Search assignments'; filters.append(course, search);
+  const filters = node('div', 'cool-filters'), course = node('select', 'login-input'), search = node('input', 'login-input'); course.setAttribute('aria-label', 'Filter calendar items by course'); search.type = 'search'; search.setAttribute('aria-label', 'Search homework and events'); search.placeholder = 'Search homework and events'; filters.append(course, search);
   const list = node('div', 'cool-list'); list.id = 'cool-list'; list.setAttribute('role', 'tabpanel'); list.tabIndex = 0;
   panel.replaceChildren(toolbar, tabs, meta, copy, notice, filters, list);
   const dialog = node('dialog', 'wide-dialog'); dialog.id = 'cool-connect-dialog';
@@ -20,8 +20,8 @@ export function initLiveCool({ panel, client, openLogin, onSessionExpired, langu
   function render() {
     const items = upcoming(), isAssignments = tab === 'assignments';
     refresh.disabled = !!active || Date.now() < retryAt; submit.disabled = refresh.disabled;
-    refresh.textContent = active ? calendar ? 'Refreshing homework…' : 'Connecting COOL…' : needsPassword ? 'Reconnect COOL' : calendar ? 'Refresh homework' : 'Connect COOL';
-    meta.textContent = !owner ? 'Sign in to connect your COOL homework.' : calendar ? `${items.length} upcoming assignment(s) · Last checked ${format(calendar.syncedAt)} Taipei · Checks every 5 minutes while open · Background checks run hourly` : 'Your personal COOL calendar will be found through your NTU login.';
+    refresh.textContent = active ? calendar ? 'Refreshing COOL…' : 'Connecting COOL…' : needsPassword ? 'Reconnect COOL' : calendar ? 'Refresh COOL' : 'Connect COOL';
+    meta.textContent = !owner ? 'Sign in to connect your COOL homework.' : calendar ? `${items.length} upcoming calendar item(s) · Last checked ${format(calendar.syncedAt)} Taipei · Checks every 5 minutes while open · Background checks run hourly` : 'Your personal COOL calendar will be found through your NTU login.';
     for (const [button, selected] of [[assignmentTab, isAssignments], [announcementTab, !isAssignments]]) { button.classList.toggle('active', selected); button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1; }
     list.setAttribute('aria-labelledby', isAssignments ? assignmentTab.id : announcementTab.id);
     filters.hidden = !isAssignments || !calendar; list.replaceChildren();
@@ -30,11 +30,12 @@ export function initLiveCool({ panel, client, openLogin, onSessionExpired, langu
     for (const [id, name] of names) { const option = node('option', '', name); option.value = id; option.dataset.originalContent = ''; course.append(option); } course.value = names.has(selected) ? selected : '';
     if (!calendar) { list.append(node('p', 'cool-empty', active ? 'Connecting your personal COOL calendar…' : 'Your homework will appear here after COOL connects.')); return; }
     const query = search.value.trim().toLowerCase(), visible = items.filter(a => (!course.value || (a.courseId || a.course) === course.value) && `${a.title} ${a.course}`.toLowerCase().includes(query));
-    if (!visible.length) list.append(node('p', 'cool-empty', items.length ? 'No assignments match these filters.' : 'No upcoming dated assignments in your COOL calendar.'));
+    if (!visible.length) list.append(node('p', 'cool-empty', items.length ? 'No calendar items match these filters.' : 'No upcoming dated items in your COOL calendar.'));
     for (const item of visible) {
       const article = node('article', 'cool-item'), detail = node('div', 'cool-detail'), name = node('p', 'eyebrow', item.course), title = node('h3', '', item.title);
       name.dataset.originalContent = ''; title.dataset.originalContent = '';
-      detail.append(name, title, node('p', 'cool-due', item.allDay ? `Due ${format(item.date, true)} · All day · Taipei` : `Due ${format(item.dueAt)} · Taipei`)); article.append(detail);
+      const isEvent = item.kind === 'event', when = isEvent ? 'Starts' : 'Due';
+      detail.append(name, title, node('p', 'micro', isEvent ? 'Calendar event' : 'Assignment'), node('p', 'cool-due', item.allDay ? `${when} ${format(item.date, true)} · All day · Taipei` : `${when} ${format(item.dueAt)} · Taipei`)); article.append(detail);
       try { const url = new URL(item.url); if (url.origin === 'https://cool.ntu.edu.tw' && !url.username && !url.password) { const link = node('a', 'cool-open', 'Open in COOL ↗'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; article.append(link); } } catch {}
       list.append(article);
     }

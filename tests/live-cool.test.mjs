@@ -17,7 +17,7 @@ function fixture(client) {
 }
 test('COOL discovers a calendar automatically without asking for its URL and displays safe homework',async()=>{
   let syncs=0;const f=fixture({coolCalendar:async()=>({calendar:null,connectionStatus:'not_connected'}),syncCoolCalendar:async(password)=>{assert.equal(password,undefined);syncs++;return saved('<img src=x onerror=alert(1)>');}});
-  try{f.controller.setAccount({studentNumber:'b12345678'});await settle();assert.equal(syncs,1);assert.equal(f.document.querySelector('input[type=url]'),null);assert.equal(f.document.querySelector('#cool-list img'),null);assert.equal(f.document.querySelector('#cool-list h3').textContent,'<img src=x onerror=alert(1)>');assert.equal(f.document.getElementById('cool-refresh').textContent,'Refresh homework');}
+  try{f.controller.setAccount({studentNumber:'b12345678'});await settle();assert.equal(syncs,1);assert.equal(f.document.querySelector('input[type=url]'),null);assert.equal(f.document.querySelector('#cool-list img'),null);assert.equal(f.document.querySelector('#cool-list h3').textContent,'<img src=x onerror=alert(1)>');assert.equal(f.document.getElementById('cool-refresh').textContent,'Refresh COOL');}
   finally{f.cleanup();}
 });
 test('fresh homework restores immediately; manual refresh checks the feed and failures preserve saved work',async()=>{
@@ -49,4 +49,16 @@ test('homework search and course filters work and the announcements tab explains
   const f=fixture({coolCalendar:async()=>result});
   try{f.controller.setAccount({studentNumber:'b12345678'});await settle();const search=f.document.querySelector('input[type=search]');search.value='problem';search.dispatchEvent(new f.window.Event('input'));assert.equal(f.document.querySelectorAll('#cool-list article').length,1);assert.equal(f.document.querySelector('#cool-list h3').textContent,'Problem set');f.document.getElementById('cool-announcements-tab').click();assert.match(f.document.getElementById('cool-list').textContent,/not part of the calendar/);}
   finally{f.cleanup();}
+});
+
+test('calendar events appear with their start time and an event label alongside homework', async () => {
+  const result = saved('Essay');
+  result.calendar.assignments.push({ id:'event-calendar-event-99',kind:'event',title:'Final exam',course:'Calculus',courseId:'42',dueAt:'2099-10-18T02:00:00Z',url:'https://cool.ntu.edu.tw/calendar?include_contexts=course_42&event_id=99' });
+  const f = fixture({ coolCalendar:async()=>result });
+  try { f.controller.setAccount({studentNumber:'b12345678'}); await settle();
+    assert.equal(f.document.querySelectorAll('#cool-list article').length,2);
+    const last = [...f.document.querySelectorAll('#cool-list article')].at(-1);
+    assert.match(last.textContent,/Final exam/); assert.match(last.textContent,/Calendar event/); assert.match(last.textContent,/Starts/);
+    assert.match(f.document.getElementById('cool-feed').textContent,/2 upcoming calendar item/);
+  } finally { f.cleanup(); }
 });

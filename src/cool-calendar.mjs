@@ -2,7 +2,7 @@ import ICAL from 'ical.js';
 import { ApiError } from './security.mjs';
 
 const ORIGIN = 'https://cool.ntu.edu.tw';
-const invalidLink = () => new ApiError(400, 'cool_calendar_url', 'Paste your personal Calendar Feed link from NTU COOL → Calendar → Calendar Feed.');
+const invalidLink = () => new ApiError(400, 'cool_calendar_url', 'COOL returned an unsupported personal calendar link. Reconnect COOL to retrieve the current calendar.');
 export function calendarUrl(input) {
   if (typeof input !== 'string' || input.length > 2048) throw invalidLink();
   let url; try { url = new URL(input.trim().replace(/^webcal:/i, 'https:')); } catch { throw invalidLink(); }
@@ -30,12 +30,19 @@ function deadline(property) {
   if (!Number.isFinite(millis)) throw layout();
   return { date, allDay: false, dueAt: new Date(millis).toISOString() };
 }
-function assignmentLink(raw, id) {
+function calendarLink(raw, uid) {
   let url; try { url = new URL(raw || '', ORIGIN); } catch { return { url: ORIGIN + '/calendar', courseId: '' }; }
   if (url.origin !== ORIGIN || url.username || url.password) return { url: ORIGIN + '/calendar', courseId: '' };
   const courseId = url.pathname.match(/^\/courses\/(\d+)\/(?:assignments|quizzes)\/\d+\/?$/)?.[1] || url.searchParams.get('include_contexts')?.match(/^course_(\d+)$/)?.[1] || url.searchParams.get('include_contexts[]')?.match(/^course_(\d+)$/)?.[1] || '';
-  // Return canonical assignment URLs, never arbitrary feed properties or tokens.
-  return { courseId, url: courseId ? `${ORIGIN}/courses/${courseId}/assignments/${id}` : ORIGIN + '/calendar' };
+  const assignmentId = uid.match(/^event-assignment-(\d+)$/)?.[1];
+  if (assignmentId && courseId) return { courseId, url: `${ORIGIN}/courses/${courseId}/assignments/${assignmentId}` };
+  // Retain a numeric event reference for calendar entries, without turning
+  // exams/meetings into assignments or returning arbitrary query parameters.
+  const eventId = url.searchParams.get('event_id');
+  const query = new URLSearchParams();
+  if (courseId) query.set('include_contexts', 'course_'+courseId);
+  if (/^\d+$/.test(eventId || '')) query.set('event_id', eventId);
+  return { courseId, url: ORIGIN + '/calendar' + (query.size ? '?'+query : '') };
 }
 export function parseCoolCalendar(text) {
   try {
@@ -44,10 +51,10 @@ export function parseCoolCalendar(text) {
     if (calendar.name !== 'vcalendar') throw layout();
     const components = calendar.getAllSubcomponents('vevent');
     if (components.length > 2000) throw layout();
-    const latest = new Map(); let otherEvents = 0, recurring = 0;
+    const latest = new Map(); let recurring = 0;
     for (const event of components) {
       const uid = String(event.getFirstPropertyValue('uid') || '');
-      if (!/^event-assignment-\d+$/.test(uid)) { otherEvents++; continue; }
+      if (!uid || uid.length > 1024) throw layout();
       if (event.hasProperty('rrule') || event.hasProperty('recurrence-id')) { recurring++; continue; }
       const previous = latest.get(uid), sequence = Number(event.getFirstPropertyValue('sequence') || 0);
       const modified = event.getFirstPropertyValue('last-modified') || event.getFirstPropertyValue('dtstamp');
@@ -60,12 +67,11 @@ export function parseCoolCalendar(text) {
       const summary = String(event.getFirstPropertyValue('summary') || '').trim();
       if (!summary || summary.length > 4000) throw layout();
       const course = summary.match(/\s*\[([^\]]+)\]\s*$/), title = (course ? summary.slice(0, course.index).trim() : summary) || summary;
-      const link = assignmentLink(String(event.getFirstPropertyValue('url') || ''), uid.slice('event-assignment-'.length));
-      assignments.push({ id: uid, title, course: course?.[1].trim() || 'NTU COOL', ...link, ...deadline(event.getFirstProperty('dtstart')) });
+      const link = calendarLink(String(event.getFirstPropertyValue('url') || ''), uid);
+      assignments.push({ id: uid, kind: /^event-assignment-\d+$/.test(uid) ? 'assignment' : 'event', title, course: course?.[1].trim() || 'NTU COOL', ...link, ...deadline(event.getFirstProperty('dtstart')) });
     }
     assignments.sort((a, b) => Date.parse(a.dueAt) - Date.parse(b.dueAt) || a.id.localeCompare(b.id));
     const warnings = [];
-    if (otherEvents) warnings.push(`${otherEvents} other calendar event(s) are not shown in homework.`);
     if (recurring) warnings.push(`${recurring} recurring calendar item(s) could not be shown. Check COOL for their dates.`);
     return { assignments, warnings };
   } catch (error) { if (error instanceof ApiError) throw error; throw layout(); }
@@ -82,7 +88,7 @@ export async function readCoolCalendar(input) {
         if (!location) throw layout();
         continue;
       }
-      if ([401, 403, 404, 410].includes(response.status)) { await response.body?.cancel(); throw new ApiError(409, 'cool_calendar_reconnect', 'This COOL calendar link is no longer available. Copy your current Calendar Feed link from COOL and reconnect.'); }
+      if ([401, 403, 404, 410].includes(response.status)) { await response.body?.cancel(); throw new ApiError(409, 'cool_calendar_reconnect', 'This COOL calendar link is no longer available. Reconnect COOL to retrieve the current calendar automatically.'); }
       if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'cool_calendar_unavailable', 'COOL calendar is temporarily unavailable. Your saved homework has not changed.'); }
       const reader = response.body?.getReader(), decoder = new TextDecoder(); let text = '', size = 0;
       if (!reader) throw layout();
