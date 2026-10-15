@@ -198,3 +198,18 @@ test('login readiness requires a valid encryption key and database without expos
   assert.equal(json.databaseBound, true);
   assert.equal(JSON.stringify(json).includes(KEY), false);
 });
+
+
+test('readiness distinguishes a missing secret from invalid format without exposing values', async () => {
+  const e = env();
+  for (const [secret, issue] of [[undefined, 'missing'], ['', 'missing'], ['wrong-format-synthetic', 'invalid_format'], [KEY, null]]) {
+    for (const path of ['health', 'ntu/status']) {
+      const response = await request({ ...e, NTU_CREDENTIAL_KEY: secret }, path);
+      const body = await response.json();
+      assert.equal(body.authorizationStorageIssue, issue);
+      assert.equal(body.authorizationStorageReady, issue === null);
+      assert.equal(body.loginEnabled, issue === null);
+      if (secret) assert.equal(JSON.stringify(body).includes(secret), false);
+    }
+  }
+});
