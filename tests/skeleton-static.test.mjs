@@ -45,3 +45,29 @@ test('main dashboard reload button refreshes the whole site instead of only data
   assert.match(js, /\$\('cool-refresh'\)\.addEventListener/);
   assert.match(js, /\$\('live-timetable-refresh'\)\.addEventListener/);
 });
+
+test('Lucide settings and refresh artwork is bundled in local SVG symbols', () => {
+  const symbols=[
+    ['i-settings','M9.671 4.136a2.34 2.34 0 0 1 4.659 0'],
+    ['i-refresh','M3 12a9 9 0 0 1 9-9']
+  ];
+  for (const [id,originalPath] of symbols) {
+    const symbol=html.match(new RegExp('<symbol id="'+id+'" viewBox="0 0 24 24">([\\s\\S]*?)<\\/symbol>'));
+    assert.ok(symbol,'missing local SVG icon '+id);
+    assert.ok(symbol[1].includes(originalPath),'unexpected icon path for '+id);
+  }
+  for (const [button,icon] of [
+    ['page-refresh','i-refresh'],
+    ['open-settings','i-settings'],
+    ['cool-refresh','i-refresh']
+  ]) {
+    assert.match(html,new RegExp('id="'+button+'"[^>]*>[\\s\\S]*?<use href="#'+icon+'"\\/>'));
+  }
+  assert.match(html,/class="mailx-icon-button mailx-refresh-button"[^>]*>[\\s\\S]*?<use href="#i-refresh"\\/>/);
+  assert.match(readFileSync(new URL('settings.mjs',skeleton),'utf8'),/use\.setAttribute\('href','#i-refresh'\)/);
+  const notice=readFileSync(new URL('LUCIDE-LICENSE.txt',skeleton),'utf8');
+  assert.match(notice,/ISC License/);
+  assert.match(notice,/Lucide Icons and Contributors/);
+  assert.match(notice,/Permission to use, copy, modify, and\/or distribute/);
+  assert.match(html,/License: \.\/LUCIDE-LICENSE\.txt/);
+});
