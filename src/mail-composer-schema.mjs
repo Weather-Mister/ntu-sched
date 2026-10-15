@@ -1,0 +1,8 @@
+// Idempotent bootstrap for existing deployments; canonical migration: 0005.
+export const COMPOSER_SCHEMA=[
+ "CREATE TABLE IF NOT EXISTS mail_drafts (\n student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,\n id TEXT NOT NULL, encrypted_body TEXT NOT NULL, version INTEGER NOT NULL,\n state TEXT NOT NULL DEFAULT 'open', updated_at INTEGER NOT NULL,\n PRIMARY KEY(student_id,id)\n)",
+ "CREATE TABLE IF NOT EXISTS mail_files (\n student_id TEXT NOT NULL, draft_id TEXT NOT NULL, id TEXT NOT NULL,\n encrypted_metadata TEXT NOT NULL, size INTEGER NOT NULL, parts INTEGER NOT NULL,\n ready INTEGER NOT NULL DEFAULT 0,\n PRIMARY KEY(student_id,draft_id,id),\n FOREIGN KEY(student_id,draft_id) REFERENCES mail_drafts(student_id,id) ON DELETE CASCADE\n)",
+ "CREATE TABLE IF NOT EXISTS mail_file_parts (\n student_id TEXT NOT NULL, draft_id TEXT NOT NULL, file_id TEXT NOT NULL,\n part INTEGER NOT NULL, encrypted_data TEXT NOT NULL, hash TEXT NOT NULL, size INTEGER NOT NULL,\n PRIMARY KEY(student_id,draft_id,file_id,part),\n FOREIGN KEY(student_id,draft_id,file_id) REFERENCES mail_files(student_id,draft_id,id) ON DELETE CASCADE\n)",
+ "CREATE TABLE IF NOT EXISTS mail_jobs (\n student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,\n id TEXT NOT NULL, draft_id TEXT NOT NULL, encrypted_body TEXT NOT NULL,\n payload_hash TEXT NOT NULL, send_at INTEGER NOT NULL, status TEXT NOT NULL,\n lease_until INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,\n PRIMARY KEY(student_id,id)\n)",
+ "CREATE INDEX IF NOT EXISTS mail_jobs_due ON mail_jobs(status,send_at,lease_until)"
+];

@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="/mail-icon-512.png">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./desktop.css">
+<link rel="stylesheet" href="./mail-composer.css">
 <script type="module" src="./app.mjs"></script>
 </head>
 <body>
@@ -246,6 +247,7 @@
 <button type="button" data-mail-folder="unread" aria-pressed="false">Unread</button>
 <button type="button" data-mail-folder="starred" aria-pressed="false">Starred</button>
 <button type="button" data-mail-folder="sent" aria-pressed="false">Sent</button>
+<button type="button" data-mail-folder="outbox" aria-pressed="false">Outbox</button>
 <button type="button" data-mail-folder="drafts" aria-pressed="false">Drafts</button>
 <button type="button" data-mail-folder="trash" aria-pressed="false">Trash</button>
 </nav>
@@ -256,6 +258,7 @@
 <button type="button" class="mailx-filter" data-mail-folder="starred" aria-label="Starred" title="Starred" aria-pressed="false"><svg aria-hidden="true"><use href="#i-star"/></svg></button>
 <span class="mailx-rail-divider" aria-hidden="true"></span>
 <button type="button" class="mailx-filter" data-mail-folder="sent" aria-label="Sent" title="Sent" aria-pressed="false"><svg aria-hidden="true"><use href="#i-send"/></svg></button>
+<button type="button" class="mailx-filter" data-mail-folder="outbox" aria-label="Outbox" title="Outbox" aria-pressed="false"><svg aria-hidden="true"><use href="#i-send"/></svg></button>
 <button type="button" class="mailx-filter" data-mail-folder="drafts" aria-label="Drafts" title="Drafts" aria-pressed="false"><svg aria-hidden="true"><use href="#i-draft"/></svg></button>
 <button type="button" class="mailx-filter" data-mail-folder="trash" aria-label="Trash" title="Trash" aria-pressed="false"><svg aria-hidden="true"><use href="#i-trash"/></svg></button>
 <span class="mailx-rail-divider" aria-hidden="true"></span>

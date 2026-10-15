@@ -7,10 +7,16 @@ import {digest,randomToken,encryptAuthorization,decryptAuthorization,base64url} 
 import {sanitizeMail,buildMime,validateSend,rootHeaders,mailListText} from '../src/mail-content.mjs';
 import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
 import {encryptedPush,validateSubscription} from '../src/mail-push.mjs';
+import {reviseDraft,AI_SYSTEM} from '../src/mail-compose-ai.mjs';
+import {processDueComposeJobs} from '../src/mail-composer-store.mjs';
+import {COMPOSER_SCHEMA} from '../src/mail-composer-schema.mjs';
+import {parseHTML} from 'linkedom';
+import {cleanRichHtml,normalizeRevision,PART_BYTES} from '../public/mail-rich.mjs';
+import {revisionIsCurrent,QUICK_COMMANDS} from '../public/skeleton/mail-composer.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
 const APP='https://campus.example',KEY='ab'.repeat(32),realFetch=globalThis.fetch;
-let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0,failLoginCount=0;
-beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;failLoginCount=0;});
+let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0,failLoginCount=0,missingComposeAttachments=false;
+beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;failLoginCount=0;missingComposeAttachments=false;});
 after(()=>{globalThis.fetch=realFetch;});
 globalThis.fetch=async(url,init={})=>{
  const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams,action=fields.get('_action')||u.searchParams.get('_action');calls.push({url:u.href,action,init});
@@ -36,7 +42,7 @@ globalThis.fetch=async(url,init={})=>{
  if(action==='viewsource')return new Response(mime||'From: Professor <prof@ntu.edu.tw>\r\nReply-To: reply@ntu.edu.tw\r\nMessage-ID: <original@ntu.edu.tw>\r\nReferences: <earlier@ntu.edu.tw>\r\n\r\nbody');
  if(action==='get')return new Response(new Uint8Array([1,2,3]),{headers:{'Content-Disposition':'attachment; filename="notes.pdf"'}});
  if(action==='import'){mime=await init.body.get('_file[]').text();return Response.json({ok:true});}
- if(action==='compose')return new Response('rcmail.set_env({"compose_id":"draft-nonce","draft_id":"88"});<input type="hidden" name="_token" value="nonce">');
+ if(action==='compose')return new Response('rcmail.set_env('+JSON.stringify({compose_id:'draft-nonce',draft_id:'88',attachments:missingComposeAttachments?{}:Object.fromEntries([...mime.matchAll(/Content-Disposition: attachment; filename="([^"]*)"/g)].map((m,i)=>[i,{name:m[1]}]))})+');<input type="hidden" name="_token" value="nonce">');
  if(action==='send'){if(sendMode==='disconnect')throw new Error('Network lost after delivery');return new Response('<script>parent.rcmail.sent_successfully("confirmation");</script>');}
  if(['mark','move'].includes(action)){
   if(action==='mark'&&failMarkOnce>0){failMarkOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
@@ -52,6 +58,87 @@ async function identity(e,number='b12345678'){
  const auth=await encryptAuthorization(KEY,id,'ntu_mail',{username:number,password:'test-password'});e.sqlite.prepare("INSERT INTO student_connections(student_id,provider,encrypted_authorization,status,verified_at) VALUES(?,'ntu_mail',?,'authorized',?)").run(id,auth,Date.now());return {student_id:id,student_number:number,token,csrf};}
 async function request(e,a,path,method='GET',body,extra={}){const headers=new Headers({Origin:APP,...extra});if(a){headers.set('Cookie','__Host-campus_week='+a.token);headers.set('X-CSRF-Token',a.csrf);}if(body)headers.set('Content-Type','application/json');return worker.fetch(new Request(APP+'/api/mail/'+path,{method,headers,body:body?JSON.stringify(body):undefined}),e);}
 const sendBody=()=>({id:crypto.randomUUID(),to:'friend@ntu.edu.tw',subject:'Hello',text:'A test message'});
+const composeDraft=()=>({id:crypto.randomUUID(),version:0,to:'friend@ntu.edu.tw',subject:'Draft subject',body:'A current editable draft',bodyHtml:'<p>A <strong>current editable</strong> draft</p>',attachments:[]});
+test('composer runtime bootstrap matches the versioned D1 migration',()=>{
+ const migration=readFileSync(new URL('../migrations/0005_mail_composer.sql',import.meta.url),'utf8').split(';').map(s=>s.trim()).filter(Boolean);assert.deepEqual(COMPOSER_SCHEMA,migration);
+});
+test('all composer mutations require the current account and CSRF before accessing a draft or Gemini',async()=>{
+ const e=env(),a=await identity(e);for(const path of ['ai','drafts','drafts/attachment','outbox','outbox/action']){assert.equal((await request(e,null,path,'POST',{})).status,401);assert.equal((await request(e,{...a,csrf:'wrong'},path,'POST',{})).status,403);}assert.equal(calls.length,0);e.sqlite.close();
+});
+async function saveDraft(e,a,d){const response=await request(e,a,'drafts','POST',d);assert.equal(response.status,200,await response.clone().text());return {...d,...await response.json()};}
+test('composer drafts are encrypted, scoped to the student and version fenced across tabs',async()=>{
+ const e=env(),a=await identity(e),b=await identity(e,'r23456789');let d=await saveDraft(e,a,composeDraft());
+ const stored=e.sqlite.prepare('SELECT * FROM mail_drafts').get();assert.doesNotMatch(stored.encrypted_body,/editable|friend@/);
+ assert.equal((await request(e,b,'drafts?id='+d.id)).status,404);assert.deepEqual((await(await request(e,b,'drafts')).json()).drafts,[]);
+ assert.equal((await request(e,b,'drafts','POST',d)).status,409);
+ const old={...d};d=await saveDraft(e,a,{...d,body:'Manual changes'});assert.equal(d.version,2);
+ assert.equal((await request(e,a,'drafts','POST',old)).status,409);
+ assert.equal((await request(e,a,'drafts','DELETE',old)).status,409);
+ assert.equal((await request(e,a,'drafts','DELETE',d)).status,200);
+ assert.equal((await request(e,a,'drafts?id='+d.id)).status,404);
+ assert.equal(calls.length,0);e.sqlite.close();
+});
+test('Gemini composer uses the exact personal-site prompt and latest editable HTML without sending mail',async()=>{
+ const e=env(),a=await identity(e);e.GEMINI_API_KEY='synthetic-key';e.GEMINI_MODEL='gemini-3.1-flash-lite';let payload;
+ const result=await reviseDraft(e,a,{...composeDraft(),instruction:'make it warmer'}, {googleFetch:async(url,init)=>{assert.match(url,/gemini-3.1-flash-lite:generateContent$/);assert.equal(init.headers['x-goog-api-key'],'synthetic-key');payload=JSON.parse(init.body);return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{thought:true,text:'hidden'},{text:JSON.stringify({body:'Hello',bodyHtml:'<p><strong>Hello</strong></p>'})}]}}]});}});
+ assert.equal(payload.systemInstruction.parts[0].text,AI_SYSTEM);assert.equal(payload.generationConfig.temperature,.3);assert.equal(payload.generationConfig.maxOutputTokens,8192);
+ const input=JSON.parse(payload.contents[0].parts[0].text);assert.equal(input.currentEditableDraft,'A current editable draft');assert.equal(input.currentEditableHtml,'<p>A <strong>current editable</strong> draft</p>');assert.equal(input.latestUserInstruction,'make it warmer');assert.equal(result.body,'Hello');assert.equal(result.bodyHtml,'<p><strong>Hello</strong></p>');assert.equal(calls.length,0);assert.equal(e.sqlite.prepare('SELECT COUNT(*) AS n FROM mail_sends').get().n,0);e.sqlite.close();
+});
+test('Gemini failures preserve the draft; truncation and unsafe output never replace it',async()=>{
+ const e=env(),a=await identity(e);e.GEMINI_API_KEY='synthetic';e.GEMINI_MODEL='gemini-test';const input={...composeDraft(),instruction:'rewrite'};
+ for(const data of [{candidates:[{finishReason:'MAX_TOKENS',content:{parts:[{text:'{}'}]}}]},{candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({body:'',bodyHtml:'<script>steal()</script>'})}]}}]}])await assert.rejects(reviseDraft(e,a,input,{googleFetch:async()=>Response.json(data)}),error=>error.code==='gemini_revision_failed');
+ assert.equal(input.body,'A current editable draft');e.sqlite.close();
+});
+test('rich editor strips executable markup and preserves formatting, links and paragraph breaks',()=>{
+ const {document}=parseHTML('<html><body></body></html>');const html=cleanRichHtml('<p class="x" onclick="x()">Hi <strong>there</strong></p><script>secret()</script><a href="javascript:alert(1)">bad</a><a href="https://example.com" style="color:red">good</a>',document);
+ assert.doesNotMatch(html,/script|onclick|class=|style=|secret/);assert.match(html,/<strong>there<\/strong>/);assert.match(html,/href="https:\/\/example.com"/);
+ assert.equal(normalizeRevision({body:'ignored',bodyHtml:'<p>One<br>line</p><p>Two</p>'},document).body,'One\nline\n\nTwo');
+ assert.equal(revisionIsCurrent({generation:1,edit:2,snapshot:'draft'},{generation:1,edit:2,snapshot:'draft'}),true);
+ for(const current of [{generation:2,edit:2,snapshot:'draft'},{generation:1,edit:3,snapshot:'draft'},{generation:1,edit:2,snapshot:'changed'}])assert.equal(revisionIsCurrent({generation:1,edit:2,snapshot:'draft'},current),false);
+ assert.deepEqual(QUICK_COMMANDS.map(a=>a[1]),['make it shorter','make it warmer and friendlier','make it more formal','fix the grammar without changing my meaning']);
+});
+test('chunked attachments enforce ownership and immutable contents; rich sending includes the entire attachment',async()=>{
+ const e=env(),a=await identity(e),b=await identity(e,'r23456789');let d=await saveDraft(e,a,composeDraft());const file={id:crypto.randomUUID(),name:'notes.txt',type:'text/plain',size:PART_BYTES+2},raw=Buffer.alloc(file.size,97);
+ const part=n=>({draftId:d.id,...file,part:n,data:raw.subarray(n*PART_BYTES,(n+1)*PART_BYTES).toString('base64')});
+ assert.equal((await request(e,b,'drafts/attachment','POST',part(0))).status,409);
+ assert.equal((await request(e,a,'drafts/attachment','POST',part(0))).status,200);
+ assert.equal((await request(e,a,'drafts','POST',{...d,attachments:[file]})).status,409);
+ assert.equal((await request(e,a,'drafts/attachment','POST',{...part(0),data:Buffer.alloc(PART_BYTES,98).toString('base64')})).status,409);
+ assert.equal((await request(e,a,'drafts/attachment','POST',part(1))).status,200);
+ d=await saveDraft(e,a,{...d,attachments:[file]});const id=crypto.randomUUID(),payload={id,draftId:d.id,version:d.version};
+ const response=await request(e,a,'outbox','POST',payload);assert.equal(response.status,200,await response.clone().text());assert.equal((await response.json()).status,'sent');
+ assert.match(mime,/multipart\/alternative/);assert.match(mime,/Content-Type: text\/html/);assert.match(mime,/filename="notes.txt"/);
+ const encoded=mime.split('filename*=UTF-8\'\'notes.txt\r\nContent-Transfer-Encoding: base64\r\n\r\n')[1].split('\r\n--')[0].replace(/\s/g,'');assert.deepEqual(Buffer.from(encoded,'base64'),raw);
+ const sent=calls.find(c=>c.action==='send');assert.equal(sent.init.body.get('_is_html'),'1');assert.match(sent.init.body.get('_message'),/<strong>/);
+ assert.equal((await request(e,a,'outbox','POST',payload)).status,200);assert.equal(calls.filter(c=>c.action==='send').length,1);
+ assert.deepEqual((await(await request(e,b,'outbox')).json()).jobs,[]);e.sqlite.close();
+});
+test('scheduled mail waits for its due time, survives the tab, and sends once through cron',async()=>{
+ const e=env(),a=await identity(e),d=await saveDraft(e,a,composeDraft()),id=crypto.randomUUID(),time=Date.now(),originalNow=Date.now;
+ const response=await request(e,a,'outbox','POST',{id,draftId:d.id,version:d.version,sendAt:new Date(time+120000).toISOString()});assert.equal(response.status,200);assert.equal((await response.json()).status,'scheduled');
+ assert.equal((await request(e,a,'drafts','POST',d)).status,409);assert.equal((await request(e,a,'drafts/attachment','POST',{draftId:d.id,id:crypto.randomUUID(),name:'x',type:'text/plain',size:0,part:0,data:''})).status,409);
+ await processDueComposeJobs(e);assert.equal(calls.length,0);
+ try{Date.now=()=>time+121000;await processDueComposeJobs(e);await processDueComposeJobs(e);assert.equal(calls.filter(c=>c.action==='send').length,1);assert.equal(e.sqlite.prepare('SELECT status FROM mail_jobs').get().status,'sent');}finally{Date.now=originalNow;e.sqlite.close();}
+});
+test('cancelled scheduled mail is never sent and restores the original editable draft',async()=>{
+ const e=env(),a=await identity(e),b=await identity(e,'r23456789'),d=await saveDraft(e,a,composeDraft()),id=crypto.randomUUID();
+ await request(e,a,'outbox','POST',{id,draftId:d.id,version:d.version,sendAt:new Date(Date.now()+120000).toISOString()});
+ assert.equal((await request(e,b,'outbox/action','POST',{id,action:'cancel'})).status,404);
+ assert.equal((await request(e,a,'outbox/action','POST',{id,action:'cancel'})).status,200);
+ const restored=await(await request(e,a,'outbox/action','POST',{id,action:'restore'})).json();assert.equal(restored.draft.body,d.body);assert.equal(restored.draft.version,2);
+ await processDueComposeJobs(e);assert.equal(calls.length,0);e.sqlite.close();
+});
+test('uncertain sends cannot be cancelled, restored, or automatically transmitted again',async()=>{
+ const e=env(),a=await identity(e),d=await saveDraft(e,a,composeDraft()),id=crypto.randomUUID(),payload={id,draftId:d.id,version:d.version};sendMode='disconnect';
+ assert.equal((await(await request(e,a,'outbox','POST',payload)).json()).status,'uncertain');
+ for(const action of ['cancel','restore'])assert.equal((await request(e,a,'outbox/action','POST',{id,action})).status,409);
+ await request(e,a,'outbox','POST',payload);await processDueComposeJobs(e);assert.equal(calls.filter(c=>c.action==='send').length,1);
+ assert.equal((await(await request(e,a,'outbox/action','POST',{id,action:'check'})).json()).status,'sent');assert.equal(calls.filter(c=>c.action==='send').length,1);e.sqlite.close();
+});
+test('missing provider attachments fail before transmitting mail',async()=>{
+ const e=env(),a=await identity(e);let d=await saveDraft(e,a,composeDraft());const file={id:crypto.randomUUID(),name:'notes.txt',type:'text/plain',size:3};await request(e,a,'drafts/attachment','POST',{draftId:d.id,...file,part:0,data:'YWJj'});d=await saveDraft(e,a,{...d,attachments:[file]});missingComposeAttachments=true;
+ const response=await request(e,a,'outbox','POST',{id:crypto.randomUUID(),draftId:d.id,version:d.version});assert.equal((await response.json()).status,'failed');assert.equal(calls.filter(c=>c.action==='send').length,0);e.sqlite.close();
+});
 async function subscription(){const key=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);return{key,value:{endpoint:'https://fcm.googleapis.com/fcm/send/synthetic',keys:{p256dh:base64url(new Uint8Array(await crypto.subtle.exportKey('raw',key.publicKey))),auth:base64url(crypto.getRandomValues(new Uint8Array(16)))}}};}
 test('mail list is scoped to the authenticated student; session and metadata reuse avoid repeated NTU logins',async()=>{
  const e=env(),a=await identity(e),b=await identity(e,'r23456789');let response=await request(e,a,'list');assert.equal(response.status,200);let result=await response.json();assert.equal(result.studentNumber,a.student_number);assert.equal(result.messages[0].subject,'Hello student');assert.equal(result.messages[0].unread,true);

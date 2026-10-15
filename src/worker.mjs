@@ -7,6 +7,8 @@ import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications } from './mail-store.mjs';
 import { mailReference } from './mail-content.mjs';
 import { translateMail } from './mail-translation.mjs';
+import {reviseDraft} from './mail-compose-ai.mjs';
+import {saveComposeDraft,listComposeDrafts,deleteComposeDraft,uploadComposePart,removeComposeFile,queueComposeMail,listComposeJobs,changeComposeJob,processDueComposeJobs} from './mail-composer-store.mjs';
 import { pushConfiguration, subscribe } from './mail-push.mjs';
 import { savedAnnouncements, syncAnnouncements } from './cool-announcements.mjs';
 const COOKIE = '__Host-campus_week';
@@ -112,6 +114,15 @@ export default {
       }
       if (path.startsWith('/api/mail/')) {
         const current=await session(request,env,request.method!=='GET'),url=new URL(request.url),owner={studentNumber:current.student_number};
+        if(path==='/api/mail/ai'&&request.method==='POST')return json({...owner,...await reviseDraft(env,current,await readJson(request,400000))});
+        if(path==='/api/mail/drafts'&&request.method==='GET')return json({...owner,...await listComposeDrafts(env,current,url.searchParams.get('id'))});
+        if(path==='/api/mail/drafts'&&request.method==='POST')return json({...owner,...await saveComposeDraft(env,current,await readJson(request,400000))});
+        if(path==='/api/mail/drafts'&&request.method==='DELETE')return json({...owner,...await deleteComposeDraft(env,current,await readJson(request))});
+        if(path==='/api/mail/drafts/attachment'&&request.method==='POST')return json({...owner,...await uploadComposePart(env,current,await readJson(request,370000))});
+        if(path==='/api/mail/drafts/attachment'&&request.method==='DELETE')return json({...owner,...await removeComposeFile(env,current,await readJson(request))});
+        if(path==='/api/mail/outbox'&&request.method==='GET')return json({...owner,...await listComposeJobs(env,current)});
+        if(path==='/api/mail/outbox'&&request.method==='POST')return json({...owner,...await queueComposeMail(env,current,await readJson(request))});
+        if(path==='/api/mail/outbox/action'&&request.method==='POST')return json({...owner,...await changeComposeJob(env,current,await readJson(request))});
         if(path==='/api/mail/list'&&request.method==='GET')return json({...owner,...await listMail(env,current,url)});
         if(path==='/api/mail/message'&&request.method==='GET')return json({...owner,...await readMail(env,current,url)});
         if(path==='/api/mail/attachment'&&request.method==='GET')return await attachment(env,current,url);
@@ -217,7 +228,7 @@ export default {
     ctx.waitUntil((async () => { await env.DB.batch([
       env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(now()),
       env.DB.prepare('DELETE FROM login_limits WHERE expires_at <= ?').bind(now())
-    ]); await refreshMailNotifications(env); if(!_event.cron||new Date(_event.scheduledTime||Date.now()).getUTCMinutes()===15){await refreshDueTimetables(env); await refreshDueCoolCalendars(env);} })());
+    ]); await processDueComposeJobs(env); await refreshMailNotifications(env); if(!_event.cron||new Date(_event.scheduledTime||Date.now()).getUTCMinutes()===15){await refreshDueTimetables(env); await refreshDueCoolCalendars(env);} })());
   }
 };
 

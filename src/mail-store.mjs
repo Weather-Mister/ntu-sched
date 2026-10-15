@@ -161,7 +161,7 @@ async function findMessage(s,folder,messageId){
  return null;
 }
 export async function sendMail(env,owner,body){
- body=validateSend(body);const payloadHash=await digest(JSON.stringify({to:body.to,subject:body.subject,text:body.text,reply:body.reply||null})),id=body.id;
+ body=validateSend(body);const payloadHash=await digest(JSON.stringify({to:body.to,subject:body.subject,text:body.text,reply:body.reply||null,...(body.html!==undefined?{html:body.html}:{}),...(body.attachments!==undefined?{attachments:await Promise.all(body.attachments.map(async file=>({...file,data:undefined,hash:await digest(file.data||'')})))}:{})})),id=body.id;
  let job=await env.DB.prepare('SELECT * FROM mail_sends WHERE student_id=? AND id=?').bind(owner.student_id,id).first();
  if(job){if(job.payload_hash!==payloadHash)throw new ApiError(409,'send_changed','This send request has changed. Start a new message.');return {id,status:job.status};}
  const cap=await env.DB.prepare('SELECT COUNT(*) AS n FROM mail_sends WHERE student_id=? AND created_at>?').bind(owner.student_id,clock()-3600000).first();if(cap.n>=30)throw new ApiError(429,'send_limit','Please wait before sending more mail.');
@@ -172,14 +172,16 @@ export async function sendMail(env,owner,body){
   let mayHaveSent=false;
   try{
    const reply=body.reply?await rootHeaders(s,mailReference(body.reply.mailbox,body.reply.uid)):null;
-   const mime=buildMime(body,owner.student_number+'@ntu.edu.tw',messageId,reply),form=new FormData();
+   const mime=buildMime(body,owner.student_number+'@ntu.edu.tw',messageId,reply,true),form=new FormData();
    for(const [key,value]of Object.entries({_task:'mail',_action:'import',_mbox:s.folders.drafts,_remote:'1',_token:s.env.request_token}))form.append(key,value);
-   form.append('_file[]',new Blob([mime],{type:'message/rfc822'}),'campus-week.eml');
+   form.append('_file[]',mime,'campus-week.eml');
    await s.fetch('?_task=mail&_action=import&_mbox='+encodeURIComponent(s.folders.drafts),{method:'POST',body:form,headers:{'X-Requested-With':'XMLHttpRequest','X-Roundcube-Request':s.env.request_token}});
    const draft=await findMessage(s,s.folders.drafts,messageId);if(!draft)throw new ApiError(502,'send_prepare_failed','NTU could not prepare your message. Your text is still in the editor.');
    const compose=await(await s.fetch('?'+new URLSearchParams({_task:'mail',_action:'compose',_draft_uid:draft.uid,_mbox:s.folders.drafts,_token:s.env.request_token}))).text(),config=roundcubeEnvironment(compose),fields=roundcubeFormInputs(compose);
    if(!config.compose_id||String(config.draft_id)!==draft.uid||!fields._token)throw new ApiError(502,'send_prepare_failed','NTU could not open the prepared draft.');
-   Object.assign(fields,{_task:'mail',_action:'send',_id:String(config.compose_id),_from:owner.student_number+'@ntu.edu.tw',_to:body.to,_cc:'',_bcc:'',_subject:body.subject,_message:body.text,_is_html:'0',_draft:'',_draft_saveid:draft.uid,_framed:'1',_charset:'UTF-8',_dsn:'',_mdn:''});
+   const attachments=Object.values(config.attachments||{}),expected=body.attachments||[];
+   if(attachments.length!==expected.length||expected.some(file=>attachments.filter(a=>a.name===file.name).length!==expected.filter(a=>a.name===file.name).length))throw new ApiError(502,'send_attachment_missing','NTU did not load every attachment. Restore your draft and retry.');
+   Object.assign(fields,{_task:'mail',_action:'send',_id:String(config.compose_id),_from:owner.student_number+'@ntu.edu.tw',_to:body.to,_cc:'',_bcc:'',_subject:body.subject,_message:body.html||body.text,_is_html:body.html?'1':'0',_draft:'',_draft_saveid:draft.uid,_framed:'1',_charset:'UTF-8',_dsn:'',_mdn:''});
    await env.DB.prepare("UPDATE mail_sends SET status='sending',updated_at=? WHERE student_id=? AND id=?").bind(clock(),owner.student_id,id).run();mayHaveSent=true;
    const result=roundcubeSendResult(await(await s.fetch('?_task=mail&_action=send',{method:'POST',body:new URLSearchParams(fields),headers:{'Content-Type':'application/x-www-form-urlencoded'}})).text());
    const status=result.accepted?'sent':result.rejected?'failed':'uncertain';

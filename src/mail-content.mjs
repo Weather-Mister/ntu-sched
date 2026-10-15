@@ -1,6 +1,7 @@
 import { parseHTML } from 'linkedom';
 import { ApiError } from './security.mjs';
 import { roundcubeEnvironment } from './mail-roundcube.mjs';
+import {cleanRichHtml,MAX_ATTACHMENTS,MAX_ATTACHMENT_BYTES} from '../public/mail-rich.mjs';
 const text=value=>parseHTML('<html><body>'+String(value||'')+'</body></html>').document.body.textContent.trim();
 export { text as mailText };
 // Roundcube sends HTML fragments for list columns. Some skins append a
@@ -78,18 +79,34 @@ export async function rootHeaders(s,ref){
  return {messageId:get('Message-ID'),references:get('References'),replyTo:get('Reply-To')||get('From'),subject:get('Subject')};
 }
 export function validateSend(body){
- if(Object.keys(body).some(k=>!['id','to','subject','text','reply'].includes(k))||!/^[-\w]{36}$/.test(body.id||''))throw new ApiError(400,'invalid_mail','Invalid send request.');
+ if(Object.keys(body).some(k=>!['id','to','subject','text','reply','html','attachments'].includes(k))||!/^[-\w]{36}$/.test(body.id||''))throw new ApiError(400,'invalid_mail','Invalid send request.');
  if(typeof body.to!=='string'||body.to.length>2000||/[\r\n\0]/.test(body.to))throw new ApiError(400,'invalid_mail','Check the recipient address.');
  const recipients=body.to.split(/[;,]/).map(v=>v.trim()).filter(Boolean);
  if(!recipients.length||recipients.length>20||recipients.some(v=>!/^([^\s<>@,]+)@([^\s<>@,]+\.[^\s<>@,]+)$/.test(v)))throw new ApiError(400,'invalid_mail','Use email addresses separated by commas.');
- if(typeof body.subject!=='string'||body.subject.length>500||/[\r\n\0]/.test(body.subject)||typeof body.text!=='string'||body.text.length>50000||!body.text.trim())throw new ApiError(400,'invalid_mail','Enter a subject and message (up to 50,000 characters).');
+ const attachments=body.attachments||[];
+ if(!Array.isArray(attachments)||attachments.length>MAX_ATTACHMENTS||attachments.some(a=>!a||typeof a.name!=='string'||!a.name||a.name.length>180||/[\r\n\0]/.test(a.name)||typeof a.type!=='string'||!/^[-\w.+]+\/[-\w.+]+$/.test(a.type)||a.type.length>120||!Number.isSafeInteger(a.size)||a.size<0)||attachments.reduce((n,a)=>n+a.size,0)>MAX_ATTACHMENT_BYTES)throw new ApiError(400,'invalid_attachment','Use up to 8 attachments, totaling 20 MB.');
+ if(typeof body.subject!=='string'||body.subject.length>500||/[\r\n\0]/.test(body.subject)||typeof body.text!=='string'||body.text.length>(body.html!==undefined?100000:50000)||(!body.text.trim()&&!attachments.length)||body.html!=null&&(typeof body.html!=='string'||body.html.length>220000))throw new ApiError(400,'invalid_mail','Enter a recipient and message or attachment.');
  if(body.reply)mailReference(body.reply.mailbox,body.reply.uid);
- return {...body,to:recipients.join(', ')};
+ const html=body.html?cleanRichHtml(body.html,parseHTML('<html><body></body></html>').document):'';
+ return {...body,to:recipients.join(', '),...(body.html!==undefined?{html}:{}),...(body.attachments!==undefined?{attachments}:{})};
 }
 const b64=value=>{const bytes=new TextEncoder().encode(value);let result='';for(let i=0;i<bytes.length;i+=8192)result+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(result);};
-export function buildMime(body,from,messageId,reply){
+export function buildMime(body,from,messageId,reply,asBlob=false){
  const safeID=v=>/^<[^<>\s\r\n]+>$/.test(v||'')?v:'';
- const lines=[`From: ${from}`,`To: ${body.to}`,`Subject: =?UTF-8?B?${b64(body.subject)}?=`,`Message-ID: <${messageId}>`,`Date: ${new Date().toUTCString()}`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64'];
+ const lines=[`From: ${from}`,`To: ${body.to}`,`Subject: =?UTF-8?B?${b64(body.subject)}?=`,`Message-ID: <${messageId}>`,`Date: ${new Date().toUTCString()}`,'MIME-Version: 1.0'];
  if(reply&&safeID(reply.messageId)){lines.push('In-Reply-To: '+safeID(reply.messageId));const refs=(reply.references||'').split(/\s+/).filter(safeID).slice(-15);lines.push('References: '+[...refs,safeID(reply.messageId)].join(' '));}
- return lines.join('\r\n')+'\r\n\r\n'+(b64(body.text).match(/.{1,76}/g)||[]).join('\r\n')+'\r\n';
+ const fold=value=>{let output='';for(let i=0;i<value.length;i+=76)output+=value.slice(i,i+76)+'\r\n';return output;};
+ const plain='Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n'+fold(b64(body.text));
+ const alt='campus_alt_'+crypto.randomUUID().replaceAll('-',''),mix='campus_mix_'+crypto.randomUUID().replaceAll('-','');
+ const content=body.html?'Content-Type: multipart/alternative; boundary="'+alt+'"\r\n\r\n--'+alt+'\r\n'+plain+'\r\n--'+alt+'\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n'+fold(b64(body.html))+'\r\n--'+alt+'--\r\n':plain;
+ if(!body.attachments?.length){const value=lines.join('\r\n')+'\r\n'+content;return asBlob?new Blob([value],{type:'message/rfc822'}):value;}
+ const parts=[lines.join('\r\n')+'\r\nContent-Type: multipart/mixed; boundary="'+mix+'"\r\n\r\n--'+mix+'\r\n'+content];
+ for(const file of body.attachments){
+  if(typeof file.data!=='string'||!/^[A-Za-z0-9+/]*={0,2}$/.test(file.data)||atob(file.data).length!==file.size)throw new ApiError(400,'invalid_attachment','Attachment data is incomplete.');
+  const fallback=file.name.replace(/[^\x20-\x7e]|["\\]/g,'_').slice(0,100),encoded=encodeURIComponent(file.name).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
+  parts.push('\r\n--'+mix+'\r\nContent-Type: '+file.type+'; name="'+fallback+'"\r\nContent-Disposition: attachment; filename="'+fallback+'"; filename*=UTF-8\'\''+encoded+'\r\nContent-Transfer-Encoding: base64\r\n\r\n');
+  // Bound transient strings while constructing a 20 MB MIME attachment.
+  for(let offset=0;offset<file.data.length;offset+=76*1024)parts.push(fold(file.data.slice(offset,offset+76*1024)));
+ }
+ parts.push('\r\n--'+mix+'--\r\n');return asBlob?new Blob(parts,{type:'message/rfc822'}):parts.join('');
 }

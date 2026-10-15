@@ -1,0 +1,54 @@
+/* The personal-site composer, using Campus Week's existing sage palette. */
+.campus-compose[hidden],.campus-compose [hidden]{display:none!important}
+.campus-compose{position:absolute;inset:12px 12px 12px auto;width:min(610px,calc(100% - 24px));z-index:20;background:#fffdfa;border:1px solid #dce1d2;border-radius:16px;box-shadow:0 12px 40px #252f2326;display:flex;flex-direction:column;overflow:hidden;color:#292d32;font-size:13px;text-align:left}
+.campus-compose-scroll{display:flex;flex-direction:column;overflow:auto;flex:1;min-height:0;overscroll-behavior:contain}
+.campus-compose button,.campus-compose select{font-family:inherit;cursor:pointer}
+.campus-compose button:disabled{opacity:.5;cursor:default}
+.campus-compose button:focus-visible,.campus-compose select:focus-visible{outline:2px solid #7c9470;outline-offset:2px}
+.campus-compose .mailx-compose-head{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid #e1e5d7;background:#f3f5ed;flex-shrink:0}
+.campus-compose .mailx-compose-head>div{min-width:0}
+.campus-compose .mailx-compose-title{font-weight:750;font-size:14px}
+.campus-compose .mailx-compose-context{font-size:10px;color:#877f75;overflow:hidden;text-overflow:ellipsis}
+.campus-compose .mailx-compose-close{margin-left:auto;background:transparent;border:0;font-size:24px;padding:0 5px;color:#777169}
+.campus-compose .mailx-compose-fields{padding:10px 14px 0}
+.campus-compose .mailx-field-row{display:flex;align-items:center;border-bottom:1px solid #ede8e0;min-height:38px;gap:9px}
+.campus-compose .mailx-field-row label{width:52px;font-size:10px;font-weight:750;color:#817a72}
+.campus-compose .mailx-field-row input,.campus-compose .mailx-field-row select{border:0;outline:0;background:transparent;flex:1;min-width:0;width:auto;font:inherit;font-size:12px;color:#292d32;padding:9px 0;border-radius:0;box-shadow:none}
+.campus-compose .mailx-field-row select:disabled{opacity:1;appearance:none;color:#5e6959}
+.campus-compose .mailx-ai-wrap{margin:13px 14px 0;border:1px solid #e1e5d7;background:#f5f6f0;border-radius:14px;padding:10px}
+.campus-compose .mailx-ai-label{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:800;letter-spacing:.08em;color:#7f8d70;margin-bottom:7px}
+.campus-compose .mailx-ai-label span:last-child{font-size:9px;letter-spacing:0}
+.campus-compose .mailx-ai-row{display:flex;gap:8px;align-items:flex-end}
+.campus-compose .mailx-ai-prompt{min-height:54px;max-height:110px;resize:vertical;flex:1;min-width:0;width:auto;border:0;background:transparent;outline:0;font:inherit;font-size:12px;line-height:1.4;color:#2b3445;padding:0;box-shadow:none}
+.campus-compose .mailx-ai-generate{border:0;border-radius:10px;background:#627754;color:#fff;min-height:36px;padding:0 12px;font-size:11px;font-weight:750;white-space:nowrap}
+.campus-compose .mailx-ai-generate[aria-busy=true]{animation:campus-ai-breathe 1.6s ease-in-out infinite}
+@keyframes campus-ai-breathe{50%{opacity:.55}}
+.campus-compose .mailx-ai-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.campus-compose .mailx-ai-chip{border:1px solid #e0e5d7;background:#fff;color:#7f8d70;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:700}
+.campus-compose .mailx-editor-label{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px;font-size:10px;font-weight:750;color:#777169}
+.campus-compose .mailx-editor-tools{display:flex;gap:6px}
+.campus-compose .mailx-editor-tools button{border:0;background:transparent;color:#6a7282;font-size:10px;font-weight:700;padding:2px 4px}
+.campus-compose .mailx-format-toolbar{display:flex;align-items:center;gap:4px;margin:0 14px 7px;min-height:34px;padding:4px 5px;border:1px solid #e3ddd5;border-radius:10px;background:#f8f6f2;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.campus-compose .mailx-format-toolbar select,.campus-compose .mailx-format-toolbar button{flex:0 0 auto;min-height:27px;border:0;border-radius:7px;background:transparent;color:#5f5a54;font:inherit;font-size:10px;font-weight:700;width:auto;box-shadow:none}
+.campus-compose .mailx-format-toolbar select{max-width:112px;padding:0 6px}
+.campus-compose .mailx-format-toolbar button{min-width:29px;padding:0 7px}
+.campus-compose .mailx-format-toolbar button:hover,.campus-compose .mailx-format-toolbar button[aria-pressed=true]{background:#ebe7df;color:#526746}
+.campus-compose .mailx-email-body{margin:0 14px 12px;flex:1 0 180px;min-height:180px;border:1px solid #e3ddd5;border-radius:13px;background:#fff;padding:13px;outline:0;font:inherit;font-size:13px;line-height:1.55;color:#292d32;overflow-wrap:anywhere;white-space:pre-wrap}
+.campus-compose .mailx-email-body:empty::before{content:attr(data-placeholder);color:#a0a49a;pointer-events:none}
+.campus-compose .mailx-email-body:focus{border-color:#a7b49a;box-shadow:0 0 0 3px #6277540d}
+.campus-compose .mailx-email-body p{margin:0 0 1em}.campus-compose .mailx-email-body blockquote{margin:10px 0;padding:0 12px;border-left:3px solid #b5bfaa;color:#727a6c}
+.campus-compose .mailx-attachment-list{display:flex;flex-wrap:wrap;gap:7px;margin:0 14px 10px}
+.campus-compose .mailx-attachment-list:empty{display:none}
+.campus-compose .mailx-attachment-chip{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;padding:8px 10px;border:1px solid #dedfd3;border-radius:10px;background:#f7f7f2}
+.campus-compose .mailx-attachment-info{display:flex;flex-direction:column;min-width:0}.campus-compose .mailx-attachment-info strong{font-size:11px;overflow-wrap:anywhere}.campus-compose .mailx-attachment-info small{font-size:10px;color:#8a8c80}
+.campus-compose .mailx-attachment-chip button{border:0;background:transparent;color:#81796f;font-size:16px;padding:3px}.campus-compose .mailx-attachment-chip.is-error{border-color:#d6aaa1;background:#fff3f0}
+.campus-compose .mailx-inline-error{font-size:12px;color:#964333;line-height:1.5;padding:0 14px;margin:0 0 10px;overflow-wrap:anywhere}.campus-compose .mailx-inline-error:empty{display:none}
+.campus-compose .mailx-compose-foot{display:flex;align-items:center;gap:8px;padding:10px 14px 14px;border-top:1px solid #ede8e0;flex-shrink:0;background:#fffdfa}
+.campus-compose .mailx-compose-note{font-size:9px;color:#938c82;flex:1;line-height:1.4}
+.campus-compose .mailx-send,.campus-compose .mailx-schedule,.campus-compose .campus-save-draft{height:38px;border-radius:10px;padding:0 15px;font-size:11px;font-weight:750;border:1px solid #ded8cf;background:#fffdfa;color:#4c4945}
+.campus-compose .campus-save-draft{font-size:18px;padding:0 10px}.campus-compose .mailx-send{border:0;background:#30372c;color:#fff}
+.campus-compose .campus-schedule{margin:0 14px 14px;padding:12px;background:#f3f5ed;border:1px solid #dce1d2;border-radius:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11px}
+.campus-compose .campus-schedule label{display:flex;align-items:center;gap:8px}.campus-compose .campus-schedule input{width:auto;min-width:0;border:1px solid #dce1d2;padding:7px;border-radius:7px;background:#fff;font:inherit}.campus-compose .campus-schedule button{border:1px solid #dce1d2;background:#fff;padding:7px;border-radius:7px;font-size:11px}
+.campus-compose-item{padding:16px;border-bottom:1px solid #e4e7dd;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px}.campus-compose-item strong,.campus-compose-item small,.campus-compose-item>span{flex:1 0 100%;overflow-wrap:anywhere}.campus-compose-item small,.campus-compose-item>span{color:#818778}.campus-compose-item button{border:1px solid #dce1d2;border-radius:7px;background:#fafbf6;padding:7px 9px;font:inherit;color:#526746;cursor:pointer}
+@media(max-width:700px){.campus-compose{inset:0;width:100%;border:0;border-radius:0}.campus-compose .mailx-compose-head{padding-top:calc(12px + env(safe-area-inset-top))}.campus-compose .mailx-compose-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom))}.campus-compose .mailx-compose-note{max-width:115px}.campus-compose .mailx-field-row input,.campus-compose .mailx-ai-prompt,.campus-compose .mailx-email-body{font-size:16px}.campus-compose .mailx-format-toolbar{gap:1px}.campus-compose .mailx-format-toolbar select{max-width:90px}.campus-compose .campus-schedule input{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.campus-compose *{animation:none!important}}
