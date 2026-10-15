@@ -111,7 +111,7 @@ test('language switch accepts a data-url DIV but rejects unsafe actions', async 
     base+'?lang=en'
   );
   assert.equal(
-    portfolioLanguageUrl(doc('<div onclick="window.location.assign(\\'/eportfolio/course-overview?lang=en\\')"><span>English</span></div>'),base,'en').href,
+    portfolioLanguageUrl(doc('<div onclick="window.location.assign(&quot;/eportfolio/course-overview?lang=en&quot;)"><span>English</span></div>'),base,'en').href,
     base+'?lang=en'
   );
   for (const invalid of [
