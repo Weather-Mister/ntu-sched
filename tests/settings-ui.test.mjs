@@ -14,7 +14,11 @@ async function fixture(run){
  try{await run({window,document,settings,student,requests,resolvePreferences:value=>resolvePreferences(value)});}finally{for(const[k,v]of Object.entries(previous)){if(v)Object.defineProperty(globalThis,k,v);else delete globalThis[k];}}
 }
 test('preview settings update statistics, change the actual theme, and keep every section visible',async()=>fixture(async({document,settings,student,requests})=>{
- settings.update({student,liveMode:false,language:'en',timetable:null});assert.equal(document.getElementById('stat-courses').textContent,'1');assert.equal(document.getElementById('stat-sessions').textContent,'1');assert.equal(document.getElementById('stat-hours').textContent,'0.8');
+ settings.update({student,liveMode:false,language:'en',timetable:null});
+ assert.deepEqual(['settings-appearance-title','settings-stats-title','settings-install-title','settings-extras-title'].map(id=>document.getElementById(id).textContent),['Appearance','Your week','Install Campus Week','Hanzi Steps widget']);
+ assert.equal(document.querySelector('[data-theme-choice="dark"] strong').textContent,'Dark');
+ assert.equal(document.getElementById('account-name').textContent,'');
+ assert.equal(document.getElementById('stat-courses').textContent,'1');assert.equal(document.getElementById('stat-sessions').textContent,'1');assert.equal(document.getElementById('stat-hours').textContent,'0.8');
  document.querySelector('[data-theme-choice="dark"]').click();assert.equal(document.body.dataset.theme,'dark');assert.equal(document.querySelector('[data-theme-choice="dark"]').getAttribute('aria-pressed'),'true');assert.equal(requests.length,0);
  assert.equal(document.querySelectorAll('[data-settings-panel][hidden]').length,0);assert.equal(document.getElementById('dashboard-hanzi').hidden,true);
  const toggle=document.getElementById('settings-hanzi-enabled');toggle.checked=true;toggle.dispatchEvent(new window.Event('change'));assert.equal(toggle.checked,false);assert.match(document.getElementById('settings-hanzi-status').textContent,/username/);
@@ -26,4 +30,10 @@ test('a preference response from the previous account cannot change the new acco
 test('saved account preferences restore the theme and optional widget, and logout clears its visible data',async()=>fixture(async({document,settings,student,resolvePreferences})=>{
  settings.update({student,liveMode:true,language:'en',timetable:null});resolvePreferences({studentNumber:student.id,version:2,preferences:{theme:'dark',hanziEnabled:true,hanziUsername:'test_user'}});await tick();await tick();
  assert.equal(document.body.dataset.theme,'dark');assert.equal(document.getElementById('dashboard-hanzi').hidden,false);assert.match(document.getElementById('dashboard-hanzi').textContent,/9/);settings.reset();assert.equal(document.getElementById('dashboard-hanzi').hidden,true);assert.equal(document.getElementById('settings-hanzi-username').value,'');
+}));
+
+test('settings labels stay concise in Traditional Chinese',async()=>fixture(async({document,settings,student})=>{
+ settings.update({student,liveMode:false,language:'zh',timetable:null});
+ assert.deepEqual(['settings-appearance-title','settings-stats-title','settings-install-title','settings-extras-title'].map(id=>document.getElementById(id).textContent),['外觀','每週課表','安裝 Campus Week','Hanzi Steps 小工具']);
+ assert.equal(document.querySelector('[data-theme-choice="dark"] strong').textContent,'深色');
 }));

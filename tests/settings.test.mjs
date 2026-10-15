@@ -39,5 +39,5 @@ test('all settings sections coexist on one page, with valid jump targets and acc
  const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');const section=html.slice(html.indexOf('<dialog id="settings-dialog"'),html.indexOf('<dialog id="mail-dialog"'));
  for(const panel of ['appearance','timetable','install','widgets']){assert.match(section,new RegExp('data-settings-tab="'+panel+'"'));assert.match(section,new RegExp('data-settings-panel="'+panel+'"'));assert.doesNotMatch(section,new RegExp('data-settings-panel="'+panel+'" hidden'));}
  for(const id of ['account-id','log-out','stat-courses','stat-sessions','stat-hours','settings-hanzi-enabled','settings-hanzi-username','settings-language'])assert.equal((section.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
- assert.doesNotMatch(section,/Coming later|settings-rail|data-settings-panel="security"/);assert.match(section,/WIDGET PREVIEW · SAMPLE/);
+ assert.doesNotMatch(section,/Coming later|settings-rail|data-settings-panel="security"/);assert.match(section,/Preview · Sample data/);assert.doesNotMatch(section,/settings-section-index|A little more you|Your week, in numbers|Your week\. One tap away|Make room for learning|Made for student life|Go with the flow|After hours/);
 });
