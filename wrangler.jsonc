@@ -21,7 +21,7 @@
   ],
   "vars": {
     "APP_ORIGIN": "https://ntu-sched.s20gamingfake.workers.dev",
-    "NTU_LOGIN_ENABLED": "false"
+    "NTU_LOGIN_ENABLED": "true"
   },
   "triggers": {
     "crons": [

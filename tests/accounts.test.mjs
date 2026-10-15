@@ -181,3 +181,20 @@ test('connections explicitly report that live feeds are not implemented yet', as
   assert.ok(body.connections.every(row => !row.syncReady && row.lastSyncedAt === null));
   assert.equal(JSON.stringify(body).includes('encrypted_authorization'), false);
 });
+
+test('login readiness requires a valid encryption key and database without exposing the key', async () => {
+  const e = env();
+  for (const settings of [{ NTU_CREDENTIAL_KEY: undefined }, { NTU_CREDENTIAL_KEY: 'invalid' }, { DB: undefined }, { NTU_LOGIN_ENABLED: 'false' }]) {
+    const response = await request({ ...e, ...settings }, 'health');
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).loginEnabled, false);
+    const status = await request({ ...e, ...settings }, 'ntu/status');
+    assert.equal((await status.json()).loginEnabled, false);
+  }
+  const health = await request(e, 'health');
+  const json = await health.json();
+  assert.equal(json.loginEnabled, true);
+  assert.equal(json.authorizationStorageReady, true);
+  assert.equal(json.databaseBound, true);
+  assert.equal(JSON.stringify(json).includes(KEY), false);
+});

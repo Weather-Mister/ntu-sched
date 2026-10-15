@@ -85,8 +85,10 @@ export default {
       const path = new URL(request.url).pathname;
       if (!path.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : json({ error: { code: 'not_found', message: 'Not found.' } }, 404);
       sameOrigin(request, env);
-      if (request.method === 'GET' && path === '/api/ntu/status') return json({ available: true, mode: 'accounts', loginEnabled: env.NTU_LOGIN_ENABLED === 'true', liveSyncReady: false });
-      if (request.method === 'GET' && path === '/api/health') return json({ service: 'campus-week', stage: 'accounts', loginEnabled: env.NTU_LOGIN_ENABLED === 'true', liveSyncReady: false });
+      const authorizationStorageReady = /^[0-9a-f]{64}$/i.test(env.NTU_CREDENTIAL_KEY || '');
+      const loginEnabled = env.NTU_LOGIN_ENABLED === 'true' && authorizationStorageReady && !!env.DB;
+      if (request.method === 'GET' && path === '/api/ntu/status') return json({ available: true, mode: 'accounts', loginEnabled, authorizationStorageReady, liveSyncReady: false });
+      if (request.method === 'GET' && path === '/api/health') return json({ service: 'campus-week', stage: 'accounts', loginEnabled, authorizationStorageReady, databaseBound: !!env.DB, liveSyncReady: false });
       if (!env.DB) throw new ApiError(503, 'configuration_required', 'Campus Week database is not configured yet.');
       if (path === '/api/auth/login' && request.method === 'POST') return await login(request, env);
       if (path === '/api/auth/me' && request.method === 'GET') {
