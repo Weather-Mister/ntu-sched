@@ -53,18 +53,16 @@
 </div>
 </header>
 <section class="next-class" aria-live="off">
-<div class="next-copy"><p id="next-label" class="eyebrow">UP NEXT</p><div id="next-title" class="next-title">—</div><p id="next-meta" class="next-meta"></p></div>
-<div id="next-countdown" class="next-badge">—</div>
+<div class="next-copy"><p id="next-label" class="eyebrow">UP NEXT</p><div id="next-title" class="next-title">—</div><p id="next-meta" class="next-meta"></p><p id="next-countdown" class="next-relative">—</p></div>
+<div class="next-badge"><strong id="next-badge-day">—</strong><small id="next-badge-time">—</small></div>
 </section>
 <nav class="week-toolbar" aria-label="Date navigation">
-<div class="week-switch">
+<div class="week-caption"><span class="eyebrow" data-i18n="week">Week</span><strong id="week-range" class="week-range" aria-live="polite"></strong></div>
+<div class="week-actions">
 <button id="previous-week" type="button" class="icon-button" aria-label="Previous week"><svg aria-hidden="true"><use href="#i-left"/></svg></button>
-<span id="week-range" class="week-range" aria-live="polite"></span>
-<button id="next-week" type="button" class="icon-button" aria-label="Next week"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
-</div>
-<div class="date-tools">
-<label class="sr-only" for="choose-date" data-i18n="chooseDate">Choose date</label><input id="choose-date" type="date" aria-label="Choose date">
 <button id="jump-today" type="button" class="button small" data-i18n="today">Today</button>
+<button id="next-week" type="button" class="icon-button" aria-label="Next week"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
+<span class="calendar-picker"><svg aria-hidden="true"><use href="#i-week"/></svg><label class="sr-only" for="choose-date" data-i18n="chooseDate">Choose date</label><input id="choose-date" type="date" aria-label="Choose date"></span>
 </div>
 </nav>
 <main class="workspace">
@@ -86,8 +84,12 @@
 </section>
 <section class="cool-column" aria-labelledby="cool-heading">
 <div class="section-head"><div><p class="eyebrow" data-i18n="coursesLabel">NTU + COURSES</p><h3 id="cool-heading" data-i18n="upcomingDates">Upcoming dates</h3></div><button id="cool-refresh" class="button small" type="button" data-i18n="refresh">Refresh</button></div>
-<div id="cool-list" class="cool-list"></div>
-<p class="preview-footnote" data-i18n="sampleDeadlines">Illustrative events and deadlines; not connected to COOL.</p>
+<div class="cool-view-switch" role="tablist" aria-label="NTU content">
+<button id="cool-assignments-tab" type="button" role="tab" aria-selected="true" aria-controls="cool-list" data-cool-view="assignments" data-i18n="assignments">Assignments</button>
+<button id="cool-announcements-tab" type="button" role="tab" aria-selected="false" aria-controls="cool-list" data-cool-view="announcements" data-i18n="announcements">Announcements</button>
+</div>
+<div id="cool-list" class="cool-list" role="tabpanel" aria-labelledby="cool-assignments-tab"></div>
+<p id="cool-preview-note" class="preview-footnote" data-i18n="sampleDeadlines">Illustrative events and deadlines; not connected to COOL.</p>
 </section>
 <section class="tasks-column" aria-labelledby="tasks-heading">
 <div class="section-head"><div><p class="eyebrow" data-i18n="toDo">TO DO</p><h3 id="tasks-heading" data-i18n="manualTasks">Manual tasks</h3></div><span id="task-count" class="section-side"></span></div>
