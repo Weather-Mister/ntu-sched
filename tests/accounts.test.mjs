@@ -12,6 +12,7 @@ let providerCalls = [], failProvider = false, redirectOutside = false, wrongIden
 let portfolioMode = 'ok', portfolioPosts = 0, portfolioVersion = 1;
 globalThis.fetch = async (url, options = {}) => {
   const parsed = new URL(url);
+  if (['https://cool.ntu.edu.tw','https://adfs.ntu.edu.tw'].includes(parsed.origin)) return mockCool(parsed, options);
   if (parsed.origin !== 'https://wmail1.cc.ntu.edu.tw') return mockPortfolio(parsed, options);
   assert.equal(parsed.origin, 'https://wmail1.cc.ntu.edu.tw');
   assert.equal(options.headers.get('User-Agent'), 'Campus-Week/1.0');
@@ -387,4 +388,96 @@ test('only three credential submissions are allowed per ten-minute window and th
     assert.equal(response.headers.get('Retry-After'), String(result.error.retryAfterSeconds));
     assert.equal(portfolioPosts, before + 3);
   } finally { portfolioMode = 'ok'; }
+});
+
+
+let coolMode = 'ok', coolPosts = 0, coolReads = 0, coolRevision = 1;
+const coolForm = '<form method=post action="/adfs/ls/?request=synthetic"><input type=hidden name=__VIEWSTATE value=nonce><input id=ContentPlaceHolder1_UsernameTextBox name=username><input id=ContentPlaceHolder1_PasswordTextBox name=password type=password><input id=ContentPlaceHolder1_SubmitButton name=submit type=submit value=Login></form>';
+function mockCool(url, options) {
+  options = { ...options, headers: new Headers(options.headers) };
+  const redirect = (location, extra={}) => new Response(null,{status:302,headers:{Location:location,...extra}});
+  const cookies=options.headers.get('Cookie')||'';
+  assert.equal(options.headers.get('User-Agent'),'Campus-Week/1.0');
+  if(url.origin==='https://adfs.ntu.edu.tw') {
+    assert.equal(cookies.includes('canvas_session'),false);
+    if(options.method!=='POST') return new Response(coolForm,{headers:{'Set-Cookie':'adfs_session=synthetic; Path=/adfs/; Secure'}});
+    coolPosts++;assert.match(cookies,/adfs_session/);assert.equal(options.headers.get('Origin'),'https://adfs.ntu.edu.tw');assert.equal(options.body.get('__VIEWSTATE'),'nonce');
+    if(coolMode==='credentials')return new Response(coolForm);
+    if(coolMode==='challenge')return new Response('<input autocomplete=one-time-code>');
+    return new Response('<form method=post action="'+(coolMode==='redirect'?'https://evil.example/steal':'https://cool.ntu.edu.tw/login/saml')+'"><input type=hidden name=SAMLResponse value="'+options.body.get('username')+'"><input type=hidden name=RelayState value=synthetic></form>');
+  }
+  assert.equal(cookies.includes('adfs_session'),false);
+  if(url.pathname==='/login/saml') {
+    if(options.method!=='POST')return redirect('https://adfs.ntu.edu.tw/adfs/ls/?request=synthetic');
+    assert.equal(options.headers.get('Origin'),'https://adfs.ntu.edu.tw'); assert.equal(options.body.has('password'),false);
+    return redirect('/',{'Set-Cookie':'canvas_session='+options.body.get('SAMLResponse')+'; Path=/; Secure; HttpOnly'});
+  }
+  const student=cookies.match(/canvas_session=([a-z]\d{8})/)?.[1];
+  if(url.pathname.startsWith('/feeds/calendars/')) {
+    coolReads++; assert.equal(cookies,'');
+    if(coolMode==='unavailable')return new Response('private provider error synthetic-password',{status:503});
+    if(coolMode==='layout')return new Response('<html>private login page synthetic-password</html>');
+    if(coolMode==='revoked')return new Response('',{status:404});
+    const owner=url.pathname.match(/user_([a-z]\d{8})_synthetic/)[1];
+    const events=coolMode==='empty'?'':`BEGIN:VEVENT\r\nUID:event-assignment-123\r\nSUMMARY:${owner} Homework ${coolRevision} [Calculus]\r\nDTSTART:20991017T155900Z\r\nURL:https://cool.ntu.edu.tw/calendar?include_contexts=course_42\r\nEND:VEVENT\r\n`;
+    return new Response('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n'+events+'END:VCALENDAR\r\n',{headers:{'Content-Type':'text/calendar'}});
+  }
+  assert.ok(student,'provider session is required to discover a private calendar');
+  if(url.pathname==='/')return new Response('<h1>Dashboard</h1>');
+  if(url.pathname==='/api/v1/users/self/profile')return Response.json({login_id:coolMode==='identity'?'r99999999':student});
+  if(url.pathname==='/calendar')return new Response('<input id=calendar-feed-url-input value="https://cool.ntu.edu.tw/feeds/calendars/user_'+student+'_synthetic.ics">');
+  throw new Error('Unexpected COOL synthetic route');
+}
+async function syncCool(e,auth,body={}) {return request(e,'cool/calendar/sync',{method:'POST',cookie:auth.cookie,csrf:auth.csrf,body});}
+test('COOL automatically discovers the personal calendar through saved NTU login, encrypts it and restores without another login',async()=>{
+  const e=env(),auth=await login(e),before=coolPosts;
+  const response=await syncCool(e,auth);assert.equal(response.status,200,await response.clone().text());
+  const result=await response.json();assert.equal(result.calendar.assignments[0].title,'b12345678 Homework 1');assert.equal(coolPosts,before+1);
+  const raw=JSON.stringify(result);assert.equal(raw.includes('_synthetic.ics'),false);assert.equal(raw.includes('synthetic-password'),false);
+  const row=e.DB.sqlite.prepare("SELECT * FROM student_connections WHERE provider='cool'").get();assert.equal(row.encrypted_authorization.includes('Homework'),false);assert.equal(row.encrypted_authorization.includes('user_'),false);
+  const retained=await decryptAuthorization(KEY,row.student_id,'cool',row.encrypted_authorization);assert.match(retained.feedUrl,/user_b12345678_synthetic/);
+  const restored=await request(e,'cool/calendar',{cookie:auth.cookie});assert.deepEqual((await restored.json()).calendar,result.calendar);
+  await syncCool(e,auth);assert.equal(coolPosts,before+1);
+  await syncCool(e,auth,{force:true});assert.equal(coolPosts,before+1);
+  const connections=(await (await request(e,'connections',{cookie:auth.cookie})).json()).connections;
+  assert.equal(connections.find(c=>c.provider==='cool').syncReady,true);
+});
+test('COOL only accepts session ownership and CSRF; other students cannot read or override a calendar',async()=>{
+  const e=env(),a=await login(e),b=await login(e,'r23456789');
+  assert.equal((await request(e,'cool/calendar')).status,401);
+  assert.equal((await request(e,'cool/calendar/sync',{method:'POST',cookie:a.cookie,body:{}})).status,403);
+  assert.equal((await syncCool(e,a,{studentId:'someone-else'})).status,400);
+  assert.equal((await syncCool(e,a,{feedUrl:'https://evil.example'})).status,400);
+  await syncCool(e,a);assert.equal((await (await request(e,'cool/calendar',{cookie:b.cookie})).json()).calendar,null);
+  await syncCool(e,b);const own=await (await request(e,'cool/calendar',{cookie:b.cookie})).json();assert.match(own.calendar.assignments[0].title,/r23456789/);
+});
+test('COOL discovery rejects wrong identities, external SAML destinations and verification challenges',async()=>{
+  for(const [mode,status]of [['identity',502],['redirect',502],['challenge',409],['credentials',409]]){
+    const e=env(),auth=await login(e),before=coolPosts;coolMode=mode;
+    try{const response=await syncCool(e,auth);assert.equal(response.status,status,await response.clone().text());assert.equal(coolPosts,before+1);assert.equal((await response.text()).includes('synthetic-password'),false);assert.equal(e.DB.sqlite.prepare("SELECT * FROM student_connections WHERE provider='cool'").get(),undefined);}
+    finally{coolMode='ok';}
+  }
+});
+test('COOL updates changed deadlines and deleted homework while transient failures preserve the last snapshot',async()=>{
+  const e=env(),auth=await login(e);await syncCool(e,auth);const before=coolPosts;
+  coolRevision=2;
+  try{const changed=await (await syncCool(e,auth,{force:true})).json();assert.equal(changed.changed,true);assert.match(changed.calendar.assignments[0].title,/Homework 2/);
+    for(const mode of ['layout','unavailable']){coolMode=mode;const result=await syncCool(e,auth,{force:true});assert.equal(result.status,502);assert.equal((await result.text()).includes('synthetic-password'),false);assert.deepEqual((await (await request(e,'cool/calendar',{cookie:auth.cookie})).json()).calendar,changed.calendar);}
+    coolMode='empty';const cleared=await (await syncCool(e,auth,{force:true})).json();assert.deepEqual(cleared.calendar.assignments,[]);assert.equal(coolPosts,before);
+  }finally{coolMode='ok';coolRevision=1;}
+});
+test('revoked COOL feed is rediscovered once, then reconnect stops automatic login attempts without signing the student out',async()=>{
+  const e=env(),auth=await login(e);await syncCool(e,auth);coolMode='revoked';const before=coolPosts;
+  try{const result=await syncCool(e,auth,{force:true});assert.equal(result.status,409);assert.equal(coolPosts,before+1);
+    assert.equal((await syncCool(e,auth,{force:true})).status,409);assert.equal(coolPosts,before+1);
+    assert.equal((await request(e,'auth/me',{cookie:auth.cookie})).status,200);
+    assert.equal((await (await request(e,'cool/calendar',{cookie:auth.cookie})).json()).calendar.assignments.length,1);
+  }finally{coolMode='ok';}
+  assert.equal((await syncCool(e,auth,{password:'myNTU-password',force:true})).status,200);
+});
+test('hourly background COOL checks update saved homework without repeating NTU login or affecting timetable',async()=>{
+  const e=env(),auth=await login(e);await sync(e,auth);await syncCool(e,auth);const before=coolPosts,tableBefore=portfolioPosts;
+  e.DB.sqlite.exec("UPDATE student_connections SET verified_at=1 WHERE provider='cool'");coolRevision=2;
+  try{const tasks=[];await worker.scheduled({},e,{waitUntil:task=>tasks.push(task)});await Promise.all(tasks);assert.equal(coolPosts,before);assert.equal(portfolioPosts,tableBefore);assert.match((await (await request(e,'cool/calendar',{cookie:auth.cookie})).json()).calendar.assignments[0].title,/Homework 2/);}
+  finally{coolRevision=1;}
 });

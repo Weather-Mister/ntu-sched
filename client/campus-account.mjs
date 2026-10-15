@@ -28,6 +28,10 @@ export class CampusAccount {
   async syncTimetable(password, signal, force = false) {
     return this.request('timetable/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });
   }
+  async coolCalendar() { return this.request('cool/calendar'); }
+  async syncCoolCalendar(password, signal, force = false) {
+    return this.request('cool/calendar/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });
+  }
   async logout(allDevices = false) {
     await this.request(allDevices ? 'auth/logout-all' : 'auth/logout', { method: 'POST' });
     this.current = null;

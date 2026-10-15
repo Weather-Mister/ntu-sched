@@ -11,6 +11,7 @@
     "db:remote": "wrangler d1 migrations apply DB --remote"
   },
   "dependencies": {
+    "ical.js": "2.2.1",
     "linkedom": "0.18.12"
   }
 }
