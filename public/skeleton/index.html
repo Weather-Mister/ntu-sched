@@ -85,6 +85,15 @@
 <section class="schedule-column" aria-labelledby="selected-day">
 <div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><span id="class-count" class="section-side"></span></div>
 <div id="schedule-list" class="schedule-list" aria-live="polite"></div>
+<section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
+<div class="week-timetable-title">
+<div><p class="eyebrow" data-i18n="calendarLabel">TIMETABLE</p><h2 id="week-timetable-heading" data-i18n="weeklyTimetable">Weekly timetable</h2></div>
+<span id="week-timetable-range" class="week-timetable-range"></span>
+</div>
+<div id="week-timetable-scroll" class="week-timetable-scroll" tabindex="0" aria-label="Weekly timetable, scroll horizontally and vertically">
+<div id="week-timetable-grid" class="week-timetable-grid"></div>
+</div>
+</section>
 </section>
 <section class="cool-column" aria-labelledby="cool-heading">
 <div class="section-head"><div><p class="eyebrow" data-i18n="coursesLabel">NTU + COURSES</p><h3 id="cool-heading" data-i18n="upcomingDates">Upcoming dates</h3></div><button id="cool-refresh" class="button small" type="button" data-i18n="refresh">Refresh</button></div>
@@ -117,15 +126,6 @@
 </section>
 </aside>
 </main>
-<section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
-<div class="week-timetable-title">
-<div><p class="eyebrow" data-i18n="calendarLabel">TIMETABLE</p><h2 id="week-timetable-heading" data-i18n="weeklyTimetable">Weekly timetable</h2></div>
-<span id="week-timetable-range" class="week-timetable-range"></span>
-</div>
-<div id="week-timetable-scroll" class="week-timetable-scroll" tabindex="0" aria-label="Weekly timetable, scroll horizontally and vertically">
-<div id="week-timetable-grid" class="week-timetable-grid"></div>
-</div>
-</section>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
 <dialog id="lesson-dialog" class="dialog detail-dialog" aria-labelledby="lesson-dialog-name">
