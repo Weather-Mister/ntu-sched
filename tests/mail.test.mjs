@@ -105,7 +105,8 @@ test('Roundcube subject controls are removed and sender is read from the fromto 
   const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams;
   const action=fields.get('_action')||u.searchParams.get('_action');
   if(action==='list')return Response.json({action,env:{pagecount:1,messagecount:1},exec:'this.add_message_row("3",'+JSON.stringify({
-   subject:'<a href="#">Real subject</a><span>Open in new window</span>',
+   subject:'<a href="#">Real subject</a><span class="sr-only">Open in new window</span>',
+   from:'<span class="empty"></span>',
    fromto:'<span class="adr">Student &lt;student@ntu.edu.tw&gt;</span>',
    date:'Today 12:00'})+','+JSON.stringify({seen:false})+');'});
   return original(url,init);
@@ -115,6 +116,17 @@ test('Roundcube subject controls are removed and sender is read from the fromto 
   assert.equal(response.status,200);const m=(await response.json()).messages[0];
   assert.equal(m.subject,'Real subject');assert.equal(m.from,'Student <student@ntu.edu.tw>');
  }finally{globalThis.fetch=original;e.sqlite.close();}
+});
+test('opening mailbox loads only the requested metadata batch and no unopened message bodies',async()=>{
+ const e=env(),a=await identity(e);virtualMessages=125;
+ const first=await request(e,a,'list?folder=sent&limit=25');
+ assert.equal(first.status,200);assert.equal((await first.json()).messages.length,25);
+ const pageReads=calls.filter(call=>call.action==='list');
+ assert.equal(pageReads.length,1);
+ assert.equal(pageReads[0].init.method||'GET','GET');
+ assert.equal(pageReads[0].url.includes('_page=1'),true);
+ assert.equal(calls.some(call=>['show','get','viewsource'].includes(call.action)),false);
+ e.sqlite.close();
 });
 test('progressive mailbox batches return newest 25 then 50 then 50 without duplicate UIDs',async()=>{
  const e=env(),a=await identity(e);virtualMessages=125;
