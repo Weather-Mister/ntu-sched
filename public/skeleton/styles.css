@@ -596,8 +596,8 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 .campus-mail-provider{color:#acb0a2;font-size:10px;line-height:1.35;margin-top:4px}
 .campus-mail-item.is-unread .campus-mail-sender,.campus-mail-item.is-unread .campus-mail-subject{font-weight:750;color:#233223}
 .campus-mail-actions{position:absolute;top:11px;right:10px;z-index:2;display:flex;gap:2px;align-items:center;padding:5px 6px;border:1px solid #dce3d8;border-radius:12px;background:#fffefa;box-shadow:0 5px 16px #3a4f3020;opacity:0;transform:translateY(2px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}
-.campus-mail-item:hover .campus-mail-actions,.campus-mail-item:focus-within .campus-mail-actions,.campus-mail-item.is-active .campus-mail-actions{opacity:1;transform:translateY(0);pointer-events:auto}
-.campus-mail-item:hover .campus-mail-date,.campus-mail-item:focus-within .campus-mail-date,.campus-mail-item.is-active .campus-mail-date{opacity:0}
+.campus-mail-item:hover .campus-mail-actions{opacity:1;transform:translateY(0);pointer-events:auto}
+.campus-mail-item:hover .campus-mail-date{opacity:0}
 .campus-mail-icon{width:29px;height:29px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#859282;cursor:pointer;transition:background .15s ease,color .15s ease,transform .15s ease}
 .campus-mail-icon svg{width:17px;height:17px;stroke:currentColor}
 .campus-mail-icon:hover{background:#ecf1e6;color:#425c3a;transform:translateY(-1px)}
@@ -608,7 +608,7 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 .mailx-list-pane .mail-pager button{padding:9px 18px;border-radius:10px;background:#f2f5ef;border:1px solid #dce5d8;font-size:12px;font-weight:620;transition:background .16s ease,transform .16s ease}
 .mailx-list-pane .mail-pager button:not(:disabled):hover{background:#e6efe3;transform:translateY(-1px)}
 @media(hover:none){
- .campus-mail-actions{position:static;opacity:1;transform:none;pointer-events:auto;margin:-8px 12px 12px auto;width:max-content;box-shadow:none;padding:3px}
+ .campus-mail-actions{display:none}
  .campus-mail-item .campus-mail-date,.campus-mail-item.is-active .campus-mail-date{opacity:1}
 }
 @media(max-width:430px){
