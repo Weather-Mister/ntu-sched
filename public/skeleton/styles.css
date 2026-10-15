@@ -319,3 +319,47 @@ body[data-theme=dark] .timetable-lesson[data-color="6"]{--lesson-bg:#304f4e;--le
   .week-timetable-title h2{font-size:16px}
   .week-timetable-range{font-size:11px}
 }
+
+/* Hover behavior adapted from the personal Eren schedule.
+   Resting colors stay unchanged; only hover-capable fine pointers get movement. */
+@media (hover:hover) and (pointer:fine) {
+  .day-strip .day-button,.lesson-card,.lesson-arrow,.cool-item,.ntu-link,
+  .cool-view-switch button,.week-actions .button,.week-actions .icon-button,
+  .timetable-lesson{
+    transition:transform .16s ease,box-shadow .16s ease,
+      background-color .16s ease,border-color .16s ease,color .16s ease;
+  }
+  .day-strip .day-button:not(.active):hover{
+    background:var(--panel);color:var(--text);transform:translateY(-1px);
+  }
+  .day-strip .day-button.active:hover{
+    transform:translateY(-1px);box-shadow:0 10px 24px rgba(38,63,119,.22);
+  }
+  .lesson:not(.completed):hover .lesson-card{
+    transform:translateY(-2px);
+    border-color:color-mix(in srgb,var(--course-color) 38%,var(--line));
+    box-shadow:0 9px 22px rgba(45,39,31,.09);
+  }
+  .lesson:not(.completed):hover .lesson-arrow{
+    transform:translate(2px,-50%);color:var(--text);
+  }
+  .cool-item:hover{
+    transform:translateY(-1px);
+    box-shadow:0 7px 18px rgba(45,39,31,.075);border-color:#d7d1c8;
+  }
+  .ntu-link:hover{
+    transform:translateY(-3px);
+    border-color:#d3ccc2;box-shadow:0 10px 22px rgba(45,39,31,.09);
+  }
+  .week-actions .button:hover,.week-actions .icon-button:hover{
+    transform:translateY(-1px);border-color:#cbc5bb;
+    box-shadow:0 6px 16px rgba(45,39,31,.08);
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  .day-strip .day-button,.lesson-card,.lesson-arrow,.cool-item,.ntu-link,
+  .cool-view-switch button,.week-actions .button,.week-actions .icon-button,
+  .timetable-lesson{transition:none!important;transform:none!important}
+  /* Arrows must retain vertical centering even with reduced motion. */
+  .lesson-arrow{transform:translateY(-50%)!important}
+}
