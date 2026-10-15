@@ -94,9 +94,20 @@ All task mutations also require `X-CSRF-Token`. Task responses include the authe
 Verify automatic COOL calendar discovery with the owner's real account, implement the announcements behavior above, then verify the connected Campus Mail client on the owner's phone and desktop. Retain the same encrypted ownership boundaries and cached-data fallback for each provider.
 
 
+## Gemini translation in Campus Mail
+
+The reader offers **Translate → Original / English** when the opened NTU email contains Chinese. This uses the same structured Chinese-to-English prompt, response format, Gemini generation settings and semantic HTML rules as the Eren personal mail client. The translated subject and body replace the reading view while active; the source remains unchanged. Switching back or reopening the same message uses an in-memory translation cache (at most 30 messages), which is cleared when the signed-in student changes. No translation is performed without the student's explicit click.
+
+Unlike the personal site's privately configured mail workspace, Campus Week is an independent multi-student Cloudflare Worker. It **cannot read or reuse Eren's personal Gemini key/model configuration** from the other mail service. For live translation, configure the *same model ID* and a valid Gemini API key as Worker-side secrets in the ntu-sched Cloudflare account:
+
+- Run: npx wrangler secret put GEMINI_API_KEY
+- Run: npx wrangler secret put GEMINI_MODEL
+
+Never commit either value or expose one to the client. If these secrets have not been provisioned, only the translation endpoint is unavailable; reading and sending NTU mail continue to work as before. All translations are requested by an authenticated, same-origin, CSRF-protected POST that identifies only mailbox and UID; the server reads that student's email itself, rate limits to 12 requests per ten minutes per account, strips dangerous markup, and sends subject, text, and safe semantic structure to Gemini. Email content is sent to the configured Google Gemini API only after the user clicks Translate. Model HTML is sanitized and displayed inside the existing sandboxed, no-same-origin iframe. Provider errors or incomplete output leave the original view intact.
+
 ## Campus Mail
 
-Apply migrations/0004_mail.sql before publishing. Campus Mail reuses the personal project's Roundcube adapter, data-command parser and confirmed/uncertain sending flow, with ownership derived exclusively from the Campus Week session. No separate provider secrets are required. Existing NTU credentials encrypt short-lived cookie sessions and push subscriptions with account/provider-bound AES-GCM. A D1 lease serializes provider operations across devices and Worker instances.
+Apply migrations/0004_mail.sql before publishing. Campus Mail reuses the personal project's Roundcube adapter, data-command parser and confirmed/uncertain sending flow, with ownership derived exclusively from the Campus Week session. The basic NTU Mail operations require no additional provider secrets; optional Gemini translation requires its own server-side Gemini secrets. Existing NTU credentials encrypt short-lived cookie sessions and push subscriptions with account/provider-bound AES-GCM. A D1 lease serializes provider operations across devices and Worker instances.
 
 The skeleton supports inbox/folders, paginated folder search, read/reply, plain-text compose, archive/trash, and individual streamed attachment downloads up to 20 MB. The reader uses NTU's formatted body rather than parsing an entire MIME message, sanitizes it, and displays it in an iframe without script or same-origin permissions. External images are opt-in. Outbound file uploads and persistent app composer drafts are not included; closing the Mail window retains the editor for the current tab, switching student accounts clears it.
 
