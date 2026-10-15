@@ -193,6 +193,18 @@ test('a lost delivery confirmation is uncertain; retries only inspect status and
 test('reply headers are fetched from NTU, and header injection is rejected',async()=>{
  const e=env(),a=await identity(e);const body={...sendBody(),reply:{mailbox:'INBOX',uid:'20'}};await request(e,a,'send','POST',body);assert.match(mime,/In-Reply-To: <original@ntu.edu.tw>/);assert.match(mime,/References: <earlier@ntu.edu.tw> <original@ntu.edu.tw>/);assert.throws(()=>validateSend({...sendBody(),to:'x@y.example\r\nBcc: victim@example.com'}));assert.throws(()=>validateSend({...sendBody(),subject:'hello\r\nBcc: victim@example.com'}));assert.match(buildMime(sendBody(),'b12345678@ntu.edu.tw','id@host'),/Content-Transfer-Encoding: base64/);
 });
+test('initial inbox request waits for a running notification check instead of requiring a refresh',async()=>{
+ const e=env(),a=await identity(e);
+ e.sqlite.prepare('INSERT INTO mail_state(student_id,lease,lease_until) VALUES(?,?,?)').run(a.student_id,'background-check',Date.now()+10000);
+ const release=setTimeout(()=>e.sqlite.prepare('UPDATE mail_state SET lease=NULL,lease_until=0 WHERE student_id=? AND lease=?').run(a.student_id,'background-check'),250);
+ try{
+  const response=await request(e,a,'list?folder=inbox&limit=25');
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).messages.length,1);
+  assert.equal(calls.filter(x=>x.action==='list').length,1);
+  assert.equal(e.sqlite.prepare('SELECT lease FROM mail_state WHERE student_id=?').get(a.student_id).lease,null);
+ }finally{clearTimeout(release);e.sqlite.close();}
+});
 test('mail lease prevents simultaneous provider searches from corrupting shared NTU session state',async()=>{
  const e=env(),a=await identity(e);e.sqlite.prepare('INSERT INTO mail_state(student_id,lease,lease_until) VALUES(?,?,?)').run(a.student_id,'other',Date.now()+100000);assert.equal((await request(e,a,'list')).status,429);assert.equal(calls.length,0);
 });
