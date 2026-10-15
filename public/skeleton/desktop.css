@@ -189,9 +189,12 @@
     gap:8px;overflow-y:auto;overflow-x:hidden;padding:0 3px 1px 0;
     scrollbar-width:thin;scrollbar-color:#cdc7bb transparent;overscroll-behavior:contain;
   }
+  /* Roomier with a few classes; shrink evenly as the day gets busier.
+     If the 70px readable minimum cannot fit, the list scrolls instead. */
   .schedule-list .lesson{
     display:grid;grid-template-columns:61px minmax(0,1fr);gap:8px;
-    flex:0 0 auto;align-items:stretch;min-height:65px;text-align:left;
+    flex:1 1 98px;min-height:70px;max-height:116px;
+    align-items:stretch;text-align:left;
   }
   .schedule-list .lesson-time{
     display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:4px;padding:0;
@@ -200,7 +203,7 @@
   .schedule-list .lesson-time span{font-size:10px;line-height:1.15}
   .schedule-list .lesson-card{
     display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
-    min-width:0;min-height:65px;gap:4px;padding:10px 23px 10px 15px;border-radius:13px;
+    min-width:0;min-height:70px;gap:4px;padding:11px 23px 11px 15px;border-radius:13px;
   }
   .schedule-list .lesson-card::before{width:5px}
   .schedule-list .lesson-name{
