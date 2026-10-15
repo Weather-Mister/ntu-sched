@@ -14,35 +14,81 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,3vw,31px);line-height:1.05;lette
 @media (max-width:410px){.topbar-actions{gap:5px}.topbar .language-toggle button{padding:7px 6px}.topbar .icon-button{width:36px;height:36px}.week-toolbar{padding:9px}.week-range{min-width:0;font-size:12px}.week-switch{gap:3px}.section-head{align-items:start;flex-wrap:wrap}.cool-item{grid-template-columns:39px minmax(0,1fr) auto;gap:6px}.cool-due{font-size:9px;padding:4px 5px}}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
-/* Standalone Campus Mail window. No mailbox client code is loaded by this preview. */
+/* Campus Mail: compact three-pane shell following Eren's personal Mail design. */
 .ntu-link[type=button]{width:100%;font:inherit;font-size:11px;font-weight:800;color:var(--text);cursor:pointer}
-.mail-dialog{width:min(1090px,calc(100vw - 36px));height:min(745px,calc(100dvh - 46px));max-width:none;max-height:none;background:var(--card);border:1px solid var(--line);border-radius:21px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.28)}
-.mail-shell{display:flex;flex-direction:column;height:100%;min-height:0}
-.mail-header{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 21px;border-bottom:1px solid var(--line);flex:none}
-.mail-brand{display:flex;align-items:center;gap:12px;min-width:0}.mail-brand h2{font-size:25px}
-.mail-header-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:13px;color:#fff;background:#9b5f4f;flex:none}
-.mail-actions{display:flex;align-items:center;gap:10px}.mail-official-link{white-space:nowrap}.mail-actions .icon-button{width:36px;height:36px;flex:none}
-.mail-workspace{display:grid;grid-template-columns:190px minmax(0,1fr);flex:1;min-height:0}
-.mail-nav{background:var(--panel);border-right:1px solid var(--line);padding:17px 11px;display:flex;flex-direction:column;gap:5px}
-.mail-nav button{padding:11px 14px;min-height:41px;border:0;background:transparent;border-radius:11px;text-align:left;color:var(--muted);font-weight:750}
-.mail-nav button[aria-pressed=true]{background:var(--card);color:var(--text);box-shadow:0 1px 7px rgba(0,0,0,.04)}
-.mail-content{padding:24px;overflow:auto;min-width:0}.mail-folder-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:17px}
-.mail-placeholder-pill{background:var(--accent-soft);color:var(--accent);border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.05em;padding:5px 9px}
-.mail-empty{min-height:270px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px;box-shadow:none}
-.mail-empty-icon{width:51px;height:51px;border-radius:16px;display:grid;place-items:center;background:var(--panel);color:var(--muted);margin-bottom:17px}
-.mail-empty-icon svg{width:25px;height:25px}.mail-empty h3{font-size:18px;max-width:450px;margin:0 0 8px}
-.mail-empty p{max-width:460px;color:var(--muted);font-size:13px;margin:0 0 12px}.mail-empty .micro{font-size:11px}
-@media(max-width:790px){
-.mail-dialog{margin:0;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border:0;border-radius:0}
-.mail-header{padding:15px 16px;align-items:flex-start;gap:10px;flex-wrap:wrap}
-.mail-brand h2{font-size:22px}.mail-actions{margin-left:auto}
-.mail-official-link{white-space:normal;min-height:35px;text-align:center;font-size:11px}
-.mail-workspace{display:flex;flex-direction:column}
-.mail-nav{flex:none;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px}
-.mail-nav button{flex:1;text-align:center;padding:8px;min-height:37px;white-space:nowrap}
-.mail-content{padding:18px 14px;flex:1}.mail-empty{min-height:220px}
+.mailx-dialog{--mail-ink:#292c30;--mail-muted:#797975;--mail-accent:#557568;box-sizing:border-box;width:min(1440px,calc(100vw - 32px));height:min(900px,calc(100dvh - 32px));max-width:none;max-height:none;background:#f6f5f1;color:#292c30;border:1px solid #e5e5dd;border-radius:18px;padding:0;overflow:hidden;box-shadow:0 12px 48px #222a321f}
+.mailx-dialog::backdrop{background:#20273052;backdrop-filter:blur(3px)}
+.mailx-dialog *{box-sizing:border-box}.mailx-dialog button,.mailx-dialog input{font:inherit}
+.mailx-shell{height:100%;min-height:0;display:flex;flex-direction:column}
+.mailx-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px;min-height:72px;flex:0 0 auto;background:#f6f5f1}
+.mailx-brand{display:flex;align-items:center;gap:10px;min-width:0;flex:none}
+.mailx-brand-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--mail-ink);color:#fff}
+.mailx-brand-icon svg{width:19px;height:19px}
+.mailx-title{font-size:20px;font-weight:700;letter-spacing:-.025em;margin:0;white-space:nowrap}
+.mailx-demo-badge{font-size:9px;font-weight:700;color:#818579;background:#e7e9e0;padding:4px 7px;border-radius:7px}
+.mailx-search{flex:1 1 150px;min-width:70px;max-width:500px;height:38px;border:1px solid #e3e2dc;background:#edede7;color:#76776d;border-radius:11px;font-size:13px!important;padding:0 12px}
+.mailx-search:disabled{opacity:1;cursor:default}
+.mailx-compose-main{border:0;background:#292c30;color:white;border-radius:10px;padding:0 16px;min-height:38px;flex:none;font-size:12px!important;font-weight:650;white-space:nowrap}
+.mailx-topbar button:disabled{opacity:.55}
+.mailx-icon-button{display:grid;place-items:center;width:34px;height:34px;padding:0;background:transparent;border:0;color:#60635d;flex:none;border-radius:9px}
+.mailx-icon-button svg{width:19px;height:19px}
+.mailx-icon-button:not(:disabled):hover{background:#e9ebe4}
+.mailx-account-switch{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:50%;background:#e6eade;color:#6d7d5c;font-size:11px;font-weight:650}
+.mailx-top-action{display:grid;place-items:center;min-height:34px;padding:5px 10px;border:1px solid #dfe2d9;border-radius:10px;text-decoration:none;font-size:11px;font-weight:650;color:#557568;white-space:nowrap}
+.mailx-top-action:hover{background:#e9eee5}
+.mailx-main{display:grid;grid-template-columns:64px minmax(230px,360px) 9px minmax(0,1fr);gap:0;padding:0 12px 12px 0;flex:1;min-height:0}
+.mailx-nav{display:flex;align-items:center;flex-direction:column;gap:9px;padding:16px 10px;background:transparent}
+.mailx-nav .mailx-filter{display:grid;place-items:center;width:42px;height:42px;flex:none;min-height:42px;padding:0;border:0;border-radius:12px;background:transparent;color:#8c8e87}
+.mailx-filter svg{width:20px;height:20px}
+.mailx-filter:hover{color:#343f37;background:#e9ebe4}
+.mailx-filter[aria-pressed=true]{color:#405f4f;background:#e2e9df}
+.mailx-rail-divider{width:22px;border-top:1px solid #dedfd7;margin:7px 0}
+.mailx-list-pane,.mailx-reader{display:flex;flex-direction:column;min-height:0;min-width:0;border:1px solid #e5e5dd;border-radius:15px;overflow:hidden;background:#fffefa}
+.mailx-resizer{background:transparent}
+.mailx-list-tools{min-height:57px;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:14px 16px;border-bottom:1px solid #eeeee7}
+.mailx-list-tools h3{margin:0;color:#40443b;font-size:16px;font-weight:650}
+.mailx-count{font-size:10px;color:#92978c;white-space:nowrap}
+.mailx-list{overflow-y:auto;flex:1;min-height:0}
+.mailx-list-placeholder{padding:25px 16px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;color:#868d80}
+.mailx-list-placeholder svg{width:24px;height:24px;color:#929a87;margin:8px 0}
+.mailx-list-placeholder strong{font-size:13px;line-height:1.55;font-weight:600;color:#616d54}
+.mailx-list-placeholder span{font-size:11px;line-height:1.5}
+.mailx-reader-toolbar{display:flex;align-items:center;justify-content:space-between;min-height:56px;flex:none;padding:12px 16px;border-bottom:1px solid #eeeee7;font-size:12px;font-weight:600;color:#7a8074}
+.mailx-reader-toolbar-buttons{display:flex;align-items:center;gap:5px}
+.mailx-reader-toolbar-buttons button{display:grid;place-items:center;width:33px;height:33px;padding:0;border:0;background:transparent;color:#9ca398}
+.mailx-reader-toolbar-buttons button svg{width:17px;height:17px}
+.mailx-reader-empty{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center;padding:25px 30px;color:#909787}
+.mailx-reader-empty-icon{display:grid;place-items:center;width:58px;height:58px;border-radius:18px;background:#edf0e6;color:#7e8c6e}
+.mailx-reader-empty-icon svg{width:26px;height:26px}
+.mailx-reader-empty strong{font-size:16px;font-weight:550;color:#616d54}
+.mailx-reader-empty p{font-size:12px;max-width:310px;line-height:1.6;margin:0}
+.mailx-mobile-tabs{display:none}
+@media(min-width:861px) and (max-width:1100px){
+ .mailx-topbar{gap:8px;padding:10px 12px}
+ .mailx-search{max-width:270px}
+ .mailx-official-link{font-size:10px;padding:5px 7px}
+ .mailx-main{grid-template-columns:60px minmax(200px,35%) 8px minmax(0,1fr)}
 }
-@media(max-width:400px){.mail-header-icon{width:36px;height:36px}.mail-header-icon svg{width:17px;height:17px}.mail-actions{width:100%;justify-content:space-between}}
+@media(max-width:860px){
+ .mailx-dialog{margin:0;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border:0;border-radius:0}
+ .mailx-topbar{display:flex;flex-wrap:wrap;gap:7px;padding:calc(9px + env(safe-area-inset-top)) 12px 10px;min-height:0}
+ .mailx-brand{margin-right:auto}.mailx-brand-icon{width:30px;height:30px}.mailx-title{font-size:18px}
+ .mailx-search{order:6;margin:3px 0 0;max-width:none;width:100%;flex:1 0 100%;height:38px;font-size:16px!important}
+ .mailx-compose-main{padding:0 10px;min-height:34px;font-size:11px!important}
+ .mailx-account-switch{display:none}
+ .mailx-topbar .mailx-refresh-button{display:none}
+ .mailx-official-link{order:7;min-height:28px;margin:0 auto 0 0;white-space:normal;font-size:11px}
+ .mailx-close{order:0}
+ .mailx-mobile-tabs{display:flex;gap:6px;overflow-x:auto;flex:none;padding:8px 12px;background:#f6f5f1}
+ .mailx-mobile-tabs button{border:0;background:transparent;color:#929a87;border-radius:10px;padding:8px 11px;min-height:36px;white-space:nowrap;font-size:11px;font-weight:650}
+ .mailx-mobile-tabs button[aria-pressed=true]{background:#e1e8d9;color:#637551}
+ .mailx-main{display:flex;flex-direction:column;min-height:0;padding:0}
+ .mailx-nav,.mailx-resizer,.mailx-reader{display:none}
+ .mailx-list-pane{flex:1;border:0;border-radius:0}
+ .mailx-list-tools{min-height:48px;padding:10px 15px}
+ .mailx-list-placeholder{padding:33px 24px}
+}
+@media(prefers-reduced-motion:reduce){.mailx-dialog *{animation:none!important;transition:none!important}}
 
 /* Dashboard layout v2: viewport-fitted panels modeled on the personal schedule. */
 .next-class{min-height:94px}
