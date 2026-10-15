@@ -31,6 +31,12 @@ export function createMailUI({account,isLive,language}){
   const name=raw.replace(/<[^>]*>/g,'').replace(/^["']|["']$/g,'').trim();
   return name||raw||'Unknown sender';
  }
+ function displaySubject(value){
+  const original=String(value||'').replace(/[\u200b-\u200d\ufeff]/g,'').replace(/\s+/g,' ').trim();
+  // Defensive display cleanup for older server responses cached by the browser.
+  const cleaned=original.replace(/\s*(?:open\s+in\s+(?:a\s+)?new\s+window|open\s+in\s+new\s+tab|在新視窗開啟)\s*$/i,'').trim();
+  return cleaned||original||'(No subject)';
+ }
  function initials(sender){
   const display=cleanSender(sender);
   if(display.includes('@')&&!display.includes(' '))return Array.from(display.split('@')[0])[0]?.toUpperCase()||'?';
@@ -60,13 +66,13 @@ export function createMailUI({account,isLive,language}){
    const wrap=node('article',{class:'campus-mail-item'+(message.unread?' is-unread':'')+(selected?' is-active':'')});
    wrap.dataset.mailKey=keyOf(message);
    const openButton=button('',()=>void read(message));openButton.className='campus-mail-open';
-   openButton.setAttribute('aria-label',cleanSender(message.from)+': '+message.subject);
+   openButton.setAttribute('aria-label',cleanSender(message.from)+': '+displaySubject(message.subject));
    openButton.setAttribute('aria-pressed',String(selected));
    const sender=cleanSender(message.from),hash=Array.from(sender).reduce((n,c)=>n+c.charCodeAt(0),0)%5;
    const avatar=node('span',{class:'campus-mail-avatar campus-mail-tone-'+hash,'aria-hidden':'true'},initials(sender));
    const body=node('span',{class:'campus-mail-info'}),head=node('span',{class:'campus-mail-head'}),
     name=node('strong',{class:'campus-mail-sender'},sender),date=node('small',{class:'campus-mail-date'},message.date||'');
-   head.append(name,date);body.append(head,node('span',{class:'campus-mail-subject'},message.subject||'(No subject)'));
+   head.append(name,date);body.append(head,node('span',{class:'campus-mail-subject'},displaySubject(message.subject)));
    if(message.snippet)body.append(node('span',{class:'campus-mail-snippet'},message.snippet));
    body.append(node('span',{class:'campus-mail-provider'},'NTU Mail'));
    openButton.append(avatar,body);
@@ -153,12 +159,12 @@ export function createMailUI({account,isLive,language}){
    const toolbar=node('div',{class:'mailx-reader-toolbar'}),tools=node('div',{class:'mailx-reader-toolbar-buttons'});
    toolbar.append(button(w().back,()=>{dialog.classList.remove('mail-reading');}),tools);
    tools.append(button(w().reply,()=>edit(message)),button(w().archive,()=>void mutate('archive',message)),button(w().remove,()=>void mutate('trash',message)));
-   const head=node('div',{class:'mail-message-head'});head.append(node('h3',{},message.subject),node('p',{},message.headers));
+   const head=node('div',{class:'mail-message-head'});head.append(node('h3',{},displaySubject(message.subject)),node('p',{},message.headers));
    if(!images)head.append(button(w().images,()=>void read(message,true)));
    for(const a of message.attachments){
     head.append(node('a',{href:'/api/mail/attachment?'+new URLSearchParams({mailbox:message.mailbox,uid:message.uid,part:a.part}),target:'_blank',rel:'noopener',class:'mail-attachment'},'↓ '+a.name));
    }
-   const frame=node('iframe',{title:message.subject,sandbox:'allow-popups allow-popups-to-escape-sandbox',referrerpolicy:'no-referrer',class:'mail-frame'});
+   const frame=node('iframe',{title:displaySubject(message.subject),sandbox:'allow-popups allow-popups-to-escape-sandbox',referrerpolicy:'no-referrer',class:'mail-frame'});
    frame.srcdoc=message.html;reader.append(toolbar,head,frame);tell('');
   }catch(error){if(generation===reading&&identity===epoch)tell(error.message);}
  }
