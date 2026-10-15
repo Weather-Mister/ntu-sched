@@ -125,7 +125,7 @@ function renderTasks(){
 function renderTranslations(){
   document.documentElement.lang=language==='zh'?'zh-Hant':'en';
   document.querySelectorAll('[data-i18n]').forEach(el=>{const translated=t(el.dataset.i18n);if(typeof translated==='string')el.textContent=translated;});
-  $('language-en').setAttribute('aria-pressed',String(language==='en'));$('language-zh').setAttribute('aria-pressed',String(language==='zh'));
+  $('language-en').setAttribute('aria-pressed',String(language==='en'));$('language-zh').setAttribute('aria-pressed',String(language==='zh'));$('login-language-en').setAttribute('aria-pressed',String(language==='en'));$('login-language-zh').setAttribute('aria-pressed',String(language==='zh'));
   $('settings-language').value=language;$('task-input').placeholder=t('addPlaceholder');
   const choices=$('settings-mobile-choices');choices.replaceChildren();
   document.querySelectorAll('.settings-nav [data-settings-tab]').forEach(original=>{
@@ -169,6 +169,8 @@ function enterPreview(){
 }
 function chooseLanguage(value){language=value;renderAll();}
 $('enter-preview').addEventListener('click',enterPreview);
+$('login-language-en').addEventListener('click',()=>chooseLanguage('en'));
+$('login-language-zh').addEventListener('click',()=>chooseLanguage('zh'));
 $('language-en').addEventListener('click',()=>chooseLanguage('en'));
 $('language-zh').addEventListener('click',()=>chooseLanguage('zh'));
 $('settings-language').addEventListener('change',e=>chooseLanguage(e.target.value));
