@@ -735,3 +735,56 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 @media(max-width:790px){
   .initial-sync-notice{inset-inline:14px;max-width:none;text-align:center}
 }
+
+/* Campus Mail: primary action on the left, utilities against the far-right close. */
+.mailx-dialog .mailx-header-tools{
+  display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  margin-left:auto;min-width:0;
+}
+.mailx-dialog .mailx-header-tools .mailx-top-action{flex:0 0 auto}
+.mailx-dialog .mailx-topbar>.mailx-close{flex:0 0 auto;margin-left:0}
+.mailx-dialog .mailx-topbar .mailx-refresh-button{display:grid}
+.mailx-reader-toolbar-buttons .campus-mail-images{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:33px;white-space:nowrap;padding:7px 11px;
+  border:1px solid #b7d2b0;border-radius:9px;
+  background:#f0f7ec;color:#315b32;font-size:11px;font-weight:650;
+  box-shadow:0 0 0 1px rgba(132,192,116,.06),0 1px 6px rgba(101,164,99,.09);
+  transition:background .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.mailx-reader-toolbar-buttons .campus-mail-images:hover,
+.mailx-reader-toolbar-buttons .campus-mail-images:focus-visible{
+  background:#e1f3db;border-color:#82b778;box-shadow:0 0 12px rgba(114,174,105,.20);
+}
+/* Group the controls in a compact second line on tablets while preserving X at top right. */
+@media(max-width:860px){
+  .mailx-dialog .mailx-topbar{
+    display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+    grid-template-areas:"brand brand close" "compose . tools";
+    align-items:center;gap:9px;
+  }
+  .mailx-dialog .mailx-brand{grid-area:brand;margin-right:0}
+  .mailx-dialog .mailx-compose-main{grid-area:compose;justify-self:start}
+  .mailx-dialog .mailx-header-tools{
+    grid-area:tools;margin-left:0;flex-wrap:wrap;min-width:0;
+  }
+  .mailx-dialog .mailx-topbar>.mailx-close{grid-area:close;justify-self:end}
+  .mailx-dialog .mailx-header-tools .mailx-official-link{
+    display:grid;min-height:34px;margin:0;white-space:nowrap;
+  }
+}
+@media(max-width:700px){
+  .mailx-dialog .mailx-topbar{
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"brand close" "compose compose" "tools tools";
+    row-gap:8px;
+  }
+  .mailx-dialog .mailx-header-tools{
+    justify-content:flex-end;gap:6px;max-width:100%;
+  }
+  .mailx-dialog .mailx-header-tools .mailx-top-action{
+    font-size:10px;padding:5px 8px;min-height:32px;
+  }
+  .mailx-dialog .mailx-reader-toolbar{flex-wrap:wrap;gap:7px}
+  .mailx-dialog .mailx-reader-toolbar-buttons{width:100%;justify-content:flex-start}
+}

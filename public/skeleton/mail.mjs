@@ -22,7 +22,7 @@ export function createMailUI({account,isLive,language}){
  searchForm.append(search);dialog.querySelector('.mailx-list-tools').after(searchForm);
  dialog.querySelector('.mailx-topbar')?.after(status);
  if(!status.isConnected)dialog.querySelector('.mailx-main').before(status);
- const top=dialog.querySelector('.mailx-official-link');top.before(pushButton);pushButton.className='mailx-top-action';
+ const top=dialog.querySelector('.mailx-official-link');top.after(pushButton);pushButton.className='mailx-top-action';
  pager.append(loadMoreButton);list.after(pager);
  composeButton.disabled=false;
  if(refreshButton){refreshButton.disabled=false;refreshButton.title=w().refresh;refreshButton.setAttribute('aria-label',w().refresh);refreshButton.addEventListener('click',()=>void load(false));}
@@ -177,7 +177,13 @@ export function createMailUI({account,isLive,language}){
     tools.append(button(w().reply,()=>edit(message)),button(w().archive,()=>void mutate('archive',message)),button(w().remove,()=>void mutate('trash',message)));
     const head=node('div',{class:'mail-message-head'}),heading=node('h3',{},displaySubject(message.subject));
     head.append(heading,node('p',{},message.headers));
-    if(!images)head.append(button(w().images,()=>void read(message,true)));
+    if(!images){
+     const imagesControl=button(w().images,()=>void read(message,true));
+     imagesControl.className='campus-mail-images';
+     imagesControl.title=w().images;
+     imagesControl.setAttribute('aria-label',w().images);
+     tools.prepend(imagesControl);
+    }
     for(const a of message.attachments){
      head.append(node('a',{href:'/api/mail/attachment?'+new URLSearchParams({mailbox:message.mailbox,uid:message.uid,part:a.part}),target:'_blank',rel:'noopener',class:'mail-attachment'},'↓ '+a.name));
     }
