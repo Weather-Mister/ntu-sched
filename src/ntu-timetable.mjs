@@ -7,7 +7,7 @@ const PORTAL_ORIGIN = 'https://portal.aca.ntu.edu.tw';
 const canonicalPath = url => url.pathname.replace(/\/+$/, '') || '/';
 function allowed(url) {
   return url.protocol === 'https:' && !url.username && !url.password && !url.port &&
-    ((url.origin === PORTAL_ORIGIN && ['/eportfolio', '/eportfolio/course-overview', '/eportfolio/login-sso', '/sso-gateway/login', '/sso-gateway/sso-callback'].includes(canonicalPath(url))) ||
+    ((url.origin === PORTAL_ORIGIN && ['/eportfolio', '/eportfolio/course-overview', '/eportfolio/basic-info', '/eportfolio/login-sso', '/sso-gateway/login', '/sso-gateway/sso-callback'].includes(canonicalPath(url))) ||
      (url.origin === LOGIN_ORIGIN && url.pathname.startsWith('/p/s/login2/')));
 }
 function stopped(url) {
@@ -18,7 +18,8 @@ function stopped(url) {
     const parts = url.pathname.split('/').filter(Boolean);
     if (['eportfolio', 'sso-gateway'].includes(parts[0])) route = ` (${url.protocol}//${url.hostname}/${parts[0]}${parts[1] && /^[a-z-]{1,32}$/.test(parts[1]) ? '/'+parts[1] : ''})`;
   } else if (url?.hostname === new URL(LOGIN_ORIGIN).hostname) route = ` (${url.protocol}//${url.hostname}/p/s/login2)`;
-  return new ApiError(502, 'timetable_redirect', `NTU returned an unexpected sign-in destination${route}. Your saved timetable has not changed.`);
+  const error = new ApiError(502, 'timetable_redirect', `NTU returned an unexpected sign-in destination${route}. Your saved timetable has not changed.`);
+  return error;
 }
 
 // This cookie jar exists only for one sync and never leaves the Worker.
@@ -68,7 +69,7 @@ function navigation(document, url) {
   return null;
 }
 
-export async function readNtuTimetable(studentNumber, password) {
+export async function readNtuTimetable(studentNumber, password, { beforeCredentialSubmit } = {}) {
   const jar = new CookieJar(), controller = new AbortController();
   const deadline = setTimeout(() => controller.abort(), 60000);
   let requests = 0, bytes = 0;
@@ -121,12 +122,16 @@ export async function readNtuTimetable(studentNumber, password) {
     const form = passwordForms.length === 1 ? passwordForms[0] : null;
     const destination = form ? target(form, page.url) : null;
     if (!form || page.url.origin !== LOGIN_ORIGIN || destination.origin !== LOGIN_ORIGIN || destination.pathname !== '/p/s/login2/p1.php' || (form.getAttribute('method') || '').toLowerCase() !== 'post' || form.querySelectorAll('input[name="user"]').length !== 1 || form.querySelectorAll('input[type="password"][name="pass"]').length !== 1) throw new ApiError(502, 'timetable_login_layout', 'NTU changed its timetable sign-in page. No credentials were submitted.');
+    await beforeCredentialSubmit?.();
     const data = fields(form); data.set('user', studentNumber); data.set('pass', password);
     page = await request(destination, { method: 'POST', body: data, source: page.url });
     data.set('pass', ''); password = '';
     for (let i = 0; i < 8; i++) {
       if (challenge(page.document)) throw new ApiError(409, 'timetable_verification_required', 'NTU requires an additional verification step. Open ePortfolio directly to check your account.');
       if (page.document.querySelector('input[type="password"]')) throw new ApiError(409, 'timetable_credentials_required', 'ePortfolio did not accept the saved password. Enter your myNTU password to connect your timetable.');
+      // SSO may land on basic-info. Do not follow profile forms or actions;
+      // go directly to the one read-only page this connector imports.
+      if (page.url.origin === PORTAL_ORIGIN && ['/eportfolio', '/eportfolio/basic-info', '/eportfolio/course-overview'].includes(canonicalPath(page.url))) break;
       const next = await advance(page); if (!next) break; page = next;
     }
     page = await request(TIMETABLE_URL);

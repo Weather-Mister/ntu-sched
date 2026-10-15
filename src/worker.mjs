@@ -1,7 +1,6 @@
 import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson } from './security.mjs';
 import { verifyNtuMail } from './ntu-mail.mjs';
 import { savedTimetable, syncTimetable, refreshDueTimetables } from './timetable-store.mjs';
-
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -125,7 +124,7 @@ export default {
       }
       throw new ApiError(404, 'not_found', 'This Campus Week API route is not available yet.');
     } catch (error) {
-      if (error instanceof ApiError) return json({ error: { code: error.code, message: error.message } }, error.status);
+      if (error instanceof ApiError) return json({ error: { code: error.code, message: error.message, ...(error.retryAfterSeconds ? { retryAfterSeconds: error.retryAfterSeconds } : {}) } }, error.status, error.retryAfterSeconds ? { 'Retry-After': String(error.retryAfterSeconds) } : {});
       // Provider bodies, passwords, cookies and raw exceptions never enter logs or responses.
       return json({ error: { code: 'temporarily_unavailable', message: 'Campus Week is temporarily unavailable. Please retry.' } }, 503);
     }

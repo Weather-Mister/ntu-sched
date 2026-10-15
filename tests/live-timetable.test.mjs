@@ -9,14 +9,14 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 function fixture(client) {
   const { document, window } = parseHTML('<html><body><section class="schedule-panel"><div class="schedule-meta"></div></section></body></html>');
   document.visibilityState = 'visible';
-  const originals = new Map(['document', 'window', 'navigator', 'CustomEvent', 'setInterval'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-  const timers = [];
-  for (const [key, value] of Object.entries({ document, window, navigator: { onLine: true }, CustomEvent: window.CustomEvent, setInterval: fn => { timers.push(fn); return timers.length; } })) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const originals = new Map(['document', 'window', 'navigator', 'CustomEvent', 'setInterval', 'setTimeout'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const timers = [], timeouts = [];
+  for (const [key, value] of Object.entries({ document, window, navigator: { onLine: true }, CustomEvent: window.CustomEvent, setTimeout: fn => { timeouts.push(fn); return timeouts.length; }, setInterval: fn => { timers.push(fn); return timers.length; } })) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   let opened = 0, expired = 0; const updates = [], clears = [];
   window.addEventListener('campus-live-timetable', e => updates.push(e.detail.timetable));
   window.addEventListener('campus-live-timetable-clear', () => clears.push(true));
   const controller = initLiveTimetable({ client, openLogin: () => opened++, onSessionExpired: () => expired++ });
-  return { controller, document, window, timers, updates, clears, get opened() { return opened; }, get expired() { return expired; }, cleanup() { for (const [key, value] of originals) { if (value) Object.defineProperty(globalThis, key, value); else delete globalThis[key]; } } };
+  return { controller, document, window, timers, timeouts, updates, clears, get opened() { return opened; }, get expired() { return expired; }, cleanup() { for (const [key, value] of originals) { if (value) Object.defineProperty(globalThis, key, value); else delete globalThis[key]; } } };
 }
 test('refresh restores saved timetable without another NTU login while fresh', async () => {
   let syncs = 0; const f = fixture({ timetable: async () => snapshot('Saved course'), syncTimetable: async () => { syncs++; } });
@@ -61,4 +61,26 @@ test('a late expired request cannot clear the next student account in the client
     respond(Response.json({ error: { code: 'login_required', message: 'expired' } }, { status: 401 }));
     await assert.rejects(request); assert.equal(client.current, next);
   } finally { globalThis.fetch = original; }
+});
+
+test('a temporary sign-in pause retains the original sync error and disables repeated submissions', async () => {
+  let attempts = 0;
+  const reason = 'NTU returned an unexpected sign-in destination.';
+  const f = fixture({ timetable: async () => snapshot('Saved course'), syncTimetable: async () => {
+    attempts++;
+    if (attempts === 1) throw new Error(reason);
+    throw Object.assign(new Error('Paused'), { code: 'timetable_try_later', retryAfterSeconds: 60 });
+  } });
+  try {
+    f.controller.setAccount({ studentNumber: 'b12345678' }); await settle();
+    const button = f.document.getElementById('timetable-sync');
+    button.click(); await settle(); button.click(); await settle();
+    const notice = f.document.querySelector('p.notice');
+    assert.ok(notice.textContent.includes(reason));
+    assert.match(notice.textContent, /Sign-in checks resume at/);
+    assert.equal(button.disabled, true);
+    button.click(); f.timers[0](); await settle();
+    assert.equal(attempts, 2); assert.equal(f.timeouts.length, 1);
+    assert.equal(f.updates[0].sessions[0].title, 'Saved course');
+  } finally { f.cleanup(); }
 });

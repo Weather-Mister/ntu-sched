@@ -252,7 +252,8 @@ function mockPortfolio(url, options) {
     return redirect('https://portal.aca.ntu.edu.tw/sso-gateway/sso-callback?student='+options.body.get('user'));
   }
   if (url.pathname === '/sso-gateway/sso-callback') return redirect('/eportfolio/login-sso', { 'Set-Cookie': 'portfolio_session='+url.searchParams.get('student')+'; Path=/; Secure; HttpOnly' });
-  if (url.pathname === '/eportfolio/login-sso') return redirect(portfolioMode === 'canonical' ? '/eportfolio' : portfolioTarget);
+  if (url.pathname === '/eportfolio/login-sso') return redirect(portfolioMode === 'canonical' ? '/eportfolio' : portfolioMode === 'basic-info' ? '/eportfolio/basic-info' : portfolioTarget);
+  if (url.pathname === '/eportfolio/basic-info') return new Response('<form method=post action="/eportfolio/private-action"><input type=hidden name=change value=profile></form>');
   if (url.pathname === '/eportfolio') return redirect('/eportfolio/');
   if (url.pathname === '/eportfolio/') return new Response('<a href="/eportfolio/course-overview">Courses</a>');
   throw new Error('Unexpected synthetic endpoint');
@@ -353,4 +354,37 @@ test("scheduled checks detect changes and retain another student's isolated snap
       assert.ok(saved.syncedAt >= saved.changedAt);
     }
   } finally { portfolioVersion = 1; }
+});
+
+
+test('successful SSO may land on basic-info before the read-only timetable without submitting profile forms', async () => {
+  const e = env(), auth = await login(e), before = portfolioPosts; portfolioMode = 'basic-info';
+  try {
+    const response = await sync(e, auth);
+    assert.equal(response.status, 200, await response.clone().text());
+    assert.equal((await response.json()).timetable.sessions[0].title, 'b12345678 課程 1');
+    assert.equal(portfolioPosts, before + 1);
+  } finally { portfolioMode = 'ok'; }
+});
+test('public redirect failures do not consume the credential submission budget', async () => {
+  const e = env(), auth = await login(e), before = portfolioPosts; portfolioMode = 'redirect';
+  try {
+    for (let i = 0; i < 5; i++) assert.equal((await sync(e, auth)).status, 502);
+    assert.equal(portfolioPosts, before);
+    portfolioMode = 'ok';
+    assert.equal((await sync(e, auth)).status, 200);
+    assert.equal(portfolioPosts, before + 1);
+  } finally { portfolioMode = 'ok'; }
+});
+test('only three credential submissions are allowed per ten-minute window and the pause has a retry time', async () => {
+  const e = env(), auth = await login(e), before = portfolioPosts; portfolioMode = 'credentials';
+  try {
+    for (let i = 0; i < 3; i++) assert.equal((await sync(e, auth)).status, 409);
+    const response = await sync(e, auth), result = await response.json();
+    assert.equal(response.status, 429);
+    assert.equal(result.error.code, 'timetable_try_later');
+    assert.ok(result.error.retryAfterSeconds >= 1 && result.error.retryAfterSeconds <= 600);
+    assert.equal(response.headers.get('Retry-After'), String(result.error.retryAfterSeconds));
+    assert.equal(portfolioPosts, before + 3);
+  } finally { portfolioMode = 'ok'; }
 });

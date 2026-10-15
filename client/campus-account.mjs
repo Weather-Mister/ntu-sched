@@ -12,7 +12,7 @@ export class CampusAccount {
     if (!response.ok) {
       if (response.status === 401 && this.current === activeAccount) this.current = null;
       const error = new Error(result.error?.message || 'Campus Week could not complete this request.');
-      error.code = result.error?.code; error.status = response.status; throw error;
+      error.code = result.error?.code; error.status = response.status; error.retryAfterSeconds = result.error?.retryAfterSeconds; throw error;
     }
     return result;
   }

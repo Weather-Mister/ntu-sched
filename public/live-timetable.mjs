@@ -16,7 +16,7 @@ export function initLiveTimetable({ client, openLogin, onSessionExpired }) {
   const cancel = document.createElement('button'); cancel.className = 'secondary full'; cancel.type = 'button'; cancel.textContent = 'Cancel';
   const formError = document.createElement('p'); formError.className = 'notice error'; formError.hidden = true; formError.setAttribute('role', 'status');
   form.append(label, password, submit, cancel, formError); dialog.append(heading, copy, form); document.body.append(dialog);
-  let owner = null, epoch = 0, active = null, snapshot = null, lastAttempt = 0, needsPassword = false, liveDisplay = true, interval = 432000000;
+  let owner = null, epoch = 0, active = null, snapshot = null, lastAttempt = 0, needsPassword = false, liveDisplay = true, interval = 432000000, lastSyncError = '', retryAt = 0;
   const time = value => new Intl.DateTimeFormat(undefined, { timeZone: 'Asia/Taipei', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(value);
   function display() {
     if (!snapshot) return;
@@ -24,7 +24,7 @@ export function initLiveTimetable({ client, openLogin, onSessionExpired }) {
     window.dispatchEvent(new CustomEvent('campus-live-timetable', { detail: { timetable: snapshot } }));
   }
   function render() {
-    sync.disabled = !!active; submit.disabled = !!active;
+    sync.disabled = !!active || Date.now() < retryAt; submit.disabled = !!active || Date.now() < retryAt;
     sync.textContent = active ? 'Checking NTU…' : needsPassword ? 'Reconnect timetable' : snapshot ? 'Check for timetable changes' : 'Sync timetable';
     status.textContent = !owner ? 'Sign in to connect your live timetable.' : snapshot ? `Last checked ${time(snapshot.syncedAt)} · Taipei${snapshot.term ? ' · '+snapshot.term : ''} · Automatic check every 5 days` : 'Connect to load your classes from ePortfolio.';
     show.hidden = !snapshot || liveDisplay;
@@ -38,19 +38,24 @@ export function initLiveTimetable({ client, openLogin, onSessionExpired }) {
   }
   async function check(secret, force = false) {
     if (!owner) { openLogin(); return; }
-    if (active) return;
+    if (active || Date.now() < retryAt) return;
     const version = epoch, controller = new AbortController(); active = controller; lastAttempt = Date.now(); notice.hidden = true; formError.hidden = true; render();
     try {
       const result = await client.syncTimetable(secret, controller.signal, force);
       if (epoch !== version) return;
-      needsPassword = false; apply(result); if (dialog.open) dialog.close();
+      needsPassword = false; lastSyncError = ''; retryAt = 0; apply(result); if (dialog.open) dialog.close();
       if (result.changed && snapshot && !snapshot.warnings?.length) { notice.textContent = 'Your timetable is up to date.'; notice.className = 'notice'; notice.hidden = false; }
     } catch (error) {
       if (epoch !== version || error.name === 'AbortError') return;
       if (error.status === 401) { onSessionExpired?.(); return; }
       if (['timetable_credentials_required', 'timetable_verification_required'].includes(error.code)) needsPassword = true;
-      notice.className = 'notice warning'; notice.textContent = error.message; notice.hidden = false;
-      if (dialog.open) { formError.textContent = error.message; formError.hidden = false; }
+      if (error.code === 'timetable_try_later') {
+        retryAt = Date.now() + Math.min(600, Math.max(1, error.retryAfterSeconds || 60)) * 1000;
+        notice.textContent = `${lastSyncError ? lastSyncError+' ' : ''}Sign-in checks resume at ${time(retryAt)} Taipei.`;
+        const wait = retryAt - Date.now(); setTimeout(() => { if (epoch === version) render(); }, Math.max(1, wait));
+      } else { lastSyncError = error.message; notice.textContent = error.message; }
+      notice.className = 'notice warning'; notice.hidden = false;
+      if (dialog.open) { formError.textContent = notice.textContent; formError.hidden = false; }
       if (error.code === 'timetable_credentials_required' && !dialog.open) { formError.hidden = true; dialog.showModal(); }
     } finally { if (epoch === version) { active = null; render(); } }
   }
@@ -65,7 +70,7 @@ export function initLiveTimetable({ client, openLogin, onSessionExpired }) {
   form.addEventListener('submit', event => { event.preventDefault(); if (!form.reportValidity()) return; const secret = password.value; password.value = ''; check(secret, true); });
   window.addEventListener('campus-timetable-source', event => { if (event.detail.source !== 'ntu') { liveDisplay = false; render(); } });
   function automaticCheck() {
-    if (!owner || active || needsPassword || document.visibilityState === 'hidden' || navigator.onLine === false || Date.now() - lastAttempt < interval) return;
+    if (!owner || active || Date.now() < retryAt || needsPassword || document.visibilityState === 'hidden' || navigator.onLine === false || Date.now() - lastAttempt < interval) return;
     if (!snapshot || Date.now() - snapshot.syncedAt >= interval) check();
   }
   setInterval(automaticCheck, 60000);
@@ -75,7 +80,7 @@ export function initLiveTimetable({ client, openLogin, onSessionExpired }) {
     setAccount(account) {
       const next = account?.studentNumber || null;
       if (owner === next) return;
-      const previous = owner; owner = next; epoch++; active?.abort(); active = null; snapshot = null; needsPassword = false; lastAttempt = 0; liveDisplay = true; notice.hidden = true; password.value = '';
+      const previous = owner; owner = next; epoch++; active?.abort(); active = null; snapshot = null; needsPassword = false; lastAttempt = 0; liveDisplay = true; notice.hidden = true; password.value = ''; lastSyncError = ''; retryAt = 0;
       if (dialog.open) dialog.close();
       if (previous) window.dispatchEvent(new CustomEvent('campus-live-timetable-clear'));
       render(); if (!owner) return;
