@@ -22,6 +22,7 @@ small,.fine{color:#586c80}.fine{font-size:13px}#status{margin:14px 0;min-height:
 <p class="muted">Test official NTU Course Information syllabi against your imported class list. No grades, credentials or exam dates are saved.</p>
 <section class="card"><h2>Check a syllabus</h2>
 <label for="course">Your imported class</label><select id="course" disabled><option>Loading timetable…</option></select>
+<label for="serial">Offering serial number (optional)</label><input id="serial" inputmode="numeric" maxlength="6" placeholder="e.g. 23006"><label for="section">Section / 班次 (optional)</label><input id="section" maxlength="4" placeholder="e.g. 02"><label for="code">Course code (optional; if missing from timetable)</label><input id="code" maxlength="24" placeholder="e.g. ME2001"><p class="fine">Optional identifiers can be copied from NTU GradeCheck without sharing any grades. These are treated as student-entered hints and are not saved.</p>
 <label for="source">Official NTU Course URL</label>
 <input id="source" type="url" placeholder="https://course.ntu.edu.tw/courses/115-1/23006" autocomplete="off" spellcheck="false">
 <p class="fine">Find your course at <a href="https://course.ntu.edu.tw/" target="_blank" rel="noopener noreferrer">NTU Course Information</a>. Choose the same semester and section. Do not paste a GradeCheck link or login information.</p>
