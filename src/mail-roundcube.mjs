@@ -286,7 +286,11 @@ export class Roundcube {
             }
         })).text();
         this.env = roundcubeEnvironment(html);
-        if (this.env.task !== 'mail' || !this.env.request_token) throw new MailError(401, 'NTU sign-in failed. Check your student ID and mailbox password.', 'reauthorize');
+        if (this.env.task !== 'mail' || !this.env.request_token)
+            // A saved, previously verified connection can receive a transient
+            // login page instead of a mailbox on its first request. Do not
+            // claim the Campus Week user needs to sign in again.
+            throw new MailError(502, 'NTU Mail did not confirm its session. Please retry Mail.', 'ntu_login_unconfirmed');
         if (this.env.username && String(this.env.username).split('@')[0].toLowerCase() !== this.credentials.username) throw new MailError(401, 'NTU returned another account.', 'reauthorize');
         for (const [key, names] of Object.entries({
             sent: [
