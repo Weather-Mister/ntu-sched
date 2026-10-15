@@ -4,6 +4,9 @@ import { savedTimetable, syncTimetable, refreshDueTimetables } from './timetable
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
+import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications } from './mail-store.mjs';
+import { mailReference } from './mail-content.mjs';
+import { pushConfiguration, subscribe } from './mail-push.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -75,6 +78,7 @@ async function login(request, env) {
   const previous = rawSession(request);
   if (previous) statements.push(env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await digest(previous)));
   await env.DB.batch(statements);
+  await env.DB.prepare('UPDATE mail_state SET upstream=NULL,next_check=0,failures=0,last_error=NULL WHERE student_id=?').bind(student.id).run();
   return json({ studentNumber: student.student_number, csrfToken: csrf, expiresAt, connections: { ntuMail: 'authorized', cool: 'not_connected', timetable: 'not_connected' } }, 200, { 'Set-Cookie': cookie(token) });
 }
 async function connections(env, studentId) {
@@ -103,6 +107,34 @@ export default {
       if (path === '/api/connections' && request.method === 'GET') {
         const current = await session(request, env);
         return json({ connections: await connections(env, current.student_id) });
+      }
+      if (path.startsWith('/api/mail/')) {
+        const current=await session(request,env,request.method!=='GET'),url=new URL(request.url),owner={studentNumber:current.student_number};
+        if(path==='/api/mail/list'&&request.method==='GET')return json({...owner,...await listMail(env,current,url)});
+        if(path==='/api/mail/message'&&request.method==='GET')return json({...owner,...await readMail(env,current,url)});
+        if(path==='/api/mail/attachment'&&request.method==='GET')return await attachment(env,current,url);
+        if(path==='/api/mail/send'&&request.method==='POST')return json({...owner,...await sendMail(env,current,await readJson(request,220000))});
+        if(path==='/api/mail/send/check'&&request.method==='POST')return json({...owner,...await checkSend(env,current,(await readJson(request)).id)});
+        if(path==='/api/mail/action'&&request.method==='POST'){
+          const body=await readJson(request),ref=mailReference(body.mailbox,body.uid);
+          if(!['read','unread','star','unstar','archive','trash'].includes(body.action))throw new ApiError(400,'invalid_mail','Invalid mail action.');
+          await withMailbox(env,current,async s=>{
+            if(['archive','trash'].includes(body.action))await s.ajax('move',{_mbox:ref.mailbox,_uid:ref.uid,_target_mbox:s.folders[body.action==='archive'?'archive':'trash']},true);
+            else await s.ajax('mark',{_mbox:ref.mailbox,_uid:ref.uid,_flag:{read:'read',unread:'unread',star:'flagged',unstar:'unflagged'}[body.action]},true);
+            await env.DB.prepare('UPDATE mail_state SET inbox_at=0 WHERE student_id=?').bind(current.student_id).run();
+          });return json({...owner,ok:true});
+        }
+        if(path==='/api/mail/push'&&request.method==='GET'){
+          const state=await env.DB.prepare('SELECT checked_at,next_check,last_error FROM mail_state WHERE student_id=?').bind(current.student_id).first();
+          const devices=await env.DB.prepare('SELECT id,created_at FROM mail_push WHERE student_id=?').bind(current.student_id).all();
+          return json({...owner,publicKey:(await pushConfiguration(env)).publicKey,devices:devices.results,state:state||null});
+        }
+        if(path==='/api/mail/push'&&request.method==='POST')return json({...owner,...await subscribe(env,current,await readJson(request))});
+        if(path==='/api/mail/push'&&request.method==='DELETE'){
+          const body=await readJson(request);if(typeof body.id!=='string')throw new ApiError(400,'invalid_push','Choose a notification device.');
+          await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(current.student_id,body.id).run();return json({...owner,enabled:false});
+        }
+        throw new ApiError(404,'not_found','This mail action is not available.');
       }
       if (path === '/api/events' || path.startsWith('/api/events/')) {
         const current=await session(request,env,request.method!=='GET'),owner={studentNumber:current.student_number};
@@ -166,7 +198,7 @@ export default {
     ctx.waitUntil((async () => { await env.DB.batch([
       env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(now()),
       env.DB.prepare('DELETE FROM login_limits WHERE expires_at <= ?').bind(now())
-    ]); await refreshDueTimetables(env); await refreshDueCoolCalendars(env); })());
+    ]); await refreshMailNotifications(env); if(!_event.cron||new Date(_event.scheduledTime||Date.now()).getUTCMinutes()===15){await refreshDueTimetables(env); await refreshDueCoolCalendars(env);} })());
   }
 };
 

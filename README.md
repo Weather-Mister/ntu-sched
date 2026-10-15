@@ -91,5 +91,17 @@ All task mutations also require `X-CSRF-Token`. Task responses include the authe
 
 ## Next stages
 
-Verify automatic COOL calendar discovery with the owner's real account, implement the announcements behavior above, then port the personal sites' NTU Mail client with ownership derived exclusively from the session. Retain the same encrypted ownership boundaries and cached-data fallback for each provider.
+Verify automatic COOL calendar discovery with the owner's real account, implement the announcements behavior above, then verify the connected Campus Mail client on the owner's phone and desktop. Retain the same encrypted ownership boundaries and cached-data fallback for each provider.
 
+
+## Campus Mail
+
+Apply migrations/0004_mail.sql before publishing. Campus Mail reuses the personal project's Roundcube adapter, data-command parser and confirmed/uncertain sending flow, with ownership derived exclusively from the Campus Week session. No separate provider secrets are required. Existing NTU credentials encrypt short-lived cookie sessions and push subscriptions with account/provider-bound AES-GCM. A D1 lease serializes provider operations across devices and Worker instances.
+
+The skeleton supports inbox/folders, paginated folder search, read/reply, plain-text compose, archive/trash, and individual streamed attachment downloads up to 20 MB. The reader uses NTU's formatted body rather than parsing an entire MIME message, sanitizes it, and displays it in an iframe without script or same-origin permissions. External images are opt-in. Outbound file uploads and persistent app composer drafts are not included; closing the Mail window retains the editor for the current tab, switching student accounts clears it.
+
+Inbox metadata is reused for 60 seconds and only the visible inbox refreshes once per minute. Background Cron runs every five minutes, checking at most four due students with alerts enabled; larger enrollment may increase latency. Each run reads only the newest Inbox UID. Initial checks establish a baseline, deleted subscriptions are pruned, and unsuccessful checks use exponential backoff. Auth rejection suspends checks until a new login. Push delivery tracks each device's notified UID so transient errors retry without repeating successful deliveries. No mail body or attachment is fetched by the background job. With four students, five-minute polling is 1,152 mailbox checks/day, distinct from Worker invocations and upstream subrequests. D1 query counts and CPU still need production monitoring; do not interpret passing fixtures as a measured Cloudflare usage guarantee. Timetable and COOL retain hourly processing at minute 15.
+
+Web Push uses native WebCrypto (RFC 8291 aes128gcm and VAPID). An encrypted, stable VAPID key is generated once in mail_config. Subscriptions are validated against browser push-service hostnames and limited to eight per student. The service worker never caches API responses or mail. Generic lock-screen notifications omit email subjects/bodies; it checks the current account before display. iOS needs installation on the Home Screen and notification permission, Android and desktop need supported browsers and permission. Delivery timing depends on browser/OS/network conditions.
+
+Send IDs are claimed before provider preparation and bound to a payload digest. NTU receives an imported MIME draft with a stable Message-ID and server-derived reply headers; a transport failure after send becomes uncertain and is never automatically resent. Check delivery searches Sent for the exact Message-ID. Do not expire send deduplication records while their IDs could be retried. Live mail acceptance requires an explicitly authorized self-send and a real-device notification check.

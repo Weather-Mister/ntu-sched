@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Campus Week UI preview with fictional students.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src 'self' blob:; worker-src 'self'; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#f6f3ed">
 <title>Campus Week · UI Preview</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="/mail-icon-512.png">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./desktop.css">
 <script type="module" src="./app.mjs"></script>
@@ -222,7 +224,7 @@
 <div class="mailx-shell">
 <header class="mailx-topbar">
 <div class="mailx-brand"><span class="mailx-brand-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><h2 id="mail-dialog-heading" class="mailx-title" data-mail-i18n="mail">Campus Mail</h2><span class="mailx-demo-badge" data-mail-i18n="previewStatus">Preview</span></div>
-<input class="mailx-search" type="search" aria-label="Search mail (available after integration)" placeholder="Search mail…" disabled>
+
 <button class="mailx-compose-main" type="button" data-mail-i18n="compose" disabled>＋ Compose</button>
 <button class="mailx-icon-button mailx-refresh-button" type="button" title="Refresh (available after integration)" aria-label="Refresh mail (available after integration)" disabled><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
 <span class="mailx-account-switch" title="Current Campus Week account">NTU</span>
