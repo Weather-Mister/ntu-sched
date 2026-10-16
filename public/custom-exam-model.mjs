@@ -6,8 +6,8 @@ const dateValid=value=>{
 };
 export function normalizeCustomExam(value){
   if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid custom exam');
-  if(Object.keys(value).some(key=>!['title','className','kind','date','week','notes','sourceKey'].includes(key)))throw Error('Unexpected exam field');
-  const title=value.title,className=value.className??'',notes=value.notes??'',kind=value.kind,sourceKey=value.sourceKey??null;
+  if(Object.keys(value).some(key=>!['title','className','kind','date','week','notes','sourceKey','hidden'].includes(key)))throw Error('Unexpected exam field');
+  const title=value.title,className=value.className??'',notes=value.notes??'',kind=value.kind,sourceKey=value.sourceKey??null,hidden=value.hidden??false;
   const date=value.date||null,week=value.week===null||value.week===''||value.week===undefined?null:Number(value.week);
   if(typeof title!=='string'||!title.trim()||title.trim().length>140||/[\x00-\x1f\x7f]/.test(title))throw Error('Invalid exam title');
   if(typeof className!=='string'||className.trim().length>160||/[\x00-\x1f\x7f]/.test(className))throw Error('Invalid exam class');
@@ -15,7 +15,8 @@ export function normalizeCustomExam(value){
   if(!['quiz','midterm','final','other'].includes(kind))throw Error('Invalid exam type');
   if(date!==null&&!dateValid(date))throw Error('Invalid exam date');
   if(week!==null&&(!Number.isInteger(week)||week<1||week>30))throw Error('Invalid exam week');
-  if(!date&&!week)throw Error('Provide an exact date or a course week');
+  if(typeof hidden!=='boolean'||hidden&&sourceKey===null)throw Error('Only imported exams can be hidden');
+  if(!date&&!week&&!hidden)throw Error('Provide an exact date or a course week');
   if(sourceKey!==null&&(typeof sourceKey!=='string'||sourceKey.length>700||sourceKey.length<4||/[\x00-\x1f\x7f]/.test(sourceKey)))throw Error('Invalid exam source key');
-  return {title:title.trim(),className:className.trim(),kind,date,week,notes,sourceKey};
+  return {title:title.trim(),className:className.trim(),kind,date,week,notes,sourceKey,hidden};
 }
