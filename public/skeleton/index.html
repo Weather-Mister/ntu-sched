@@ -174,6 +174,30 @@
 </main>
 <p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
 </div>
+<dialog id="exam-editor-dialog" class="dialog exam-editor-dialog" aria-labelledby="exam-editor-title">
+<form id="exam-editor-form" class="detail-sheet exam-editor-form">
+<h2 id="exam-editor-title">Add exam</h2>
+<label for="exam-editor-name" id="exam-editor-title-label">Exam name</label>
+<input id="exam-editor-name" type="text" maxlength="140" autocomplete="off" required>
+<label for="exam-editor-class" id="exam-editor-className-label">Class (optional)</label>
+<select id="exam-editor-class"><option value="">No class</option></select>
+<label for="exam-editor-kind" id="exam-editor-type-label">Type</label>
+<select id="exam-editor-kind"><option value="quiz">Quiz</option><option value="midterm">Midterm</option><option value="final">Final</option><option value="other">Other</option></select>
+<div class="exam-editor-fields">
+<div><label for="exam-editor-date" id="exam-editor-date-label">Exact date (optional)</label><input id="exam-editor-date" type="date" min="2000-01-01" max="2199-12-31"></div>
+<div><label for="exam-editor-week" id="exam-editor-week-label">Week (optional)</label><input id="exam-editor-week" type="number" min="1" max="30" step="1"></div>
+</div>
+<p id="exam-editor-hint-label" class="preview-footnote">Enter a date, a week, or both. Week-only exams will not show an invented date.</p>
+<label for="exam-editor-notes" id="exam-editor-notes-label">Notes (optional)</label><textarea id="exam-editor-notes" rows="3" maxlength="500"></textarea>
+<p id="exam-editor-error" class="event-error" role="alert" hidden></p>
+<div class="exam-editor-actions">
+<button type="button" id="exam-editor-remove" class="button small danger" hidden>Delete exam</button>
+<button type="button" id="exam-editor-reset" class="button small" hidden>Restore original</button>
+<span></span>
+<button type="button" id="exam-editor-close" class="button">Cancel</button>
+<button type="submit" id="exam-editor-save" class="button primary">Save exam</button>
+</div>
+</form></dialog>
 <dialog id="event-dialog" class="dialog event-dialog" aria-labelledby="event-heading">
 <form id="event-form" class="detail-sheet event-form">
 <button id="event-close" type="button" class="icon-button dialog-close" aria-label="Close">×</button>
