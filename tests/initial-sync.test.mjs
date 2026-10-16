@@ -48,7 +48,7 @@ test('late sync responses from another account cannot update the dashboard',asyn
 
 test('live sign-in invokes first-time setup after loading saved snapshots, not on every restored session',()=>{
   const js=readFileSync(new URL('../public/skeleton/app.mjs',import.meta.url),'utf8');
-  const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   assert.match(js,/startLive\(current,\{firstSignIn:true\}\)/);
   assert.match(js,/if\(current\)startLive\(current\)/);
   assert.match(js,/readLiveSnapshots\(\{initializeMissing:firstSignIn\}\)/);

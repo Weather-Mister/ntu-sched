@@ -276,3 +276,10 @@
     max-width:100%;
   }
 }
+
+/* Keep native iPhone focus from zooming and offsetting the entire app. */
+@media(max-width:790px){
+  body input:not([type="checkbox"]):not([type="radio"]),
+  body .settings-appearance-bottom select:not(.sr-only),
+  body select,body textarea{font-size:16px}
+}

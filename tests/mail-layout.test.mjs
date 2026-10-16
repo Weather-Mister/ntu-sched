@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 
 const base=new URL('../public/skeleton/',import.meta.url);
-const html=readFileSync(new URL('index.html',base),'utf8');
+const html=readFileSync(new URL('../index.html',base),'utf8');
 const mail=readFileSync(new URL('mail.mjs',base),'utf8');
 const css=readFileSync(new URL('styles.css',base),'utf8');
 const {document}=parseHTML(html);

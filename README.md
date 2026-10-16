@@ -4,7 +4,11 @@ Campus Week's portable source lives in **Weather-Mister/ntu-sched**. Cloudflare 
 
 ## Current stage
 
-The current frontend was recovered byte-for-byte from the localhost app on 15 October 2026 (Taipei). It includes the timetable, English/Traditional Chinese controls, COOL feed UI, and fictional inbox/Gemini previews.
+Campus Week is the main application at `/`. It includes account sign-in, the timetable and personal events, COOL assignments and announcements, exam plans and custom exams, manual tasks, Campus Mail with Gemini assistance, notification diagnostics, and account preferences. English and Traditional Chinese are supported. The date navigator shows the selected NTU teaching week (for example, Week 6), with the exact dates in its tooltip and accessible label. Week numbering follows the published 115 academic calendar; vacations and unknown semesters fall back to dates, and the flexible week is labeled separately. Sample timetables are explicitly labeled and never use a real student's data.
+
+Old `/skeleton/` bookmarks redirect to `/` with query parameters preserved. Styles and modules retain their existing asset paths so already installed clients can update safely. The web app manifest keeps its existing identity while launching at `/` with a root scope; existing installations do not need a new account. Push notification clicks use the main URL.
+
+Background task/event reads do not redraw unchanged lists. Timetable clock updates preserve lesson/day buttons unless the data, selected date, or language changes. Active, focused pages check overdue COOL calendars every five minutes and timetables every five days, using saved snapshots immediately, with retry delays and a pause for rejected credentials. Hidden/offline pages do not start upstream checks.
 
 The account foundation verifies a student number and NTU Mail password against the same Roundcube endpoint used by the personal mail clients before provisioning an account. It encrypts retained NTU authorization using AES-GCM with account/provider-bound authenticated data. Only hashes of random session tokens enter D1; the browser receives a Secure, HttpOnly, SameSite login cookie valid for 30 days.
 
@@ -53,6 +57,7 @@ Use Node 24 or later:
 ```sh
 npm ci
 npm test
+npm run check
 ```
 
 Tests use synthetic credentials, mocked NTU servers, SQLite, and an inert DOM. They cover account isolation, encryption, session restoration, CSRF/origin checks, throttling, cookie scoping, ePortfolio parsing, manual/automatic sync, preservation after provider failures, and late responses during account switches. Calendar checks additionally cover automatic discovery, SAML callback restrictions, identity matching, deadline revisions, revocation, timezone handling, foreground checks and saved-data fallback. These synthetic tests do not prove a real COOL login. `npx wrangler deploy --dry-run` verifies the Worker bundle.

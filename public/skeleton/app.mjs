@@ -12,12 +12,15 @@ import { createMailUI } from './mail.mjs';
 import { examCompletionKey } from '/exam-completion.mjs';
 import { createSettings } from './settings.mjs';
 import { missingInitialSources, syncInitialSources } from './initial-sync.mjs';
+import { academicWeek } from '/academic-calendar.mjs';
+import { ForegroundRefresh } from './foreground-refresh.mjs';
 import { createCoolFeedScroll } from './cool-feed-scroll.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
+const foregroundRefresh=new ForegroundRefresh();
 const profiles = {
   engineering: {
-    name:['Engineering student','工程學院學生'],id:'PREVIEW-A',tasks:['Read chapter 3','Review lab notes'],
+    name:['Engineering student','工程學院學生'],id:'SAMPLE-A',tasks:['Read chapter 3','Review lab notes'],
     courses:[
       [0,'09:10','10:00','Introduction to Mechanics','機械學導論','Room 201','DEMO101'],
       [0,'14:20','16:10','Communication in Engineering','工程溝通','Room B205','DEMO102'],
@@ -29,7 +32,7 @@ const profiles = {
     deadlines:[[2,'Problem set 2','習題二','Calculus I','微積分（一）'],[5,'Project discussion','專題討論','Design Studio','設計工作室'],[8,'Lab reflection','實驗心得','Physics Laboratory','物理實驗']]
   },
   social:{
-    name:['Social sciences student','社會科學院學生'],id:'PREVIEW-B',tasks:['Outline policy presentation'],
+    name:['Social sciences student','社會科學院學生'],id:'SAMPLE-B',tasks:['Outline policy presentation'],
     courses:[
       [0,'10:20','12:10','Introduction to Public Policy','公共政策導論','Social Sciences 507','MOCK201'],
       [1,'09:10','12:10','Microeconomics','個體經濟學','Social Sciences 202','MOCK202'],
@@ -45,14 +48,14 @@ const profiles = {
 const dict={
   en:{
     upcomingExams:'Upcoming exams',chooseSection:'Choose your class',section:'Class',automaticSection:'Automatic matching',
-    loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Sign in',loginIntro:'Use your NTU student number and Mail password.',checkingSession:'Checking your session…',tryPreview:'Try a sample timetable',previewLabel:'Sample student',engineeringProfile:'Engineering student',socialProfile:'Social sciences student',enterPreview:'Open sample timetable',loginSafety:'Sample data only. No NTU account is required.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK PREVIEW',mySchedule:'My Schedule',
-    chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',reloadSite:'Reload site',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Preview tasks stay in memory and disappear on reload.',
-    lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Preview edits last until you leave this preview.',
-    classDetails:'CLASS DETAILS',time:'Time',location:'Location',courseCode:'Course code',status:'Status',repeatsWeekly:'Preview follows a repeating weekly schedule.',preferences:'PREFERENCES',settings:'Settings',account:'Account',appearance:'Appearance',language:'Language',timetable:'Timetable',widgets:'Widgets',privacy:'Privacy & security',about:'About',
-    accountDesc:'Your Campus Week identity and sessions.',demoAccount:'Fictional account · design preview only',accountActions:'Account actions',switchHelp:"Switching accounts clears the current student's preview before returning to sign-in.",switchAccount:'Switch account',logOut:'Log out',appearanceDesc:'Preview theme setting; changes are not saved.',theme:'Theme',light:'Light',dark:'Dark',langDesc:'Select interface language. Course names reflect the sample data.',interfaceLanguage:'Interface language',
-    timetableDesc:'Live account mode uses the existing NTU ePortfolio timetable connection.',previewStatus:'Preview data',syncNotConnected:'Not connected to your NTU account in this preview.',reconnectLater:'Reconnect (later)',coolDesc:'Live COOL calendar deadlines use your existing NTU connection. Announcements refresh every two minutes while this page is focused.',widgetsDesc:'Optional extras can be added without affecting the core schedule.',hanziLater:'Future optional widget. Disabled by default. Username input and loading will be implemented later.',comingLater:'Coming later',
-    securityDesc:'Production account access remains exclusively with our existing Cloudflare backend.',noCredentials:'No credentials in preview',securityPreview:'Sample mode is entirely fictional. Live mode uses the existing secure Campus Week API; this interface never stores passwords.',signOutAllLater:'Sign out all devices (later)',aboutDesc:'Campus Week UI skeleton v1. Independent student project; not affiliated with National Taiwan University.',designPreview:'Design preview',aboutDetails:'Theme-ready Classic interface sharing the production account, timetable and COOL APIs.',
-    next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your sample timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
+    loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Sign in',loginIntro:'Use your NTU student number and Mail password.',checkingSession:'Checking your session…',tryPreview:'Try a sample timetable',previewLabel:'Sample student',engineeringProfile:'Engineering student',socialProfile:'Social sciences student',enterPreview:'Open sample timetable',loginSafety:'Sample data only. No NTU account is required.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK',mySchedule:'My Schedule',
+    teachingWeek:'SEMESTER',flexibleWeek:'Flexible week',chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',reloadSite:'Reload site',previousWeek:'Previous week',nextWeek:'Next week',closeSettings:'Close settings',closeDetails:'Close class details',openMail:'Open Campus Mail',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Sample tasks stay in memory and disappear on reload.',
+    lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Sample edits last until you leave the sample timetable.',
+    classDetails:'CLASS DETAILS',time:'Time',location:'Location',courseCode:'Course code',status:'Status',repeatsWeekly:'Classes follow a repeating weekly schedule.',preferences:'PREFERENCES',settings:'Settings',account:'Account',appearance:'Appearance',language:'Language',timetable:'Timetable',widgets:'Widgets',privacy:'Privacy & security',about:'About',
+    accountDesc:'Your Campus Week identity and sessions.',demoAccount:'Sample account',accountActions:'Account actions',switchHelp:"Switching accounts returns to sign-in.",switchAccount:'Switch account',logOut:'Log out',appearanceDesc:'Choose how Campus Week looks.',theme:'Theme',light:'Light',dark:'Dark',langDesc:'Select interface language. Course names reflect the sample data.',interfaceLanguage:'Interface language',
+    timetableDesc:'Live account mode uses the existing NTU ePortfolio timetable connection.',previewStatus:'Sample data',syncNotConnected:'Sign in to connect your NTU account.',reconnectLater:'Reconnect',coolDesc:'Live COOL calendar deadlines use your existing NTU connection. Announcements refresh every two minutes while this page is focused.',widgetsDesc:'Optional extras can be added without affecting the core schedule.',hanziLater:'Connect your Hanzi Steps username to show your progress.',comingLater:'Optional',
+    securityDesc:'Production account access remains exclusively with our existing Cloudflare backend.',noCredentials:'Sample mode needs no credentials',securityPreview:'Sample mode is entirely fictional. Live mode uses the existing secure Campus Week API; this interface never stores passwords.',signOutAllLater:'Sign out all devices',aboutDesc:'Campus Week. Independent student project; not affiliated with National Taiwan University.',designPreview:'Sample timetable',aboutDetails:'Your timetable, coursework, tasks and campus mail.',
+    next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
     dayView:'Day',weekView:'Week',weeklyTimetable:'Weekly timetable',calendarLabel:'CLASS TIMETABLE',weekViewScroll:'Weekly timetable; scroll vertically or sideways to explore classes',
     liveEntryHeading:'Or use your real NTU account',liveEntryDesc:'Connect through the existing Campus Week account and backend.',restoreSession:'Use existing session',signInNtu:'Sign in',realAccount:'REAL NTU ACCOUNT',realLoginExplanation:'Uses the existing secure Campus Week login and the same timetable/COOL backend as the original site.',studentNumber:'NTU student number',ntuPassword:'NTU Mail password',accountSecurity:'Only sign in on your trusted Campus Week website.',timetableConnection:'Timetable connection',coolConnection:'COOL connection',syncTimetable:'Sync timetable',syncCool:'Sync COOL',realAssignmentsNote:'Live COOL calendar · ✓ marks done only here; submit assignments in COOL',realAnnouncementsNote:'Live COOL announcements · Last 90 days · Refreshes every 2 minutes while focused',noCalendar:'No connected COOL calendar. Select Refresh or connect from Settings.',liveNoAssignments:'No upcoming calendar deadlines.',liveNoTimetable:'No saved classes yet. Use Settings → Timetable → Sync timetable.',
     doneLocally:'Marked done here only; this does not submit to COOL.',examDoneLocally:'Completed here only; this does not change the NTU exam plan.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
@@ -63,13 +66,13 @@ const dict={
   },
   zh:{
     upcomingExams:'近期考試',chooseSection:'選擇你的課程班別',section:'班別',automaticSection:'自動比對',
-    loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'登入',loginIntro:'使用臺大學號和電子郵件密碼登入。',checkingSession:'正在檢查登入狀態…',tryPreview:'試用範例課表',previewLabel:'範例學生',engineeringProfile:'工程學院學生',socialProfile:'社會科學院學生',enterPreview:'開啟範例課表',loginSafety:'僅使用範例資料，不需要臺大帳號。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK 預覽',mySchedule:'我的課表',
-    chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',reloadSite:'重新載入網站',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'預覽任務僅暫存於記憶體，重新整理後會消失。',
-    lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'預覽編輯僅保留至離開此預覽。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'此預覽使用每週重複課表。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
-    accountDesc:'Campus Week 身分與登入狀態。',demoAccount:'虛構帳號 · 僅供設計預覽',accountActions:'帳號操作',switchHelp:'切換帳號前會清除畫面上的上一位虛構學生資料。',switchAccount:'切換帳號',logOut:'登出',appearanceDesc:'預覽主題設定；不會儲存變更。',theme:'主題',light:'淺色',dark:'深色',langDesc:'選擇介面語言。課程名稱來自範例資料。',interfaceLanguage:'介面語言',
-    timetableDesc:'真實帳號模式沿用現有臺大 ePortfolio 課表連線。',previewStatus:'預覽資料',syncNotConnected:'本預覽未連線至臺大帳號。',reconnectLater:'稍後重新連線',coolDesc:'真實帳號模式沿用現有 COOL 行事曆；公告尚未連接。',widgetsDesc:'選用小工具不會影響主要課表。',hanziLater:'未來可選擇啟用，預設關閉；使用者名稱輸入及資料載入會稍後實作。',comingLater:'稍後推出',
-    securityDesc:'正式帳號存取仍由現有 Cloudflare 後端處理。',noCredentials:'預覽不需帳密',securityPreview:'範例模式使用虛構資料。真實模式沿用既有安全 API，介面不儲存密碼。',signOutAllLater:'登出所有裝置（稍後）',aboutDesc:'Campus Week 介面骨架 v1。獨立學生專案，與國立臺灣大學無隸屬關係。',designPreview:'設計預覽',aboutDetails:'可切換視覺主題的 Classic 介面，沿用既有帳號、課表與 COOL API。',
-    next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的範例課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
+    loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'登入',loginIntro:'使用臺大學號和電子郵件密碼登入。',checkingSession:'正在檢查登入狀態…',tryPreview:'試用範例課表',previewLabel:'範例學生',engineeringProfile:'工程學院學生',socialProfile:'社會科學院學生',enterPreview:'開啟範例課表',loginSafety:'僅使用範例資料，不需要臺大帳號。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK',mySchedule:'我的課表',
+    teachingWeek:'學期',flexibleWeek:'彈性週',chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',reloadSite:'重新載入網站',previousWeek:'上一週',nextWeek:'下一週',closeSettings:'關閉設定',closeDetails:'關閉課程詳情',openMail:'開啟 Campus Mail',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'範例任務僅暫存於記憶體，重新整理後會消失。',
+    lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'範例編輯僅保留至離開範例課表。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'課表以每週重複方式顯示。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
+    accountDesc:'Campus Week 身分與登入狀態。',demoAccount:'範例帳號',accountActions:'帳號操作',switchHelp:'切換帳號前會清除畫面上的上一位虛構學生資料。',switchAccount:'切換帳號',logOut:'登出',appearanceDesc:'預覽主題設定；不會儲存變更。',theme:'主題',light:'淺色',dark:'深色',langDesc:'選擇介面語言。課程名稱來自範例資料。',interfaceLanguage:'介面語言',
+    timetableDesc:'真實帳號模式沿用現有臺大 ePortfolio 課表連線。',previewStatus:'預覽資料',syncNotConnected:'本預覽未連線至臺大帳號。',reconnectLater:'稍後重新連線',coolDesc:'COOL 行事曆及公告使用現有臺大連線，公告在頁面使用中每兩分鐘更新。',widgetsDesc:'選用小工具不會影響主要課表。',hanziLater:'未來可選擇啟用，預設關閉；使用者名稱輸入及資料載入會稍後實作。',comingLater:'稍後推出',
+    securityDesc:'正式帳號存取仍由現有 Cloudflare 後端處理。',noCredentials:'預覽不需帳密',securityPreview:'範例模式使用虛構資料。真實模式沿用既有安全 API，介面不儲存密碼。',signOutAllLater:'登出所有裝置（稍後）',aboutDesc:'Campus Week。獨立學生專案，與國立臺灣大學無隸屬關係。',designPreview:'設計預覽',aboutDetails:'可切換視覺主題的 Classic 介面，沿用既有帳號、課表與 COOL API。',
+    next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
     dayView:'單日',weekView:'整週',weeklyTimetable:'每週課表',calendarLabel:'課程時間表',weekViewScroll:'每週課表；可上下及左右捲動查看課程',
     liveEntryHeading:'或使用真正的臺大帳號',liveEntryDesc:'使用現有 Campus Week 帳號與後端連線。',restoreSession:'使用現有登入狀態',signInNtu:'登入',realAccount:'真實臺大帳號',realLoginExplanation:'沿用既有安全的 Campus Week 登入與課表、COOL 後端。',studentNumber:'臺大學號',ntuPassword:'臺大郵件密碼',accountSecurity:'請只在正確的 Campus Week 網址登入。',timetableConnection:'課表連線',coolConnection:'COOL 連線',syncTimetable:'同步課表',syncCool:'同步 COOL',realAssignmentsNote:'COOL 行事曆；✓ 僅在此標記完成，作業仍需至 COOL 提交',realAnnouncementsNote:'COOL 公告 · 最近 90 天 · 頁面使用中每兩分鐘更新',noCalendar:'尚無 COOL 行事曆，請按重新整理或至設定連線。',liveNoAssignments:'目前沒有近期行事曆截止日期。',liveNoTimetable:'尚無已儲存課表，請到設定 → 課表同步。',
     doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',examDoneLocally:'僅在本站標記已完成，不會更改臺大考試資料。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
@@ -79,7 +82,9 @@ const dict={
     days:['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],shortDays:['週一','週二','週三','週四','週五','週六','週日']
   }
 };
-let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
+let savedLanguage='en';
+try{const saved=localStorage.getItem('campus-week:language');if(saved==='en'||saved==='zh')savedLanguage=saved;}catch{}
+let language=savedLanguage,student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 let pastExamsOpen=false,hiddenExamsOpen=false,missingExamsOpen=false;
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,initialSyncBusy=false,liveTimetableInfo='',liveCoolInfo='';
 let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},liveExamPlans={},liveSectionOptions={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
@@ -90,7 +95,7 @@ const taskStore = new AccountTasks(account, {
   onChange(state){if(liveMode){tasks=state.items;renderTasks();}},
   onSessionExpired:()=>sessionExpired()
 });
-const announcementStore=new AccountAnnouncements(account,()=>{if(student&&liveMode)renderDeadlines();},()=>sessionExpired());
+const announcementStore=new AccountAnnouncements(account,()=>{if(student&&liveMode){if(coolView==='announcements')renderDeadlines();else updateSyncDots();}},()=>sessionExpired());
 const examStore=new AccountExams(account,()=>{if(student&&liveMode){
   for(const [courseId,entry] of examStore.entries){
     const result=entry.result;
@@ -267,13 +272,31 @@ if(typeof ResizeObserver!=='undefined'){
     .observe(document.querySelector('.schedule-column'));
 }
 
+let calendarSignature='';
+function updateCalendarClock(){
+  const today=taipeiToday(),items=scheduleOn(selectedDate);
+  $('schedule-list').querySelectorAll('.lesson').forEach((button,index)=>{
+    const state=items[index]?lessonState(items[index],selectedDate):'';
+    button.classList.toggle('live',selectedDate===today&&state===t('live'));
+    button.classList.toggle('completed',selectedDate===today&&state===t('completed'));
+  });
+}
 function renderCalendar(){
-  if(!student)return;const base=monday(selectedDate),today=taipeiToday(),strip=$('day-strip');
+  if(!student)return;
+  const signature=JSON.stringify([student.id,language,selectedDate,taipeiToday(),timetableView,liveTimetable?.term,student.courses,eventUI.events(),student.courses.map(c=>courseOffering(c))]);
+  if(signature===calendarSignature){updateCalendarClock();return;}
+  calendarSignature=signature;const base=monday(selectedDate),today=taipeiToday(),strip=$('day-strip');
   const end=offset(base,6);
   const monthfmt=new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'UTC',month:'short',day:'numeric'});
-  $('week-range').textContent=language==='zh'?
+  const dateRange=language==='zh'?
     monthfmt.format(dateFor(base))+' – '+monthfmt.format(dateFor(end)):
     (base.slice(0,7)===end.slice(0,7)?monthfmt.format(dateFor(base))+'–'+dateFor(end).getUTCDate():monthfmt.format(dateFor(base))+' – '+monthfmt.format(dateFor(end)));
+  const academic=academicWeek(selectedDate,liveMode?liveTimetable?.term:undefined);
+  const weekLabel=academic?(academic.flexible?t('flexibleWeek'):language==='zh'?'第 '+academic.week+' 週':'Week '+academic.week):dateRange;
+  $('week-range').textContent=weekLabel;
+  $('week-range').title=dateRange+(academic?' · '+academic.term:'');
+  $('week-range').setAttribute('aria-label',academic?weekLabel+' · '+dateRange:dateRange);
+  document.querySelector('.week-caption .eyebrow').textContent=t(academic?'teachingWeek':'week');
   $('choose-date').value=selectedDate;strip.replaceChildren();
   for(let d=0;d<7;d++){
     const key=offset(base,d),btn=node('button','day-button');btn.type='button';btn.classList.toggle('active',key===selectedDate);btn.classList.toggle('today',key===today);
@@ -357,6 +380,7 @@ function saveCoolChecks(){
 }
 
 function renderDeadlines(){
+  document.querySelectorAll('[data-cool-view]').forEach(button=>button.tabIndex=button.dataset.coolView===coolView?0:-1);
   const scrollTop=$('cool-list').scrollTop;
   renderDeadlinesContent();
   coolScroll.update(coolView,scrollTop);
@@ -583,6 +607,8 @@ function renderTranslations(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{const translated=t(el.dataset.i18n);if(typeof translated==='string')el.textContent=translated;});
   $('language-en').setAttribute('aria-pressed',String(language==='en'));$('language-zh').setAttribute('aria-pressed',String(language==='zh'));$('login-language-en').setAttribute('aria-pressed',String(language==='en'));$('login-language-zh').setAttribute('aria-pressed',String(language==='zh'));
   $('settings-language').value=language;$('task-input').placeholder=t('addPlaceholder');
+  for(const [id,key]of [['previous-week','previousWeek'],['next-week','nextWeek'],['choose-date','chooseDate'],['open-settings','settings'],['settings-close-desktop','closeSettings'],['settings-close-mobile','closeSettings'],['close-lesson','closeDetails']]){const control=$(id);control.setAttribute('aria-label',t(key));if(control.hasAttribute('title'))control.title=t(key);}
+  document.querySelectorAll('[data-open-mail]').forEach(control=>control.setAttribute('aria-label',t('openMail')));
   $('cool-refresh').title=t('refresh');$('cool-refresh').setAttribute('aria-label',t('refresh'));
   $('page-refresh').title=t('reloadSite');$('page-refresh').setAttribute('aria-label',t('reloadSite'));
   // Keep the chosen NTU panel tab when the interface language changes.
@@ -690,6 +716,7 @@ async function saveLessonDetails(reset=false){
 }
 function previewCourseRows(profile){return profile.courses.map(c=>{const row=[...c];row[8]='preview:'+(c[6]||c[3]);return row;});}
 function leavePreview(){
+  foregroundRefresh.reset();calendarSignature='';
   liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
@@ -831,23 +858,27 @@ async function readLiveSnapshots({initializeMissing=false}={}){
   if(epoch!==liveEpoch||!liveMode)return;
   if(tResult.status==='fulfilled'&&detailsRevision===liveDetailsRevision&&!lessonSaving){
     if(tResult.value.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+    foregroundRefresh.record('timetable',tResult.value);
     liveCourseOverrides=tResult.value.courseOverrides||{};
     liveTimetable=tResult.value.timetable||null;liveExamPlans=tResult.value.examPlans||{};liveSectionOptions=tResult.value.sectionOptions||{};liveTimetableOk=tResult.value.connectionStatus==='authorized';
     liveTimetableInfo=tResult.value.connectionStatus==='reconnect_required'
-      ?'Timetable reconnect required. Last saved classes are preserved.':'';
+      ?(language==='zh'?'請重新連結課表，已保留上次儲存的課程。':'Timetable reconnect required. Last saved classes are preserved.'):'';
   }else if(tResult.status==='rejected'){
     if(tResult.reason?.status===401){sessionExpired();return;}
     liveTimetableInfo=liveNotice(tResult.reason);liveTimetableOk=false;
   }
   if(cResult.status==='fulfilled'){
+    if(cResult.value.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+    foregroundRefresh.record('cool',cResult.value);
     liveCalendar=cResult.value.calendar||null;liveCalendarOk=cResult.value.connectionStatus==='authorized';
     liveCoolInfo=cResult.value.connectionStatus==='reconnect_required'
-      ?'COOL reconnect required. Last saved deadlines are preserved.':'';
+      ?(language==='zh'?'請重新連結 COOL，已保留上次儲存的期限。':'COOL reconnect required. Last saved deadlines are preserved.'):'';
   }else{
     if(cResult.reason?.status===401){sessionExpired();return;}
     liveCoolInfo=liveNotice(cResult.reason);liveCalendarOk=false;
   }
   renderLiveAccount();
+  checkLiveSources();
   if(initializeMissing && epoch===liveEpoch && liveMode){
     const needed=missingInitialSources(
       tResult.status==='fulfilled'?tResult.value:null,
@@ -870,6 +901,8 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
         if(kind==='timetable')liveTimetableInfo=language==='zh'?'正在同步課表…':'Connecting timetable…';
         else liveCoolInfo=language==='zh'?'正在同步 COOL…':'Connecting COOL…';
       }else if(state==='connected'){
+        if(payload.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+        foregroundRefresh.record(kind,payload);
         if(kind==='timetable'){
           if(payload.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
           if(detailsRevision===liveDetailsRevision&&!lessonSaving){
@@ -903,6 +936,7 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
 }
 function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
+  foregroundRefresh.reset();
   liveMode=true;liveEpoch++;initialSyncBusy=false;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';coolScroll.reset();
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);examStore.bind(current);examEditor.bind(current);
@@ -910,15 +944,18 @@ function startLive(current,{firstSignIn=false}={}){
   $('login-screen').hidden=true;$('app-screen').hidden=false;
   
   renderLiveAccount();announcementStore.bind(current);eventUI.reset(current);restoreCoolChecks(current,liveEpoch);void readLiveSnapshots({initializeMissing:firstSignIn});
+  if(new URL(location.href).searchParams.get('mail')==='1'){mailUI.open();const url=new URL(location.href);url.searchParams.delete('mail');history.replaceState(null,'',url.pathname+url.search+url.hash);}
 }
 function showLoginMessage(message=''){
   const status=$('live-login-status');status.textContent=message;status.hidden=!message;
 }
 async function restoreLive(){
+  const epoch=liveEpoch;
   $('login-screen').dataset.authCheck='checking';
   showLoginMessage();
   try{
     const current=await account.restore();
+    if(epoch!==liveEpoch){if(!liveMode&&account.current===current)account.current=null;return;}
     if(current)startLive(current);
   }catch(e){
     // A failed session check must not trap students behind the loading screen.
@@ -927,24 +964,30 @@ async function restoreLive(){
     $('login-screen').dataset.authCheck='ready';
   }
 }
-async function syncLive(which){
+function checkLiveSources(){
+  if(!liveMode||livePending||initialSyncBusy||lessonSaving||document.hidden||!document.hasFocus()||navigator.onLine===false)return;
+  const which=foregroundRefresh.next();if(which)void syncLive(which,{automatic:true});
+}
+async function syncLive(which,{automatic=false}={}){
   if(!liveMode||!liveAccount||livePending||initialSyncBusy||lessonSaving)return;
-  const epoch=liveEpoch,detailsRevision=liveDetailsRevision;livePending=true;
-  if(which==='timetable'){liveTimetableOk=false;liveTimetableInfo='Checking NTU ePortfolio…';}
-  else{liveCalendarOk=false;liveCoolInfo='Checking your COOL calendar…';}
+  const epoch=liveEpoch,detailsRevision=liveDetailsRevision;livePending=true;foregroundRefresh.attempt(which);
+  if(which==='timetable'){liveTimetableOk=false;liveTimetableInfo=language==='zh'?'正在檢查臺大 ePortfolio…':'Checking NTU ePortfolio…';}
+  else{liveCalendarOk=false;liveCoolInfo=language==='zh'?'正在檢查 COOL 行事曆…':'Checking your COOL calendar…';}
   updateLiveStatus();
   try{
     const result=which==='timetable'
-      ?await account.syncTimetable(undefined,undefined,true)
-      :await account.syncCoolCalendar(undefined,undefined,true);
+      ?await account.syncTimetable(undefined,undefined,!automatic)
+      :await account.syncCoolCalendar(undefined,undefined,!automatic);
     if(epoch!==liveEpoch)return;
-    if(which==='timetable'&&result.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
-    if(which==='timetable'){if(detailsRevision===liveDetailsRevision&&!lessonSaving){liveCourseOverrides=result.courseOverrides||{};liveExamPlans=result.examPlans||{};liveSectionOptions=result.sectionOptions||{};liveTimetable=result.timetable||liveTimetable;}else if(!lessonSaving)void readLiveSnapshots();liveTimetableOk=true;liveTimetableInfo='Timetable updated';}
-    else{liveCalendar=result.calendar||liveCalendar;liveCalendarOk=true;liveCoolInfo='COOL calendar updated';}
+    if(result.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
+    foregroundRefresh.record(which,result);
+    if(which==='timetable'){if(detailsRevision===liveDetailsRevision&&!lessonSaving){liveCourseOverrides=result.courseOverrides||{};liveExamPlans=result.examPlans||{};liveSectionOptions=result.sectionOptions||{};liveTimetable=result.timetable||liveTimetable;}else if(!lessonSaving)void readLiveSnapshots();liveTimetableOk=true;liveTimetableInfo=language==='zh'?'課表已更新':'Timetable updated';}
+    else{liveCalendar=result.calendar||liveCalendar;liveCalendarOk=true;liveCoolInfo=language==='zh'?'COOL 行事曆已更新':'COOL calendar updated';}
     renderLiveAccount();
   }catch(e){
     if(epoch!==liveEpoch)return;
     if(e.status===401){sessionExpired();return;}
+    foregroundRefresh.fail(which,e);
     if(which==='timetable')liveTimetableInfo=liveNotice(e);else liveCoolInfo=liveNotice(e);
   }finally{if(epoch===liveEpoch){livePending=false;updateLiveStatus();}}
 }
@@ -974,6 +1017,7 @@ async function endLiveAccount(){
 }
 
 function enterPreview(){
+  foregroundRefresh.reset();
   liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);$('task-input').value='';
   eventUI.reset();examEditor.bind(null);
@@ -982,7 +1026,7 @@ function enterPreview(){
   selectedDate=taipeiToday();activePanel='account';opened=null;coolView='assignments';setTimetableView('day');coolScroll.reset();
   $('login-screen').hidden=true;$('app-screen').hidden=false;renderAll();dashboardResize.place();$('open-settings').focus();
 }
-function chooseLanguage(value){language=value;renderAll();}
+function chooseLanguage(value){language=value;try{localStorage.setItem('campus-week:language',value);}catch{}renderAll();}
 $('enter-preview').addEventListener('click',enterPreview);
 $('live-login-form').addEventListener('submit',submitLiveLogin);
 $('live-timetable-refresh').addEventListener('click',()=>syncLive('timetable'));
@@ -1007,9 +1051,21 @@ document.querySelectorAll('[data-cool-view]').forEach(button=>button.addEventLis
   coolView=button.dataset.coolView;examStore.active=liveMode&&coolView==='exams';renderDeadlines();
   if(examStore.active)void examStore.refresh();
 }));
+document.querySelector('.cool-view-switch').addEventListener('keydown',event=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  event.preventDefault();const tabs=[...document.querySelectorAll('[data-cool-view]')],index=tabs.findIndex(tab=>tab.dataset.coolView===coolView);
+  const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+  tabs[next].click();tabs[next].focus();
+});
 $('task-form').addEventListener('submit',async e=>{
   e.preventDefault();if(!student)return;const content=$('task-input').value.trim();if(!content)return;
-  if(liveMode){const epoch=liveEpoch;if(await taskStore.add(content)&&epoch===liveEpoch&&$('task-input').value.trim()===content)$('task-input').value='';return;}
+  if(liveMode){
+    const epoch=liveEpoch,input=$('task-input'),focusWasInForm=$('task-form').contains(document.activeElement);
+    const saved=await taskStore.add(content);if(epoch!==liveEpoch)return;
+    if(saved&&input.value.trim()===content)input.value='';
+    if(focusWasInForm&&(!document.activeElement||document.activeElement===document.body||document.activeElement===input))input.focus();
+    return;
+  }
   tasks.unshift({id:++counter,text:content,done:false});$('task-input').value='';renderTasks();
 });
 $('tasks-retry').addEventListener('click',()=>{if(liveMode)void taskStore.refresh();});
@@ -1025,10 +1081,11 @@ $('switch-account').addEventListener('click',()=>{if(liveMode)endLiveAccount();e
 $('log-out').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('settings-dialog').addEventListener('close',()=>{if(student)$('open-settings').focus();});
 $('lesson-dialog').addEventListener('close',()=>{opened=null;lessonDraft=null;lessonSaving=false;lessonControls();});
-setInterval(()=>{if(student&&!document.hidden){renderBanner();if(selectedDate===taipeiToday())renderCalendar();if(liveMode&&navigator.onLine!==false){void taskStore.refresh();eventUI.refresh();}}},30000);
+setInterval(()=>{if(student&&!document.hidden){renderBanner();renderCalendar();if(liveMode&&navigator.onLine!==false){void taskStore.refresh();eventUI.refresh();checkLiveSources();}}},30000);
 window.addEventListener('online',()=>{if(liveMode&&!document.hidden){void taskStore.refresh();eventUI.refresh();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});
-window.addEventListener('online',updateSyncDots);
+window.addEventListener('focus',checkLiveSources);
+window.addEventListener('online',()=>{updateSyncDots();checkLiveSources();});
 window.addEventListener('offline',updateSyncDots);
 const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language});
 

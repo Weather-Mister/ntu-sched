@@ -100,6 +100,10 @@ export default {
   async fetch(request, env) {
     try {
       const path = new URL(request.url).pathname;
+      if (['/skeleton', '/skeleton/', '/skeleton/index.html'].includes(path)) {
+        const destination = new URL(request.url); destination.pathname = '/';
+        return Response.redirect(destination.href, 308);
+      }
       if (!path.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : json({ error: { code: 'not_found', message: 'Not found.' } }, 404);
       sameOrigin(request, env);
       const authorizationStorageReady = typeof env.NTU_CREDENTIAL_KEY === 'string' && /^[0-9a-f]{64}$/i.test(env.NTU_CREDENTIAL_KEY);

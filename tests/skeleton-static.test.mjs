@@ -6,7 +6,7 @@ import test from 'node:test';
 import { parseHTML } from 'linkedom';
 
 const skeleton = new URL('../public/skeleton/', import.meta.url);
-const html = readFileSync(new URL('index.html', skeleton), 'utf8');
+const html = readFileSync(new URL('../index.html', skeleton), 'utf8');
 const css = readFileSync(new URL('styles.css', skeleton), 'utf8');
 const js = readFileSync(new URL('app.mjs', skeleton), 'utf8');
 
@@ -15,8 +15,8 @@ test('UI skeleton and account task JavaScript parse as browser modules', () => {
     const result=spawnSync(process.execPath,['--check',fileURLToPath(new URL(path,skeleton))],{encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
   }
-  assert.match(html, /src="\.\/app\.mjs"/);
-  assert.match(html, /href="\.\/styles\.css"/);
+  assert.match(html, /src="\/skeleton\/app\.mjs"/);
+  assert.match(html, /href="\/skeleton\/styles\.css"/);
   assert.doesNotMatch(html, /https?:\/\/[^"]+\.js/);
 });
 

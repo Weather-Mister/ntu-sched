@@ -14,9 +14,9 @@ self.addEventListener('push',event=>event.waitUntil((async()=>{
   (typeof value.body==='string'?value.body:'You have new mail in Campus Mail.');
  await self.registration.showNotification(test?'Campus Week test':'New NTU mail',{
   body:test?'Test push received successfully.':body,
-  tag:test?'campus-mail-test':'campus-mail',icon:'/mail-icon-512.png',data:{url:'/skeleton/?mail=1'}
+  tag:test?'campus-mail-test':'campus-mail',icon:'/mail-icon-512.png',data:{url:'/?mail=1'}
  });
 })()));
 self.addEventListener('notificationclick',event=>{
- event.notification.close();event.waitUntil((async()=>{const tabs=await self.clients.matchAll({type:'window',includeUncontrolled:true}),tab=tabs.find(t=>new URL(t.url).pathname.startsWith('/skeleton/'));if(tab){await tab.focus();tab.postMessage({type:'open-mail'});}else await self.clients.openWindow('/skeleton/?mail=1');})());
+ event.notification.close();event.waitUntil((async()=>{const tabs=await self.clients.matchAll({type:'window',includeUncontrolled:true}),tab=tabs.find(t=>{const url=new URL(t.url);return url.origin===self.location.origin&&['/','/skeleton/'].includes(url.pathname);});if(tab){await tab.focus();tab.postMessage({type:'open-mail'});}else await self.clients.openWindow('/?mail=1');})());
 });

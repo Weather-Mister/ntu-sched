@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createSettings} from '../public/skeleton/settings.mjs';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function fixture(run){
- const {window,document}=parseHTML(readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8'));
+ const {window,document}=parseHTML(readFileSync(new URL('../public/index.html',import.meta.url),'utf8'));
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this.getAttribute('data-value')||this.querySelector('option')?.value||'';},set(value){this.setAttribute('data-value',value);},configurable:true});
  window.HTMLElement.prototype.focus=()=>{};window.HTMLElement.prototype.scrollIntoView=()=>{};
  const globals={window,document,matchMedia:()=>({matches:false,addEventListener(){}}),localStorage:{getItem(){return null;},setItem(){}},setInterval:()=>0};const previous={};for(const[k,v]of Object.entries(globals)){previous[k]=Object.getOwnPropertyDescriptor(globalThis,k);Object.defineProperty(globalThis,k,{value:v,writable:true,configurable:true});}

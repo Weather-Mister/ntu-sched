@@ -36,14 +36,14 @@ test('Hanzi proxy calls only the fixed public read-only endpoint, without NTU co
  await assert.rejects(readHanziWidget(env,a,'missing',{upstream:async()=>new Response('',{status:404})}),error=>error.code==='hanzi_not_found');env.sqlite.close();
 });
 test('all settings sections coexist on one page, with valid jump targets and accessible controls',()=>{
- const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');const section=html.slice(html.indexOf('<dialog id="settings-dialog"'),html.indexOf('<dialog id="mail-dialog"'));
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');const section=html.slice(html.indexOf('<dialog id="settings-dialog"'),html.indexOf('<dialog id="mail-dialog"'));
  for(const panel of ['appearance','timetable','install','widgets']){assert.match(section,new RegExp('data-settings-tab="'+panel+'"'));assert.match(section,new RegExp('data-settings-panel="'+panel+'"'));assert.doesNotMatch(section,new RegExp('data-settings-panel="'+panel+'" hidden'));}
  for(const id of ['account-id','log-out','stat-courses','stat-sessions','stat-hours','settings-hanzi-enabled','settings-hanzi-username','settings-language'])assert.equal((section.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
- assert.doesNotMatch(section,/Coming later|settings-rail|data-settings-panel="security"/);assert.match(section,/Preview · Sample data/);assert.doesNotMatch(section,/settings-section-index|A little more you|Your week, in numbers|Your week\. One tap away|Make room for learning|Made for student life|Go with the flow|After hours/);
+ assert.doesNotMatch(section,/Coming later|settings-rail|data-settings-panel="security"/);assert.match(section,/Sample progress/);assert.doesNotMatch(section,/settings-section-index|A little more you|Your week, in numbers|Your week\. One tap away|Make room for learning|Made for student life|Go with the flow|After hours/);
 });
 
 test('Settings provides permission, device registration, local test and server push test',()=>{
- const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  const js=readFileSync(new URL('../public/skeleton/settings.mjs',import.meta.url),'utf8');
  const testUI=readFileSync(new URL('../public/skeleton/notification-settings.mjs',import.meta.url),'utf8');
  for(const id of ['settings-notify-permission','settings-notify-device','settings-notify-checker','settings-notify-check','settings-notify-local','settings-notify-push','settings-notify-status'])assert.match(html,new RegExp('id="'+id+'"'));
@@ -54,7 +54,7 @@ test('Settings provides permission, device registration, local test and server p
 });
 
 test('notification settings includes a new-mail check that uses real mail polling',()=>{
- const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  const ui=readFileSync(new URL('../public/skeleton/notification-settings.mjs',import.meta.url),'utf8');
  assert.match(html,/id="settings-notify-inbox"[^>]*data-notify-copy="newMail"/);
  assert.match(ui,/account\.request\('mail\/push\/check-new',\{method:'POST'/);
