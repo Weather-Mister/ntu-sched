@@ -13,6 +13,7 @@ import { pushConfiguration, subscribe } from './mail-push.mjs';
 import { savedAnnouncements, syncAnnouncements } from './cool-announcements.mjs';
 import {readPreferences,savePreferences,readHanziWidget} from './student-preferences.mjs';
 import { readNtuCourseExams, syllabusUrl, matchImportedCourse } from './ntu-course-exams.mjs';
+import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -187,6 +188,39 @@ export default {
         return json({studentNumber:current.student_number,...await changeCourseDetails(env,current.student_id,courseId,await readJson(request,12000))});
       }
       // Read-only NTU Course Information lab: no grade data, credentials or persistence.
+      if (path === '/api/exams/resolve' && request.method === 'GET') {
+        const current=await session(request,env),search=new URL(request.url).searchParams;
+        if([...search.keys()].some(k=>!['courseId','serial'].includes(k)) || search.getAll('courseId').length!==1 ||
+          !/^[A-Za-z0-9_-]{43}$/.test(search.get('courseId')||'') ||
+          search.has('serial')&&(search.getAll('serial').length!==1||!/^\d{4,6}$/.test(search.get('serial'))))
+          throw new ApiError(400,'invalid_exam_lookup','Choose a course from your imported timetable.');
+        const saved=await savedTimetable(env,current.student_id),timetable=saved.timetable;
+        if(!timetable?.term)throw new ApiError(409,'exam_timetable_missing','Sync your NTU timetable first.');
+        const rows=timetable.sessions.filter(s=>s.courseId===search.get('courseId'));
+        if(!rows.length)throw new ApiError(404,'exam_course_missing','Choose a course from your own imported timetable.');
+        const bucket=Math.floor(Date.now()/600000);
+        const counter=await env.DB.prepare('INSERT INTO login_limits(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=attempts+1 RETURNING attempts')
+          .bind('exam-resolve:'+current.student_id+':'+bucket,(bucket+1)*600).first();
+        if(counter.attempts>30)throw new ApiError(429,'exam_try_later','Please retry the syllabus lookup in a few minutes.');
+        const candidates=await searchNtuCourses(timetable.term,rows[0]);
+        // Optional account-owned COOL evidence already fetched by normal announcement sync.
+        // It is never returned, and public catalog requests never receive credentials.
+        let coolIds=[];
+        try {
+          const snapshot=(await savedAnnouncements(env,current.student_id)).announcements;
+          if(snapshot&&Date.now()-snapshot.syncedAt<86400000)
+            coolIds=[...new Set([...(snapshot.courses||[]).map(c=>String(c.id)),...(snapshot.items||[]).map(c=>String(c.courseId))])];
+        } catch { /* Public lookup still works without a COOL connection. */ }
+        const resolution=resolveNtuCourse(timetable,rows,candidates,{serial:search.get('serial')||undefined,coolIds});
+        let course=null;
+        if(resolution.selected){
+          course=await readNtuCourseExams(resolution.selected.sourceUrl);
+          if(matchImportedCourse(timetable,{code:resolution.selected.courseCode,serial:resolution.selected.serial,section:resolution.selected.section},course).status!=='matched-identifiers')
+            throw new ApiError(502,'exam_catalog_changed','The syllabus and catalog metadata disagree. No dates were imported.');
+        }
+        return json({studentNumber:current.student_number,matching:resolution.matching,course,
+          candidates:resolution.candidates.map(({coolId,...c})=>c)});
+      }
       if (path === '/api/exams/preview' && request.method === 'GET') {
         const current = await session(request, env), search = new URL(request.url).searchParams;
         if ([...search.keys()].some(k => !['source', 'courseId', 'serial', 'section', 'code'].includes(k)) ||
@@ -203,6 +237,9 @@ export default {
           throw new ApiError(409,'exam_wrong_term','The syllabus belongs to another semester.');
         const matches = saved.timetable.sessions.filter(item => item.courseId === search.get('courseId'));
         if (!matches.length) throw new ApiError(404,'exam_course_missing','Choose a course from your own imported timetable.');
+        for(const field of ['serial','section','code'])if(search.has(field)&&matches[0][field]&&
+          search.get(field).normalize('NFKC').replace(/[\s-]/g,'').toUpperCase()!==String(matches[0][field]).normalize('NFKC').replace(/[\s-]/g,'').toUpperCase())
+          throw new ApiError(409,'exam_identifier_conflict','Manual hints cannot replace identifiers already imported from NTU.');
         const ident = {...matches[0], ...(search.has('serial') ? {serial:search.get('serial')} : {}), ...(search.has('section') ? {section:search.get('section')} : {}), ...(search.has('code') ? {code:search.get('code')} : {})}, bucket = Math.floor(Date.now()/600000);
         const counter = await env.DB.prepare('INSERT INTO login_limits(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=attempts+1 RETURNING attempts')
           .bind('exam-preview:' + current.student_id + ':' + bucket,(bucket+1)*600).first();
