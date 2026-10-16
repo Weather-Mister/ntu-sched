@@ -9,22 +9,14 @@ const unavailable=()=>new ApiError(502,'cool_plan_unavailable','The COOL course 
 const weekIn=s=>{const m=/(?:\bWeek\s*(\d{1,2})\b|第\s*(\d{1,2})\s*週)/i.exec(String(s||''));const n=Number(m?.[1]||m?.[2]);return n>0&&n<=30?n:null;};
 
 export function parseCoolCoursePlan(syllabus,modules,term,sourceUrl) {
- const doc=documentFrom('<html><body>'+String(syllabus||'').slice(0,500000)+'</body></html>');
- const plan=parseCoursePlan(doc,term,sourceUrl);
- const seen=new Set(plan.exams.map(e=>JSON.stringify([e.kind,e.week,e.date,e.description])));
+ let plan={schedule:[],exams:[]};
+ const seen=new Set();
  function add(text,week){
   if(typeof text!=='string'||!text.trim())return;
   const description=text.trim().slice(0,1200),entry=parseExamEntry(description,term,sourceUrl,{week});
   if(plan.schedule.length<300)plan.schedule.push({week,dates:[],description});
   if(!entry||plan.exams.length>=100)return;
   const key=JSON.stringify([entry.kind,entry.week,entry.date,entry.description]);if(!seen.has(key)){seen.add(key);plan.exams.push(entry);}
- }
- // Simple prose syllabuses may use headings rather than tables. Never scan grade/assignment data.
- let syllabusWeek=null;
- for(const e of doc.querySelectorAll('h1,h2,h3,h4,p,li'))if(!e.closest('table')){
-  const text=e.textContent||'';syllabusWeek=weekIn(text)||(/^H[1-4]$/.test(e.tagName)?null:syllabusWeek);
-  if(!syllabusWeek&&/%/.test(text))continue;
-  if(parseExamEntry(text,term,sourceUrl,{week:syllabusWeek}))add(text,syllabusWeek);
  }
  for(const module of modules){
   if(module.published===false||module.locked_for_user===true)continue;
@@ -35,7 +27,19 @@ export function parseCoolCoursePlan(syllabus,modules,term,sourceUrl) {
    add(item.title,weekIn(item.title)||week);
   }
  }
- return {...plan,sourceUrl,source:'ntu-cool',retrievedAt:Date.now()};
+ if(plan.exams.length)return {...plan,sourceUrl,source:'ntu-cool',sourcePart:'modules',retrievedAt:Date.now()};
+ // Read the syllabus only when the weekly modules provide no exam entries.
+ const doc=documentFrom('<html><body>'+String(syllabus||'').slice(0,500000)+'</body></html>');
+ plan=parseCoursePlan(doc,term,sourceUrl);seen.clear();
+ for(const e of plan.exams)seen.add(JSON.stringify([e.kind,e.week,e.date,e.description]));
+ // Simple prose syllabuses may use headings rather than tables. Never scan grade/assignment data.
+ let syllabusWeek=null;
+ for(const e of doc.querySelectorAll('h1,h2,h3,h4,p,li'))if(!e.closest('table')){
+  const text=e.textContent||'';syllabusWeek=weekIn(text)||(/^H[1-4]$/.test(e.tagName)?null:syllabusWeek);
+  if(!syllabusWeek&&/%/.test(text))continue;
+  if(parseExamEntry(text,term,sourceUrl,{week:syllabusWeek}))add(text,syllabusWeek);
+ }
+ return {...plan,sourceUrl,source:'ntu-cool',sourcePart:'syllabus',retrievedAt:Date.now()};
 }
 
 export async function readCoolCoursePlan(jar,id,term) {
@@ -67,8 +71,6 @@ export async function readCoolCoursePlan(jar,id,term) {
  try{
   const active=await pages('/api/v1/courses?enrollment_state=active&per_page=100');
   if(!active.some(c=>String(c.id)===id))throw new ApiError(403,'cool_course_not_enrolled','This COOL course is not in your active enrolled course list.');
-  const {data:course}=await one(new URL(`/api/v1/courses/${id}?include[]=syllabus_body`,COOL),`/api/v1/courses/${id}`);
-  if(String(course?.id)!==id)throw unavailable();
   const modules=await pages(`/api/v1/courses/${id}/modules?include[]=items&per_page=100`);
   for(const module of modules){
    if(module.published===false||module.locked_for_user===true)continue;
@@ -77,7 +79,11 @@ export async function readCoolCoursePlan(jar,id,term) {
     const path=`/api/v1/courses/${id}/modules/${module.id}/items`;allowed.add(path);module.items=await pages(path+'?per_page=100');
    }
   }
-  return parseCoolCoursePlan(course.syllabus_body,modules,term,`${COOL}/courses/${id}`);
+  const sourceUrl=`${COOL}/courses/${id}`,modulePlan=parseCoolCoursePlan('',modules,term,sourceUrl);
+  if(modulePlan.exams.length)return modulePlan;
+  const {data:course}=await one(new URL(`/api/v1/courses/${id}?include[]=syllabus_body`,COOL),`/api/v1/courses/${id}`);
+  if(String(course?.id)!==id)throw unavailable();
+  return parseCoolCoursePlan(course.syllabus_body,[],term,sourceUrl);
  }catch(error){if(error instanceof ApiError)throw error;throw unavailable();}finally{clearTimeout(timer);}
 }
 

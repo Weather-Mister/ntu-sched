@@ -8,7 +8,10 @@ export async function preferredExamPlan(env,student,timetable,candidate,{coolRea
  let sourceReason='COOL has no exam entries in its syllabus or module titles. Showing the public syllabus fallback.';
  try{
   const plan=await coolRead(env,student,candidate);
-  if(plan.exams?.length)return {...metadata,...plan,source:'ntu-cool',sourceReason:'NTU COOL is the primary source. Active course enrollment was verified.'};
+  if(plan.exams?.length)return {...metadata,...plan,source:'ntu-cool',sourceReason:plan.sourcePart==='modules'
+    ?'Source: NTU COOL weekly modules. Other syllabus sources were skipped because these modules contain exam entries.'
+    :plan.sourcePart==='syllabus'?'COOL modules have no exam entries. Using the COOL syllabus; the public syllabus was skipped.'
+    :'NTU COOL is the primary source. Active course enrollment was verified.'};
  }catch{
   // A missing/revoked COOL connection must not prevent the public fallback.
   sourceReason='COOL is unavailable for this course. Showing the public syllabus fallback.';
