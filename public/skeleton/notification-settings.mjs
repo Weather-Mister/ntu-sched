@@ -8,7 +8,7 @@ const texts={
   help:'Enable alerts in Campus Mail first. A local test checks display permission; a push test checks the server and provider. Provider acceptance does not guarantee the phone displayed an alert.',
   signIn:'Sign in to test notifications.',unsupported:'Not supported',allowed:'Allowed',blocked:'Blocked',unasked:'Not requested',
   registered:'Registered',missing:'Not registered',missingHelp:'This device is not registered. Open Campus Mail, enable alerts, then check again.',
-  checking:'Checking browser, subscription and server…',first:'Waiting for first mail check',last:'Last checked ',error:'Mail checker: ',
+  checking:'Checking browser, subscription and server…',first:'Waiting for first mail check',last:'Last checked ',error:'Mail checker: ',failures:' · Failed checks: ',
   localDone:'Local notification requested. Did it appear?',localError:'Local test failed: ',
   sending:'Sending a test push through the server…',accepted:'Push provider accepted (HTTP ',acceptedEnd:'). Check your notifications; delivery to your phone is not yet confirmed.',
   failed:'Push test failed: ',install:'Install Campus Week from Safari on your Home Screen to use iPhone push alerts.'
@@ -20,7 +20,7 @@ const texts={
   help:'請先在 Campus Mail 開啟通知。本機測試檢查裝置顯示權限；推播測試檢查伺服器及推播服務。服務接受不表示已顯示通知。',
   signIn:'請先登入才能測試通知。',unsupported:'不支援',allowed:'已允許',blocked:'已封鎖',unasked:'尚未要求',
   registered:'已註冊',missing:'未註冊',missingHelp:'此裝置未註冊。請開啟 Campus Mail 啟用通知，再重新檢查。',
-  checking:'正在檢查瀏覽器、訂閱與伺服器…',first:'等待首次郵件檢查',last:'上次檢查 ',error:'郵件檢查：',
+  checking:'正在檢查瀏覽器、訂閱與伺服器…',first:'等待首次郵件檢查',last:'上次檢查 ',error:'郵件檢查：',failures:' · 失敗次數：',
   localDone:'已要求顯示本機通知。有收到嗎？',localError:'本機測試失敗：',
   sending:'正在經由伺服器傳送測試推播…',accepted:'推播服務已接受（HTTP ',acceptedEnd:'）。請查看通知；尚未確認送達手機。',
   failed:'推播測試失敗：',install:'iPhone 請先透過 Safari 將 Campus Week 加入主畫面。'
@@ -80,7 +80,7 @@ export function createNotificationSettings({account,getContext}){
    $('settings-notify-device').textContent=deviceId?w().registered:w().missing;
    const state=server.state;
    const last=Number(state?.checked_at);
-   $('settings-notify-checker').textContent=state?.last_error?w().error+state.last_error:last>0?w().last+new Intl.DateTimeFormat(getContext().language==='zh'?'zh-TW':'en-US',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Taipei'}).format(new Date(last)):w().first;
+   $('settings-notify-checker').textContent=state?.last_error?w().error+state.last_error+(state.failures?w().failures+state.failures:''):last>0?w().last+new Intl.DateTimeFormat(getContext().language==='zh'?'zh-TW':'en-US',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Taipei'}).format(new Date(last)):w().first;
    show(deviceId?'':w().missingHelp,!deviceId);
   }catch(e){
    if(current(g,student)){
@@ -115,7 +115,7 @@ export function createNotificationSettings({account,getContext}){
    if(current(g,student))show(w().accepted+result.providerStatus+w().acceptedEnd);
   }catch(e){
    if(current(g,student)){
-    show(w().failed+(e.message||String(e)),true);
+    show(w().failed+(e.message||String(e))+(e.code?' ['+e.code+']':''),true);
     if(e.status===404||e.status===410){deviceId=null;$('settings-notify-device').textContent=w().missing;}
    }
   }finally{if(current(g,student)){busy=false;buttons();}}
