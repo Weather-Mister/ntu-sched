@@ -137,3 +137,19 @@ test('iOS event sheet constrains native picker boxes and disallows horizontal sc
   assert.match(mobile,/\.event-dialog \.event-form input\[type="date"\],[\s\S]*?\.event-dialog \.event-form input\[type="time"\],[\s\S]*?padding:0;/);
   assert.match(mobile,/\.exam-editor-dialog \.exam-editor-form input\[type="date"\]/);
 });
+
+test('Undo remove controls and transient sync popups are absent, while retryable failures remain',()=>{
+  const events=readFileSync(new URL('custom-events.mjs',skeleton),'utf8');
+  assert.doesNotMatch(html,/id="(?:tasks-undo|events-undo|initial-sync-notice)"/);
+  assert.doesNotMatch(js,/\$\('(?:tasks-undo|initial-sync-notice)'\)/);
+  assert.doesNotMatch(events,/\$\('events-undo'\)/);
+  assert.doesNotMatch(css,/\.initial-sync-notice/);
+  assert.match(js,/syncInitialSources\(account,needed/);
+  assert.match(js,/const taskErrorVisible=liveMode&&!!state.error&&\(state.error.phase!=='load'\|\|!state.ready\)/);
+  assert.match(js,/const taskStatus=!liveMode\?t\('tasksOnly'\):taskErrorVisible\?t\(errorKey\):''/);
+  assert.match(events,/const actionableError=isLive\(\)&&!!state.error&&\(state.error.phase!=='load'\|\|!state.ready\)/);
+  assert.match(events,/\$\('events-status'\)\.hidden=!actionableError/);
+  assert.match(js,/state.error&&!state.items\?liveNotice\(state.error\)/);
+  assert.match(html,/id="tasks-retry"/);
+  assert.match(html,/id="events-retry"/);
+});
