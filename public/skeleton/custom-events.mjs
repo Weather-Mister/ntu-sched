@@ -21,16 +21,17 @@ export function createEventUI({account,isLive,getLanguage,getDate,onChange,onSes
     $('event-remove').textContent=text($('event-frequency').value==='weekly'?'removeSeries':'remove');
     $('event-title').placeholder=getLanguage()==='zh'?'例如：讀書會':'e.g. Study group';$('event-location').placeholder=getLanguage()==='zh'?'例如：總圖書館':'e.g. Main Library';
     [...$('event-days').children].forEach((label,index)=>{label.querySelector('span').textContent=text('daysShort')[index];label.querySelector('input').setAttribute('aria-label',text('daysLong')[index]);});
-    $('event-help').textContent=text(isLive()?'savedHelp':'previewHelp');$('events-retry').textContent=text('retry');$('events-undo').textContent=text('undo');
+    $('event-help').textContent=text(isLive()?'savedHelp':'previewHelp');$('events-retry').textContent=text('retry');
   }
   function render(){
     const state=store.state,busy=isLive()&&state.saving;
     $('add-event').disabled=isLive()&&(!state.ready||busy);
     for(const n of form.querySelectorAll('input,select,textarea,button'))n.disabled=busy;
     $('event-save').textContent=text(busy?'saving':'save');
-    $('events-status').textContent=isLive()?(state.error?errorText():busy?text('saving'):state.loading?text('loading'):''):'';
+    // Silent background refresh/saves; announce only actionable failures.
+    $('events-status').textContent=isLive()&&state.error?errorText():'';
+    $('events-status').hidden=!isLive()||!state.error;
     $('events-retry').hidden=!isLive()||!state.error;$('events-retry').disabled=busy||state.loading;
-    $('events-undo').hidden=!isLive()||!state.undo;$('events-undo').disabled=busy;
     if(dialog.open&&state.error)error(errorText());
   }
   function frequency(){const weekly=$('event-frequency').value==='weekly';$('event-weekly').hidden=!weekly;$('event-until').min=$('event-date').value||'2000-01-01';locale();}
@@ -56,7 +57,7 @@ export function createEventUI({account,isLive,getLanguage,getDate,onChange,onSes
   $('event-remove').addEventListener('click',async()=>{if(!editing)return;const generation=epoch;if(isLive()){if(await store.remove(editing)&&generation===epoch){dialog.close();editing=null;}}else{preview=preview.filter(e=>e.id!==editing.id);dialog.close();editing=null;onChange();}});
   $('add-event').addEventListener('click',()=>open());$('event-close').addEventListener('click',close);$('event-cancel').addEventListener('click',close);
   $('event-frequency').addEventListener('change',frequency);$('event-date').addEventListener('change',()=>{if(!editing&&$('event-frequency').value==='once'){for(const input of $('event-days').querySelectorAll('input'))input.checked=+input.value===eventDay($('event-date').value);}frequency();});
-  $('events-retry').addEventListener('click',()=>store.refresh());$('events-undo').addEventListener('click',()=>store.undo());
+  $('events-retry').addEventListener('click',()=>store.refresh());
   dialog.addEventListener('cancel',e=>{if(isLive()&&store.state.saving)e.preventDefault();});
   locale();render();
   return{open,reset,locale(){locale();render();},refresh(){if(isLive())void store.refresh();},events(){return isLive()?store.state.items:preview;}};
