@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {CookieJar} from '../src/ntu-cookies.mjs';
 import {readCoolCoursePlan,parseCoolCoursePlan} from '../src/cool-course-plan.mjs';
 const SOURCE='https://cool.ntu.edu.tw/courses/64620';
+test('psychology study guides are preparation material, while the actual midterm remains an exam',()=>{
+ const plan=parseCoolCoursePlan('',[
+  {name:'Week 7',items:[{title:'Midterm Exam Study Guide'},{title:'Study guide for the midterm exam'},{title:'Final exam — revision guide'}]},
+  {name:'Week 9',items:[{title:'Midterm Exam'}]},
+  {name:'Week 16',items:[{title:'Final exam — bring your study guide'}]}
+ ],'115-1',SOURCE);
+ assert.deepEqual(plan.exams.map(e=>[e.kind,e.week]),[['midterm',9],['final',16]]);
+});
 test('COOL Week 10 / Midterm 2 modules preserve source and never infer dates from unlocks',()=>{
  const plan=parseCoolCoursePlan('',[{name:'Week 10',unlock_at:'2026-11-09',items:[{title:'Midterm 2',type:'SubHeader',due_at:'2026-11-10'}]},{name:'Week 11',items:[{title:'Cam Drive'}]}],'115-1',SOURCE);
  assert.deepEqual(plan.exams.map(e=>[e.kind,e.week,e.date,e.certainty,e.sourceUrl]),[['midterm',10,null,'week-only',SOURCE]]);

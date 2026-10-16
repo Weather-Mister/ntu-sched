@@ -68,7 +68,7 @@ export function parseNtuCourseExams(html, source) {
 
 export function parseExamEntry(description,term,sourceUrl,{week=null,scheduleDates=[]}={}) {
     description=norm(description);
-    const examText=description.replace(/\b(?:mid[\s-]?term|final|quiz)(?:\s+(?:exam|test))?\s*\d*\s*(?:preparation|prep\b|review|practice)|\b(?:preparation|review|practice|mock)\s+(?:for\s+(?:the\s+)?)?(?:mid[\s-]?term|final|quiz)(?:\s+(?:exam|test))?|期[中末](?:考試|考)?(?:複習|準備|練習)|(?:模擬|練習)考/giu,'');
+    const examText=description.replace(/\b(?:mid[\s-]?term|final|quiz)(?:\s+(?:exam|test))?\s*\d*\s*(?:[-–—:]\s*)?(?:preparation|prep\b|review|practice|study\s+guide|revision\s+guide)|\b(?:preparation|review|practice|mock|study\s+guide|revision\s+guide)\s+(?:for\s+(?:the\s+)?)?(?:mid[\s-]?term|final|quiz)(?:\s+(?:exam|test))?|期[中末](?:考試|考)?(?:複習|準備|練習)|(?:模擬|練習)考/giu,'');
     if(!mention.test(examText))return null;
     const specific = dateIn(description, term);
     const examMention=mention.exec(examText),inlineDate=/(?:20\d{2}[-/])?\d{1,2}\s*(?:\/|月|-)\s*\d{1,2}(?:日)?/.exec(examText)||new RegExp(namedDate.source,'i').exec(examText);
