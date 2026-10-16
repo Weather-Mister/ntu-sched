@@ -80,7 +80,7 @@ const dict={
 let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 let pastExamsOpen=false;
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,initialSyncBusy=false,liveTimetableInfo='',liveCoolInfo='';
-let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
+let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},liveExamPlans={},liveSectionOptions={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 const coolScroll=createCoolFeedScroll({list:$('cool-list')});
@@ -89,7 +89,15 @@ const taskStore = new AccountTasks(account, {
   onSessionExpired:()=>sessionExpired()
 });
 const announcementStore=new AccountAnnouncements(account,()=>{if(student&&liveMode)renderDeadlines();},()=>sessionExpired());
-const examStore=new AccountExams(account,()=>{if(student&&liveMode){if(coolView==='exams')renderDeadlines();renderCalendar();}},()=>sessionExpired());
+const examStore=new AccountExams(account,()=>{if(student&&liveMode){
+  for(const [courseId,entry] of examStore.entries){
+    const result=entry.result;
+    if(result?.candidates&&result?.matching){
+      liveSectionOptions[courseId]={term:liveTimetable?.term||'',candidates:result.candidates,matching:result.matching,selected:result.selected||null,savedAt:result.savedAt||Date.now()};
+    }
+  }
+  if(coolView==='exams')renderDeadlines();renderCalendar();
+}},()=>sessionExpired());
 const eventUI=createEventUI({account,isLive:()=>liveMode,getLanguage:()=>language,getDate:()=>selectedDate,onChange(){if(student){renderBanner();renderCalendar();}},onSessionExpired:()=>sessionExpired()});
 function scheduleOn(key){return[...student.courses.filter(c=>c[0]===weekday(key)),...eventsOn(eventUI.events(),key)].sort((a,b)=>a[1].localeCompare(b[1]));}
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
@@ -551,23 +559,32 @@ function showLesson(c,key){
   $('lesson-name-input').value=lessonDraft.initial.name;$('lesson-room-input').value=lessonDraft.initial.room;
   $('lesson-description-input').value=lessonDraft.initial.description;$('lesson-edit-message').hidden=true;
   lessonSaving=false;lessonControls();populateLesson(c,key);$('lesson-dialog').showModal();
-  if(liveMode)void loadLessonSections(lessonDraft,liveEpoch);
+  if(liveMode){
+    const cached=liveSectionOptions[lessonDraft.id];
+    if(cached?.term===liveTimetable?.term)displayLessonSections(lessonDraft,cached);
+    else void loadLessonSections(lessonDraft,liveEpoch);
+  }
+}
+function displayLessonSections(draft,result){
+  const autoSelected=result.matching?.status==='student-selected'?null:result.selected;
+  const automatic=node('option','',t('automaticSection')+(autoSelected?' · '+sectionLabel(autoSelected):''));automatic.value='';
+  $('lesson-section-input').replaceChildren(automatic);
+  for(const offering of result.candidates||[]){
+    const option=node('option','',sectionLabel(offering)+' · '+offering.serial);option.value=offering.serial;$('lesson-section-input').append(option);
+  }
+  if(draft.initial.serial&&!result.candidates?.some(c=>c.serial===draft.initial.serial)){
+    const missing=node('option','',language==='zh'?'已儲存班次已無法使用 · 請重新選擇':'Saved section unavailable · choose again');missing.value=draft.initial.serial;$('lesson-section-input').append(missing);
+  }
+  $('lesson-section-input').value=draft.initial.serial;draft.sectionsReady=true;lessonControls();
+  $('lesson-section-status').textContent=result.candidates?.length?(language==='zh'?'選擇你實際修課的班次，儲存後更新考試。':'Choose your enrolled section. Save changes to update its exam plan.'):(language==='zh'?'本學期未找到符合的公開課程。':'No matching public course was found for this semester.');
 }
 async function loadLessonSections(draft,epoch){
   try{
     const result=await account.courseOptions(draft.id);
     if(lessonDraft!==draft||epoch!==liveEpoch)return;
     if(result.studentNumber!==liveAccount?.studentNumber){sessionExpired();return;}
-    const automatic=node('option','',t('automaticSection')+(result.selected?' · '+sectionLabel(result.selected):''));automatic.value='';
-    $('lesson-section-input').replaceChildren(automatic);
-    for(const offering of result.candidates){
-      const option=node('option','',sectionLabel(offering)+' · '+offering.serial);option.value=offering.serial;$('lesson-section-input').append(option);
-    }
-    if(draft.initial.serial&&!result.candidates.some(c=>c.serial===draft.initial.serial)){
-      const missing=node('option','',language==='zh'?'已儲存班次已無法使用 · 請重新選擇':'Saved section unavailable · choose again');missing.value=draft.initial.serial;$('lesson-section-input').append(missing);
-    }
-    $('lesson-section-input').value=draft.initial.serial;draft.sectionsReady=true;lessonControls();
-    $('lesson-section-status').textContent=result.candidates.length?(language==='zh'?'選擇你實際修課的班次，儲存後更新考試。':'Choose your enrolled section. Save changes to update its exam plan.'):(language==='zh'?'本學期未找到符合的公開課程。':'No matching public course was found for this semester.');
+    liveSectionOptions[draft.id]={term:liveTimetable?.term||'',selected:result.selected,matching:result.matching,candidates:result.candidates,savedAt:result.savedAt||Date.now()};
+    displayLessonSections(draft,result);
   }catch(error){
     if(lessonDraft!==draft||epoch!==liveEpoch)return;
     if(error.status===401){sessionExpired();return;}
@@ -588,7 +605,7 @@ async function saveLessonDetails(reset=false){
       const result=await account.changeCourseDetails(draft.id,body);
       if(epoch!==liveEpoch||lessonDraft!==draft)return;
       if(result.studentNumber!==liveAccount?.studentNumber){sessionExpired();return;}
-      liveDetailsRevision++;liveTimetable=result.timetable;liveCourseOverrides=result.courseOverrides||{};
+      liveDetailsRevision++;liveTimetable=result.timetable;liveCourseOverrides=result.courseOverrides||{};liveExamPlans=result.examPlans||{};liveSectionOptions=result.sectionOptions||{};
       renderLiveAccount();
     }else{
       const previous=previewCourseOverrides[draft.id]||{},next=reset?{}:{...previous};
@@ -607,7 +624,7 @@ async function saveLessonDetails(reset=false){
 }
 function previewCourseRows(profile){return profile.courses.map(c=>{const row=[...c];row[8]='preview:'+(c[6]||c[3]);return row;});}
 function leavePreview(){
-  liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);settingsUI.reset();$('task-input').value='';
@@ -731,7 +748,7 @@ function updateLiveStatus(){
   $('live-cool-settings-status').textContent=messageC;
 }
 function renderLiveAccount(){
-  examStore.configure(liveTimetable,liveCourseOverrides);
+  examStore.configure(liveTimetable,liveCourseOverrides,liveExamPlans);
   student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides);
   renderAll();dashboardResize.place();
 }
@@ -749,7 +766,7 @@ async function readLiveSnapshots({initializeMissing=false}={}){
   if(tResult.status==='fulfilled'&&detailsRevision===liveDetailsRevision&&!lessonSaving){
     if(tResult.value.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
     liveCourseOverrides=tResult.value.courseOverrides||{};
-    liveTimetable=tResult.value.timetable||null;liveTimetableOk=tResult.value.connectionStatus==='authorized';
+    liveTimetable=tResult.value.timetable||null;liveExamPlans=tResult.value.examPlans||{};liveSectionOptions=tResult.value.sectionOptions||{};liveTimetableOk=tResult.value.connectionStatus==='authorized';
     liveTimetableInfo=tResult.value.connectionStatus==='reconnect_required'
       ?'Timetable reconnect required. Last saved classes are preserved.':'';
   }else if(tResult.status==='rejected'){
@@ -794,7 +811,7 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
           if(payload.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
           if(detailsRevision===liveDetailsRevision&&!lessonSaving){
             liveTimetable=payload.timetable||liveTimetable;
-            liveCourseOverrides=payload.courseOverrides||liveCourseOverrides;
+            liveCourseOverrides=payload.courseOverrides||liveCourseOverrides;liveExamPlans=payload.examPlans||{};liveSectionOptions=payload.sectionOptions||{};
           }else if(!lessonSaving)void readLiveSnapshots();
           liveTimetableOk=true;
           liveTimetableInfo=language==='zh'?'課表已同步':'Timetable connected';
@@ -826,7 +843,7 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
 }
 function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
-  liveMode=true;liveEpoch++;initialSyncBusy=false;$('initial-sync-notice').hidden=true;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveMode=true;liveEpoch++;initialSyncBusy=false;$('initial-sync-notice').hidden=true;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';coolScroll.reset();
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);examStore.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
@@ -862,7 +879,7 @@ async function syncLive(which){
       :await account.syncCoolCalendar(undefined,undefined,true);
     if(epoch!==liveEpoch)return;
     if(which==='timetable'&&result.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
-    if(which==='timetable'){if(detailsRevision===liveDetailsRevision&&!lessonSaving){liveCourseOverrides=result.courseOverrides||{};liveTimetable=result.timetable||liveTimetable;}else if(!lessonSaving)void readLiveSnapshots();liveTimetableOk=true;liveTimetableInfo='Timetable updated';}
+    if(which==='timetable'){if(detailsRevision===liveDetailsRevision&&!lessonSaving){liveCourseOverrides=result.courseOverrides||{};liveExamPlans=result.examPlans||{};liveSectionOptions=result.sectionOptions||{};liveTimetable=result.timetable||liveTimetable;}else if(!lessonSaving)void readLiveSnapshots();liveTimetableOk=true;liveTimetableInfo='Timetable updated';}
     else{liveCalendar=result.calendar||liveCalendar;liveCalendarOk=true;liveCoolInfo='COOL calendar updated';}
     renderLiveAccount();
   }catch(e){
@@ -897,7 +914,7 @@ async function endLiveAccount(){
 }
 
 function enterPreview(){
-  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
+  liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);$('task-input').value='';
   eventUI.reset();
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
