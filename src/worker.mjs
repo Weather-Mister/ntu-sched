@@ -1,6 +1,6 @@
 import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson } from './security.mjs';
 import { verifyNtuMail } from './ntu-mail.mjs';
-import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails } from './timetable-store.mjs';
+import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails, saveStudentExamPlan } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
@@ -208,12 +208,14 @@ export default {
       }
       if (path === '/api/exams/resolve' && request.method === 'GET' || ['/api/exams/plan','/api/exams/options'].includes(path)&&request.method==='POST') {
         const optionsOnly=path==='/api/exams/options',coolFirst=path!=='/api/exams/resolve',current=await session(request,env,coolFirst);
-        let search=new URL(request.url).searchParams;
+        let search=new URL(request.url).searchParams,force=false;
         if(coolFirst){
           const body=await readJson(request,2000);
-          if(new URL(request.url).search||Object.keys(body).some(k=>!['courseId','serial'].includes(k))||typeof body.courseId!=='string'||body.serial!==undefined&&typeof body.serial!=='string')
+          const keys=path==='/api/exams/plan'?['courseId','serial','force']:['courseId','serial'];
+          if(new URL(request.url).search||Object.keys(body).some(k=>!keys.includes(k))||typeof body.courseId!=='string'||body.serial!==undefined&&typeof body.serial!=='string'||body.force!==undefined&&typeof body.force!=='boolean')
             throw new ApiError(400,'invalid_exam_lookup','Choose a course from your imported timetable.');
-          search=new URLSearchParams(body);
+          force=body.force===true;
+          search=new URLSearchParams(Object.fromEntries(Object.entries(body).filter(([key])=>key!=='force')));
         }
         if([...search.keys()].some(k=>!['courseId','serial'].includes(k)) || search.getAll('courseId').length!==1 ||
           !/^[A-Za-z0-9_-]{43}$/.test(search.get('courseId')||'') ||
@@ -223,6 +225,12 @@ export default {
         if(!timetable?.term)throw new ApiError(409,'exam_timetable_missing','Sync your NTU timetable first.');
         const rows=timetable.sessions.filter(s=>s.courseId===search.get('courseId'));
         if(!rows.length)throw new ApiError(404,'exam_course_missing','Choose a course from your own imported timetable.');
+        const savedOffering=saved.courseOverrides?.[search.get('courseId')]?.examOffering;
+        const selection=savedOffering?.serial||'',courseId=search.get('courseId');
+        if(path==='/api/exams/plan'&&!force){
+          const cached=saved.examPlans?.[courseId];
+          if(cached?.result)return json({studentNumber:current.student_number,...cached.result,savedAt:cached.savedAt});
+        }
         const bucket=Math.floor(Date.now()/600000);
         const counter=await env.DB.prepare('INSERT INTO login_limits(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=attempts+1 RETURNING attempts')
           .bind('exam-resolve:'+current.student_id+':'+bucket,(bucket+1)*600).first();
@@ -236,7 +244,6 @@ export default {
           if(snapshot&&Date.now()-snapshot.syncedAt<86400000)
             coolIds=[...new Set([...(snapshot.courses||[]).map(c=>String(c.id)),...(snapshot.items||[]).map(c=>String(c.courseId))])];
         } catch { /* Public lookup still works without a COOL connection. */ }
-        const savedOffering=saved.courseOverrides?.[search.get('courseId')]?.examOffering;
         const resolution=resolveNtuCourse(timetable,rows,candidates,{serial:search.get('serial')||(!optionsOnly&&savedOffering?.serial)||undefined,coolIds});
         let course=null;
         if(resolution.selected&&!optionsOnly){
@@ -245,8 +252,14 @@ export default {
             throw new ApiError(502,'exam_catalog_changed','The syllabus and catalog metadata disagree. No dates were imported.');
         }
         const {coolId:unused,...selected}=resolution.selected||{};
-        return json({studentNumber:current.student_number,matching:resolution.matching,course,selected:resolution.selected?selected:null,
-          candidates:resolution.candidates.map(({coolId,...c})=>c)});
+        const result={matching:resolution.matching,course,selected:resolution.selected?selected:null,
+          candidates:resolution.candidates.map(({coolId,...c})=>c)};
+        if(path==='/api/exams/plan'){
+          // The immutable snapshot belongs only to this student/course/semester/section.
+          // CAS protects a section change that completes while upstream reads are in flight.
+          await saveStudentExamPlan(env,current.student_id,courseId,timetable.term,selection,result);
+        }
+        return json({studentNumber:current.student_number,...result});
       }
       if (path === '/api/exams/preview' && request.method === 'GET') {
         const current = await session(request, env), search = new URL(request.url).searchParams;
