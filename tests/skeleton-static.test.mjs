@@ -72,3 +72,20 @@ test('Lucide settings and refresh artwork is bundled in local SVG symbols', () =
   assert.match(notice,/Permission to use, copy, modify, and\/or distribute/);
   assert.match(html,/License: \.\/LUCIDE-LICENSE\.txt/);
 });
+
+test('exam status dropdown is removed and unavailable classes use the reddish feed footer',()=>{
+  const examStyles=readFileSync(new URL('exams.css',skeleton),'utf8');
+  const {document}=parseHTML(html);
+  const footer=document.getElementById('cool-preview-note');
+  assert.equal(footer.tagName,'DIV','the warning contains a valid list of classes');
+  assert.match(js,/examUnavailableCourses\(examStore\.courses,examStore\.entries/);
+  assert.match(js,/footer\.classList\.add\('exam-warning'\)/);
+  assert.match(js,/footer\.hidden=true/);
+  assert.doesNotMatch(js,/exam-course-status|Course status \/ choose sections/);
+  assert.match(examStyles,/\.preview-footnote\.exam-warning\{/);
+  assert.match(examStyles,/\.preview-footnote\.exam-warning\[hidden\]\{display:none\}/);
+  assert.match(js,/chooseSection:'Choose your class',section:'Class'/);
+  assert.match(js,/chooseSection:'選擇你的課程班別',section:'班別'/);
+  assert.match(html,/data-i18n="chooseSection">Choose your class</);
+  assert.match(js,/const history=node\('details','exam-past'\)/);
+});
