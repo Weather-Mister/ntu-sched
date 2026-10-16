@@ -89,3 +89,23 @@ test('exam status dropdown is removed and unavailable classes use the reddish fe
   assert.match(html,/data-i18n="chooseSection">Choose your class</);
   assert.match(js,/const history=node\('details','exam-past'\)/);
 });
+
+test('custom exams and imported overrides use a separate account-backed editor and compact warning',()=>{
+  const examStyles=readFileSync(new URL('exams.css',skeleton),'utf8');
+  const editor=readFileSync(new URL('exam-editor.mjs',skeleton),'utf8');
+  const {document}=parseHTML(html);
+  for(const id of ['exam-editor-dialog','exam-editor-name','exam-editor-kind','exam-editor-class','exam-editor-date','exam-editor-week','exam-editor-notes','exam-editor-save','exam-editor-remove','exam-editor-reset']){
+    assert.ok(document.getElementById(id),'missing exam editor field '+id);
+  }
+  assert.match(js,/createExamEditor\(/);
+  assert.match(js,/examFeed\(examStore.entries,taipeiToday\(\),examEditor.items\(\)\)/);
+  assert.match(js,/examEditor\.open\(item\)/);
+  assert.match(js,/examEditor\.bind\(current\)/);
+  assert.match(js,/const details=node\('details','exam-warning-disclosure'\)/);
+  assert.match(js,/details.open=missingExamsOpen/);
+  assert.match(examStyles,/padding:5px 8px;margin:9px 0 0/);
+  assert.match(examStyles,/\.exam-warning-disclosure>summary\{/);
+  assert.match(examStyles,/\.exam-editor-fields\{/);
+  assert.match(editor,/normalizeCustomExam/);
+  assert.match(editor,/store.remove\(editing.manualRecord\)/);
+});
