@@ -47,3 +47,27 @@ export async function subscribe(env,owner,value){
  await env.DB.prepare('INSERT INTO mail_state(student_id) VALUES(?) ON CONFLICT(student_id) DO UPDATE SET baseline=NULL,next_check=0').bind(owner.student_id).run();
  return {enabled:true,id};
 }
+
+/* The same schema is created on demand for deployments not yet migrated. */
+export const MAIL_PUSH_TEST_SCHEMA='CREATE TABLE IF NOT EXISTS mail_push_tests (student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, last_sent_at INTEGER NOT NULL DEFAULT 0)';
+export async function testPushDelivery(env,owner,id){
+ if(typeof id!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(id))throw new ApiError(400,'invalid_push','Choose this device from notification settings.');
+ const device=await env.DB.prepare('SELECT encrypted_subscription FROM mail_push WHERE student_id=? AND id=?').bind(owner.student_id,id).first();
+ if(!device)throw new ApiError(404,'push_device_missing','This device is not registered. Enable mail alerts again.');
+ await env.DB.prepare(MAIL_PUSH_TEST_SCHEMA).run();
+ await env.DB.prepare('INSERT OR IGNORE INTO mail_push_tests(student_id,last_sent_at) VALUES(?,0)').bind(owner.student_id).run();
+ const time=Date.now();
+ const claimed=await env.DB.prepare('UPDATE mail_push_tests SET last_sent_at=? WHERE student_id=? AND last_sent_at<=? RETURNING last_sent_at').bind(time,owner.student_id,time-20000).first();
+ if(!claimed)throw new ApiError(429,'push_test_wait','Please wait 20 seconds before sending another test.');
+ const subscription=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'mail_push',device.encrypted_subscription);
+ const config=await pushConfiguration(env);
+ let status;
+ try{status=await sendPush(env,subscription,{kind:'test',studentNumber:owner.student_number},config);}
+ catch{throw new ApiError(502,'push_test_failed','Could not reach the push service. Please retry.');}
+ if(status===404||status===410){
+  await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(owner.student_id,id).run();
+  throw new ApiError(410,'push_subscription_expired','Your push subscription expired. Enable mail alerts again.');
+ }
+ if(status<200||status>=300)throw new ApiError(502,'push_test_rejected','The push provider rejected this test (HTTP '+status+').');
+ return {accepted:true,providerStatus:status};
+}

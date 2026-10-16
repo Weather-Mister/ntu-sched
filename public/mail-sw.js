@@ -7,7 +7,8 @@ self.addEventListener('push',event=>event.waitUntil((async()=>{
   // Login cookies may expire while the PWA is closed. Never unsubscribe a
   // healthy push endpoint just because the background session has expired.
  }catch{/* An offline device may still display the generic, private alert. */}
- await self.registration.showNotification('New NTU mail',{body:'You have new mail in Campus Mail.',tag:'campus-mail',icon:'/mail-icon-512.png',data:{url:'/skeleton/?mail=1'}});
+ const test=value.kind==='test';
+ await self.registration.showNotification(test?'Campus Week test':'New NTU mail',{body:test?'Test push received successfully.':'You have new mail in Campus Mail.',tag:test?'campus-mail-test':'campus-mail',icon:'/mail-icon-512.png',data:{url:'/skeleton/?mail=1'}});
 })()));
 self.addEventListener('notificationclick',event=>{
  event.notification.close();event.waitUntil((async()=>{const tabs=await self.clients.matchAll({type:'window',includeUncontrolled:true}),tab=tabs.find(t=>new URL(t.url).pathname.startsWith('/skeleton/'));if(tab){await tab.focus();tab.postMessage({type:'open-mail'});}else await self.clients.openWindow('/skeleton/?mail=1');})());

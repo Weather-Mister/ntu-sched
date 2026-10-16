@@ -198,7 +198,7 @@ export async function checkSend(env,owner,id){
 export async function refreshMailNotifications(env){
  const due=await env.DB.prepare('SELECT m.student_id,s.student_number FROM mail_state m JOIN students s ON s.id=m.student_id WHERE m.next_check<=? AND m.lease_until<? AND EXISTS(SELECT 1 FROM mail_push p WHERE p.student_id=m.student_id) ORDER BY m.next_check LIMIT 4').bind(clock(),clock()).all();
  for(const owner of due.results){try{await withMailbox(env,owner,async(s,state)=>{
-   const result=await s.list('INBOX',1,'','UID 4294967295:*','base','');
+   const result=await s.list('INBOX',1);
    const latest=result.rows.reduce((n,r)=>Math.max(n,Number(r.uid)),0),old=state.baseline?JSON.parse(state.baseline):null;
    // Never notify the initial history; newest UID also catches arrivals already marked read.
    let pending=null;if(old&&latest>old.uid)pending={title:'New NTU mail',body:'You have new mail in Campus Mail.',tag:'ntu-mail-'+owner.student_number,studentNumber:owner.student_number,url:'/skeleton/?mail=1'};
@@ -208,5 +208,5 @@ export async function refreshMailNotifications(env){
    }
    if(!old||latest<old.uid)await env.DB.prepare('UPDATE mail_push SET notified_uid=? WHERE student_id=?').bind(latest,owner.student_id).run();
    await env.DB.prepare('UPDATE mail_state SET baseline=?,checked_at=?,next_check=?,failures=0,last_error=NULL,inbox_at=0 WHERE student_id=?').bind(JSON.stringify({uid:latest}),clock(),Math.floor(clock()/300000)*300000+300000,owner.student_id).run();
-  });}catch(error){await env.DB.prepare('UPDATE mail_state SET next_check=?,failures=failures+1,last_error=? WHERE student_id=?').bind(clock()+(error.code==='reauthorize'?365*86400000:Math.min(3600000,300000*2**Math.min(4,(await env.DB.prepare('SELECT failures FROM mail_state WHERE student_id=?').bind(owner.student_id).first())?.failures||0))),['reauthorize','ntu_session_expired'].includes(error.code)?'Sign in again to reconnect NTU Mail.':'Mail checks will retry automatically.',owner.student_id).run();}}
+  },{retryRead:true});}catch(error){await env.DB.prepare('UPDATE mail_state SET next_check=?,failures=failures+1,last_error=? WHERE student_id=?').bind(clock()+(error.code==='reauthorize'?365*86400000:Math.min(3600000,300000*2**Math.min(4,(await env.DB.prepare('SELECT failures FROM mail_state WHERE student_id=?').bind(owner.student_id).first())?.failures||0))),['reauthorize','ntu_session_expired'].includes(error.code)?'Sign in again to reconnect NTU Mail.':'Mail checks will retry automatically.',owner.student_id).run();}}
 }

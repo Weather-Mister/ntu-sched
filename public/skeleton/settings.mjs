@@ -1,4 +1,5 @@
 import {THEMES,lessonStatistics,preferenceDefaults,normalizePreferences} from './settings-model.mjs';
+import {createNotificationSettings} from './notification-settings.mjs';
 const $=id=>document.getElementById(id);
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
 const copy={
@@ -8,6 +9,7 @@ const copy={
 const SAMPLE_WIDGET={streak:12,todayProgress:4,todayGoal:10,unit:8,book:1,unitColor:'#7f8f65',nextCharacter:{character:'學',pinyin:'xué',meaning:'to learn'}};
 export function createSettings({account,onSessionExpired=()=>{}}){
  let context={student:null,liveMode:false,language:'en',timetable:null},owner=null,epoch=0,revision=0,version=0,preferences=preferenceDefaults(),ready=Promise.resolve(),saveChain=Promise.resolve(),widget=null,widgetError='',widgetBusy=false,widgetEpoch=0,lastWidgetLoad=0,installPrompt=null;
+ const notificationSettings=createNotificationSettings({account,getContext:()=>context});
  const media=matchMedia('(prefers-color-scheme: dark)'),w=()=>copy[context.language==='zh'?'zh':'en'];
  try{const theme=localStorage.getItem('campus-week:appearance');if(THEMES.includes(theme))preferences.theme=theme;}catch{}
  function applyTheme(){
@@ -76,14 +78,14 @@ export function createSettings({account,onSessionExpired=()=>{}}){
  function setWidgetMessage(text,error=false){$('settings-hanzi-status').textContent=text;$('settings-hanzi-status').classList.toggle('is-error',error);}
  function bind(next){
   const identity=next.student?(next.liveMode?next.student.id:'preview:'+next.student.id):null;context=next;if(identity===owner)return;
-  epoch++;widgetEpoch++;revision=0;version=0;owner=identity;widget=null;widgetError='';widgetBusy=false;lastWidgetLoad=0;saveChain=Promise.resolve();preferences={...preferenceDefaults(),theme:document.body.dataset.themePreference||'light'};$('settings-hanzi-username').value='';setWidgetMessage('');stateMessage('');
+  notificationSettings.reset();epoch++;widgetEpoch++;revision=0;version=0;owner=identity;widget=null;widgetError='';widgetBusy=false;lastWidgetLoad=0;saveChain=Promise.resolve();preferences={...preferenceDefaults(),theme:document.body.dataset.themePreference||'light'};$('settings-hanzi-username').value='';setWidgetMessage('');stateMessage('');
   if(!owner){renderWidget();return;}
   const generation=epoch,initialRevision=revision;
   ready=next.liveMode?(async()=>{try{const result=await request('preferences');if(generation!==epoch)return;version=result.version;if(revision===initialRevision){preferences=normalizePreferences(result.preferences);applyTheme();rememberTheme();renderControls();if(preferences.hanziEnabled)void loadWidget();}}catch(e){if(generation===epoch)stateMessage(e.message||w().saveFailed,true);}})():Promise.resolve();
  }
  function update(next){bind(next);for(const element of document.querySelectorAll('[data-settings-copy]'))element.textContent=w()[element.dataset.settingsCopy]||element.textContent;
   $('account-id').textContent=next.student?.id||'—';$('account-name').textContent=next.liveMode?w().liveAccount:w().previewAccount;$('settings-account-status').textContent=next.liveMode?w().connected:w().preview;
-  $('settings-installed').hidden=!(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true);renderStats();renderControls();applyTheme();
+  $('settings-installed').hidden=!(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true);renderStats();renderControls();applyTheme();notificationSettings.render();
   if(!next.liveMode){$('live-timetable-settings-status').textContent=w().sampleSchedule;$('live-cool-settings-status').textContent=w().preview;}
  }
  for(const button of document.querySelectorAll('[data-theme-choice]'))button.addEventListener('click',()=>{preferences.theme=button.dataset.themeChoice;void save().catch(()=>{});});
@@ -103,5 +105,5 @@ export function createSettings({account,onSessionExpired=()=>{}}){
  $('settings-install-button').addEventListener('click',async()=>{if(!installPrompt)return;const prompt=installPrompt;installPrompt=null;$('settings-install-button').hidden=true;await prompt.prompt();await prompt.userChoice;});
  window.addEventListener('focus',()=>{if(preferences.hanziEnabled&&context.student&&!document.hidden&&Date.now()-lastWidgetLoad>120000)void loadWidget();});
  setInterval(()=>{if(preferences.hanziEnabled&&context.student&&!document.hidden&&document.hasFocus()&&navigator.onLine!==false&&Date.now()-lastWidgetLoad>120000)void loadWidget();},120000);
- applyTheme();return {update,reset(){update({student:null,liveMode:false,language:context.language,timetable:null});},open(){update(context);document.querySelector('.settings-main').scrollTop=0;}};
+ applyTheme();return {update,reset(){update({student:null,liveMode:false,language:context.language,timetable:null});},open(){update(context);document.querySelector('.settings-main').scrollTop=0;void notificationSettings.inspect();}};
 }

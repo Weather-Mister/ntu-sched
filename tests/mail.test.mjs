@@ -355,3 +355,34 @@ test('push payload encryption decrypts with the recipient private key and authen
 test('temporary push failures retain pending arrivals for retry rather than losing the notification',async()=>{
  const e=env(),a=await identity(e),{value}=await subscription();await request(e,a,'push','POST',value);await refreshMailNotifications(e);latest=21;pushStatus=503;e.sqlite.prepare('UPDATE mail_state SET next_check=0').run();await refreshMailNotifications(e);assert.equal(JSON.parse(e.sqlite.prepare('SELECT baseline FROM mail_state').get().baseline).uid,20);pushStatus=201;e.sqlite.prepare('UPDATE mail_state SET next_check=0').run();await refreshMailNotifications(e);assert.equal(JSON.parse(e.sqlite.prepare('SELECT baseline FROM mail_state').get().baseline).uid,21);
 });
+
+test('scheduled notification checks read the real Inbox list rather than invalid Roundcube UID search filters',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ await request(e,a,'push','POST',value);
+ await refreshMailNotifications(e);
+ const inbox=calls.filter(c=>c.action==='list'||c.action==='search');
+ assert.ok(inbox.some(c=>c.action==='list'),'normal inbox list is used');
+ assert.equal(inbox.some(c=>c.action==='search'),false,'invalid custom search filters are avoided');
+ e.sqlite.close();
+});
+test('end-to-end push tester is account-scoped, sends a safe test, and rate-limits retries',async()=>{
+ const e=env(),a=await identity(e),b=await identity(e,'r23456789'),{value}=await subscription();
+ const registered=await(await request(e,a,'push','POST',value)).json();
+ assert.equal((await request(e,null,'push/test','POST',{id:registered.id})).status,401);
+ assert.equal((await request(e,{...a,csrf:'wrong'},'push/test','POST',{id:registered.id})).status,403);
+ assert.equal((await request(e,b,'push/test','POST',{id:registered.id})).status,404);
+ const ok=await request(e,a,'push/test','POST',{id:registered.id});
+ assert.equal(ok.status,200,await ok.clone().text());
+ assert.equal((await ok.json()).providerStatus,201);
+ assert.equal((await request(e,a,'push/test','POST',{id:registered.id})).status,429);
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
+ e.sqlite.close();
+});
+test('test endpoint reports stale push devices and removes expired subscriptions',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const registered=await(await request(e,a,'push','POST',value)).json();
+ pushStatus=410;
+ assert.equal((await request(e,a,'push/test','POST',{id:registered.id})).status,410);
+ assert.equal(e.sqlite.prepare('SELECT COUNT(*) AS n FROM mail_push').get().n,0);
+ e.sqlite.close();
+});
