@@ -566,7 +566,8 @@ function showLesson(c,key){
   }
 }
 function displayLessonSections(draft,result){
-  const automatic=node('option','',t('automaticSection')+(result.selected?' · '+sectionLabel(result.selected):''));automatic.value='';
+  const autoSelected=result.matching?.status==='student-selected'?null:result.selected;
+  const automatic=node('option','',t('automaticSection')+(autoSelected?' · '+sectionLabel(autoSelected):''));automatic.value='';
   $('lesson-section-input').replaceChildren(automatic);
   for(const offering of result.candidates||[]){
     const option=node('option','',sectionLabel(offering)+' · '+offering.serial);option.value=offering.serial;$('lesson-section-input').append(option);
