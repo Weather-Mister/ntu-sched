@@ -102,7 +102,7 @@ export function examFeed(entries,today) {
       const weekEnd=weekStart?addDays(weekStart,6):null;
       const ended=date?date<today:!!(weekEnd&&weekEnd<today);
       // An ongoing week is positioned at today; its exact exam day is still unknown.
-      const sortDate=date||(weekStart?(weekStart<today?today:weekStart):'9999-12-31');
+      const sortDate=date||(weekStart?(ended?weekStart:weekStart<today?today:weekStart):'9999-12-31');
       const item={courseId,course,exam,url,date,week,stale:!!entry.error,sortDate};
       (ended?past:upcoming).push(item);
     }
