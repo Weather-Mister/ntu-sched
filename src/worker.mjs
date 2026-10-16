@@ -5,7 +5,7 @@ import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } f
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 import {listCustomExams,createCustomExam,changeCustomExam} from './custom-exams.mjs';
-import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications } from './mail-store.mjs';
+import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications, checkNewMailNow } from './mail-store.mjs';
 import { mailReference } from './mail-content.mjs';
 import { translateMail } from './mail-translation.mjs';
 import {reviseDraft} from './mail-compose-ai.mjs';
@@ -161,6 +161,7 @@ export default {
         }
         if(path==='/api/mail/push'&&request.method==='POST')return json({...owner,...await subscribe(env,current,await readJson(request))});
         if(path==='/api/mail/push/test'&&request.method==='POST')return json({...owner,...await testPushDelivery(env,current,(await readJson(request)).id)});
+        if(path==='/api/mail/push/check-new'&&request.method==='POST')return json({...owner,...await checkNewMailNow(env,current,(await readJson(request)).id)});
         if(path==='/api/mail/push'&&request.method==='DELETE'){
           const body=await readJson(request);if(typeof body.id!=='string')throw new ApiError(400,'invalid_push','Choose a notification device.');
           await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(current.student_id,body.id).run();return json({...owner,enabled:false});

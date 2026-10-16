@@ -52,3 +52,14 @@ test('Settings provides permission, device registration, local test and server p
  assert.match(testUI,/registration\.showNotification\(/);
  assert.match(testUI,/mail\/push\/test/);
 });
+
+test('notification settings includes a new-mail check that uses real mail polling',()=>{
+ const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
+ const ui=readFileSync(new URL('../public/skeleton/notification-settings.mjs',import.meta.url),'utf8');
+ assert.match(html,/id="settings-notify-inbox"[^>]*data-notify-copy="newMail"/);
+ assert.match(ui,/account\.request\('mail\/push\/check-new',\{method:'POST'/);
+ assert.match(ui,/outcome==='baseline_created'/);
+ assert.match(ui,/outcome==='no_new_mail'/);
+ assert.match(ui,/outcome==='new_mail'/);
+ assert.match(ui,/\$\('settings-notify-inbox'\)\.addEventListener/);
+});

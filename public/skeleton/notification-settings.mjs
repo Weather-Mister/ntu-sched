@@ -4,26 +4,26 @@ const texts={
  en:{
   tab:'Alerts',title:'Mail notifications',intro:'Check your device and send a real test push. No email is sent.',
   permissionLabel:'Permission',deviceLabel:'This device',checkerLabel:'Mail checker',
-  check:'Check setup',local:'Show local test',send:'Send push test',
+  check:'Check setup',local:'Show local test',send:'Send push test',newMail:'Check new mail',
   help:'Enable alerts in Campus Mail first. A local test checks display permission; a push test checks the server and provider. Provider acceptance does not guarantee the phone displayed an alert.',
   signIn:'Sign in to test notifications.',unsupported:'Not supported',allowed:'Allowed',blocked:'Blocked',unasked:'Not requested',
   registered:'Registered',missing:'Not registered',missingHelp:'This device is not registered. Open Campus Mail, enable alerts, then check again.',
   checking:'Checking browser, subscription and server…',first:'Waiting for first mail check',last:'Last checked ',error:'Mail checker: ',failures:' · Failed checks: ',
   localDone:'Local notification requested. Did it appear?',localError:'Local test failed: ',
   sending:'Sending a test push through the server…',accepted:'Push provider accepted (HTTP ',acceptedEnd:'). Check your notifications; delivery to your phone is not yet confirmed.',
-  failed:'Push test failed: ',install:'Install Campus Week from Safari on your Home Screen to use iPhone push alerts.'
+  failed:'Push test failed: ',checkingMail:'Checking NTU inbox and real notification delivery…',mailBaseline:'First inbox check complete. Older mail will not trigger alerts. Send a new email and check again in one minute.',mailNone:'No new mail since the last successful notification check.',mailNew:'New mail detected. Push accepted on ',mailNewEnd:' device(s).',mailExpired:'Push subscription expired on ',mailExpiredEnd:' device(s); re-enable alerts if this device was affected.',mailDeliveryMissing:'New mail was found, but no push service accepted a notification. Re-enable alerts.',mailFailure:'New-mail check failed: ',install:'Install Campus Week from Safari on your Home Screen to use iPhone push alerts.'
  },
  zh:{
   tab:'通知',title:'郵件通知',intro:'檢查裝置設定並傳送真正的推播測試，不會寄出郵件。',
   permissionLabel:'通知權限',deviceLabel:'此裝置',checkerLabel:'郵件檢查',
-  check:'檢查設定',local:'本機通知測試',send:'發送推播測試',
+  check:'檢查設定',local:'本機通知測試',send:'發送推播測試',newMail:'檢查新郵件',
   help:'請先在 Campus Mail 開啟通知。本機測試檢查裝置顯示權限；推播測試檢查伺服器及推播服務。服務接受不表示已顯示通知。',
   signIn:'請先登入才能測試通知。',unsupported:'不支援',allowed:'已允許',blocked:'已封鎖',unasked:'尚未要求',
   registered:'已註冊',missing:'未註冊',missingHelp:'此裝置未註冊。請開啟 Campus Mail 啟用通知，再重新檢查。',
   checking:'正在檢查瀏覽器、訂閱與伺服器…',first:'等待首次郵件檢查',last:'上次檢查 ',error:'郵件檢查：',failures:' · 失敗次數：',
   localDone:'已要求顯示本機通知。有收到嗎？',localError:'本機測試失敗：',
   sending:'正在經由伺服器傳送測試推播…',accepted:'推播服務已接受（HTTP ',acceptedEnd:'）。請查看通知；尚未確認送達手機。',
-  failed:'推播測試失敗：',install:'iPhone 請先透過 Safari 將 Campus Week 加入主畫面。'
+  failed:'推播測試失敗：',checkingMail:'正在檢查臺大收件匣與真實推播…',mailBaseline:'已建立首次收件匣基準，舊郵件不會觸發通知。請寄送新郵件並於一分鐘後再測試。',mailNone:'自上次通知檢查以來沒有新郵件。',mailNew:'發現新郵件，推播服務已接受 ',mailNewEnd:' 部裝置的通知。',mailExpired:'已有 ',mailExpiredEnd:' 部裝置訂閱過期；如包含此裝置請重新開啟通知。',mailDeliveryMissing:'發現新郵件，但推播服務未接受通知。請重新啟用通知。',mailFailure:'新郵件檢查失敗：',install:'iPhone 請先透過 Safari 將 Campus Week 加入主畫面。'
  }
 };
 const supported=()=>('serviceWorker'in navigator)&&('PushManager'in window)&&('Notification'in window);
@@ -42,6 +42,7 @@ export function createNotificationSettings({account,getContext}){
   $('settings-notify-check').disabled=busy||!active;
   $('settings-notify-local').disabled=busy||!active||!supported();
   $('settings-notify-push').disabled=busy||!active||!deviceId||!supported()||Notification.permission!=='granted';
+  $('settings-notify-inbox').disabled=busy||!active||!deviceId;
  }
  function reset(){
   epoch++;deviceId=null;busy=false;
@@ -120,8 +121,38 @@ export function createNotificationSettings({account,getContext}){
    }
   }finally{if(current(g,student)){busy=false;buttons();}}
  }
+
+ async function checkNewMail(){
+  const student=owner(),g=epoch,id=deviceId;
+  if(!student||!id){show(w().missingHelp,true);return;}
+  busy=true;buttons();show(w().checkingMail);
+  try{
+   const result=await account.request('mail/push/check-new',{method:'POST',body:JSON.stringify({id})});
+   if(!current(g,student))return;
+   if(result.outcome==='baseline_created')show(w().mailBaseline);
+   else if(result.outcome==='no_new_mail')show(w().mailNone);
+   else if(result.outcome==='new_mail'){
+    const delivered=Number(result.acceptedDevices)||0,expired=Number(result.expiredDevices)||0;
+    show((delivered?w().mailNew+delivered+w().mailNewEnd:w().mailDeliveryMissing)+
+     (expired?' '+w().mailExpired+expired+w().mailExpiredEnd:''),
+     delivered===0);
+   }else show(w().mailFailure+'Unknown result.',true);
+   if(result.checkedAt){
+    $('settings-notify-checker').textContent=w().last+
+     new Intl.DateTimeFormat(getContext().language==='zh'?'zh-TW':'en-US',{
+      dateStyle:'short',timeStyle:'short',timeZone:'Asia/Taipei'
+     }).format(new Date(result.checkedAt));
+   }
+  }catch(e){
+   if(current(g,student)){
+    show(w().mailFailure+(e.message||String(e))+(e.code?' ['+e.code+']':''),true);
+    if(e.status===404||e.status===410){deviceId=null;$('settings-notify-device').textContent=w().missing;}
+   }
+  }finally{if(current(g,student)){busy=false;buttons();}}
+ }
  $('settings-notify-check').addEventListener('click',()=>void inspect());
  $('settings-notify-local').addEventListener('click',()=>void localTest());
  $('settings-notify-push').addEventListener('click',()=>void pushTest());
+ $('settings-notify-inbox').addEventListener('click',()=>void checkNewMail());
  return {reset,render,inspect};
 }
