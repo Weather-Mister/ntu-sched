@@ -13,3 +13,5 @@ Future skins should follow this same cosmetic adapter pattern. Keep all selector
 ## Dark
 
 `dark.css` defines a consistent charcoal palette for the shared dashboard, Settings, forms, mail list, reader and composer. It uses lighter course accents with dark surfaces and explicit foreground colors on primary buttons. No filter or image inversion is used. `mail-appearance.mjs` adds a local stylesheet to sanitized sandboxed email documents and restores the original document when leaving Dark. Email content, links, images and sandbox restrictions remain intact.
+
+Hanzi Steps is temporarily hidden from the dashboard and Settings, across every theme. The existing account preferences are preserved, and widget fetching/refresh timers are disabled while it is hidden.
