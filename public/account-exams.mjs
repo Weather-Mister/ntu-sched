@@ -1,45 +1,55 @@
-// Account-owned, memory-only exam previews. No background polling or browser storage.
+// Exam plans belong to the student's encrypted server snapshot, not device storage.
+// A sign-in checks only uncached classes; manual refresh and section changes reload.
 export class AccountExams {
   constructor(client,onChange,onExpired,{now=Date.now}={}) {
     Object.assign(this,{client,onChange,onExpired,now});
     this.epoch=0;this.owner=null;this.entries=new Map();this.busy=false;this.active=false;
-    this.signature='';this.courses=[];this.lastForced=-Infinity;
+    this.signature='';this.courses=[];
   }
   bind(owner) {
     this.epoch++;this.owner=owner;this.entries.clear();this.signature='';this.courses=[];
-    this.busy=false;this.active=false;this.lastForced=-Infinity;
+    this.busy=false;this.active=false;
   }
-  configure(timetable,overrides={}) {
-    const courses=[...new Map((timetable?.sessions||[]).map(c=>[c.courseId,c])).values()];
-    const signature=JSON.stringify([timetable?.term,timetable?.changedAt,courses.map(c=>[c.courseId,overrides[c.courseId]?.examOffering?.serial||''])]);
-    if(signature===this.signature)return;
-    this.signature=signature;this.epoch++;this.busy=false;
-    const previous=this.courses;this.courses=courses.map(c=>({...c,selection:overrides[c.courseId]?.examOffering?.serial||''}));
-    for(const [id]of this.entries)if(!this.courses.some(c=>c.courseId===id&&previous.some(p=>p.courseId===id&&p.selection===c.selection)))this.entries.delete(id);
-    // A fresh imported timetable can change the term or matching evidence.
-    if(this.timetableKey!==JSON.stringify([timetable?.term,timetable?.changedAt]))this.entries.clear();
-    this.timetableKey=JSON.stringify([timetable?.term,timetable?.changedAt]);
-    if(this.active)void this.refresh();
+  configure(timetable,overrides={},savedPlans={}) {
+    const term=timetable?.term||'';
+    const courses=[...new Map((timetable?.sessions||[]).map(c=>[c.courseId,c])).values()]
+      .map(c=>({...c,selection:overrides[c.courseId]?.examOffering?.serial||''}));
+    const signature=JSON.stringify([term,courses.map(c=>[c.courseId,c.selection])]);
+    if(signature!==this.signature){
+      this.signature=signature;this.epoch++;this.busy=false;
+      const previous=new Map(this.courses.map(c=>[c.courseId,c.selection]));
+      this.courses=courses;
+      for(const [id]of this.entries){
+        if(!courses.some(c=>c.courseId===id&&previous.get(id)===c.selection))this.entries.delete(id);
+      }
+    }
+    // A fresh sign-in loads persisted plans before any provider request.
+    for(const c of this.courses){
+      const cached=savedPlans?.[c.courseId];
+      if(!this.entries.has(c.courseId)&&cached?.term===term&&cached.selection===c.selection&&cached.result)
+        this.entries.set(c.courseId,{result:{...cached.result,studentNumber:this.owner?.studentNumber},at:cached.savedAt||0,error:null});
+    }
+    if(this.owner&&this.courses.some(c=>!this.entries.has(c.courseId)))void this.refresh();
   }
   async refresh(force=false) {
-    if(!this.owner||!this.active||this.busy)return;
-    if(force&&this.now()-this.lastForced<60000)return;
-    if(force)this.lastForced=this.now();
+    if(!this.owner||!this.courses.length||this.busy)return;
+    const pending=this.courses.filter(c=>force||!this.entries.has(c.courseId));
+    if(!pending.length)return;
     const epoch=this.epoch,owner=this.owner;
     this.busy=true;this.onChange();
     try {
-      for(const c of this.courses){
-        if(epoch!==this.epoch||!this.active)return;
+      for(const c of pending){
+        if(epoch!==this.epoch)return;
         const old=this.entries.get(c.courseId);
-        if(!force&&old&&this.now()-old.at<(old.error?60000:900000))continue;
         try {
-          const result=await this.client.courseExamPlan(c.courseId);
+          const result=await this.client.courseExamPlan(c.courseId,force);
           if(epoch!==this.epoch)return;
           if(result.studentNumber!==owner.studentNumber){this.onExpired();return;}
           this.entries.set(c.courseId,{result,at:this.now(),error:null});
         }catch(error){
           if(epoch!==this.epoch)return;
           if(error.status===401){this.onExpired();return;}
+          // Retain a previously saved snapshot after any provider failure.
           this.entries.set(c.courseId,{result:old?.result||null,at:this.now(),error});
           if(error.status===429)break;
         }
