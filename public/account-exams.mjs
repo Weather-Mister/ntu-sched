@@ -59,6 +59,25 @@ export class AccountExams {
   }
 }
 
+// Only unresolved exam plans belong in the dashboard footer. A source with
+// no listed exams is not the same as a failed network read, and a stale plan
+// stays visible even when a refresh fails.
+export function examUnavailableCourses(courses,entries,{busy=false}={}){
+  const missing=[];
+  for(const source of courses){
+    const entry=entries.get(source.courseId);
+    if(!entry&&busy)continue;
+    const result=entry?.result,plan=result?.course;
+    if(plan?.exams?.length&&!entry.error)continue;
+    const type=entry?.error?(plan?.exams?.length?'refresh-failed':'load-failed')
+      :!entry?'not-loaded'
+      :!plan?(result?.matching?.status==='choose-section'?'choose-class':'unmatched-class')
+      :'no-exams';
+    missing.push({courseId:source.courseId,title:source.titleEn||source.title||source.titleZh||source.courseId,type});
+  }
+  return missing;
+}
+
 export function officialCourseUrl(course) {
   return /^\d{3}-[123]$/.test(course?.term||'')&&/^\d{4,6}$/.test(course?.serial||'')
     ?`https://course.ntu.edu.tw/en/courses/${course.term}/${course.serial}`:null;
