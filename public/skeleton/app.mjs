@@ -518,7 +518,7 @@ function renderExams(){
     const details=node('details','exam-warning-disclosure');
     details.open=missingExamsOpen;
     details.addEventListener('toggle',()=>{missingExamsOpen=details.open;});
-    details.append(node('summary','',language==='zh'?('⚠ '+missing.length+' 門課程的考試資料未齊全 · 查看詳情'):('⚠ '+missing.length+' '+(missing.length===1?'class':'classes')+' missing exam information · Details')));
+    details.append(node('summary','',language==='zh'?('⚠ '+missing.length+' 門課程考試資料未齊 ▾'):('⚠ '+missing.length+' '+(missing.length===1?'class needs':'classes need')+' exam info ▾')));
     const listItems=node('ul','exam-warning-items');
     for(const item of missing){
       const li=node('li','exam-warning-item');
