@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AccountExams,examFeed,officialCourseUrl} from '../public/account-exams.mjs';
+import {AccountExams,examFeed,officialCourseUrl,examUnavailableCourses} from '../public/account-exams.mjs';
 const owner={studentNumber:'b12345678'},table={term:'115-1',changedAt:1,sessions:[{courseId:'a',title:'Statics'},{courseId:'a',title:'Statics'},{courseId:'b',title:'Math'}]};
 const result=(serial='52528')=>({studentNumber:owner.studentNumber,course:{term:'115-1',serial,title:'Statics',source:'ntu-cool',exams:[]}});
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
@@ -84,4 +84,23 @@ test('dated items with invalid calendar dates stay undated',()=>{
  const r=result();r.course.exams=[{kind:'quiz',week:7,date:'2026-02-31',certainty:'explicit'}];
  const feed=examFeed(new Map([['a',{result:r}]]),'2026-10-16');
  assert.equal(feed.upcoming[0].date,null);
+});
+
+test('exam footer names only unavailable classes, distinguishing failures, empty plans, and pending reads',()=>{
+ const courses=['a','b','c','d','e','f','g'].map(id=>({courseId:id,title:'Class '+id}));
+ const entries=new Map([
+  ['a',{result:{course:{exams:[{kind:'quiz'}]}}}],
+  ['b',{result:{course:null,matching:{status:'choose-section'}}}],
+  ['c',{result:{course:{exams:[]}}}],
+  ['d',{result:null,error:Error('upstream')}],
+  ['e',{result:{course:{exams:[{kind:'midterm'}]}},error:Error('offline')}],
+  ['f',{result:{course:null,matching:{status:'not-found'}}}]
+ ]);
+ const fail=examUnavailableCourses(courses,entries);
+ assert.deepEqual(fail.map(x=>[x.title,x.type]),[
+  ['Class b','choose-class'],['Class c','no-exams'],['Class d','load-failed'],
+  ['Class e','refresh-failed'],['Class f','unmatched-class'],['Class g','not-loaded']
+ ]);
+ assert.deepEqual(examUnavailableCourses(courses,entries,{busy:true}).map(x=>x.courseId),['b','c','d','e','f']);
+ assert.deepEqual(examUnavailableCourses([courses[0]],entries),[]);
 });
