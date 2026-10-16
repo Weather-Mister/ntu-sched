@@ -124,3 +124,9 @@ button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-o
 .exam-card .exam-card-actions .cool-done-button{
   margin:0;
 }
+
+/* Give the longest tab room on phones so Announcements stays one word. */
+@media(max-width:790px){
+ .cool-column .cool-panel-header .cool-view-switch{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,.65fr)}
+ .cool-column .cool-panel-header .cool-view-switch button{overflow-wrap:normal;text-wrap:nowrap;white-space:nowrap}
+}
