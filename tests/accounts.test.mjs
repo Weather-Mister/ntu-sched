@@ -80,6 +80,38 @@ test('student account is verified, authorization is encrypted, and cookie is per
   const token = auth.cookie.split('=')[1];
   assert.notEqual(e.DB.sqlite.prepare('SELECT token_hash FROM sessions').get().token_hash, token);
 });
+test('alphanumeric student numbers log in, restore sessions and share one case-insensitive account', async () => {
+  const e = env(), first = await login(e, ' B15H06020 ');
+  assert.equal(first.body.studentNumber, 'b15h06020');
+  const restored = await request(e, 'auth/me', { cookie: first.cookie });
+  assert.equal(restored.status, 200);
+  assert.equal((await restored.json()).studentNumber, 'b15h06020');
+  const second = await login(e, 'b15h06020');
+  assert.equal(second.body.studentNumber, 'b15h06020');
+  assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM students').get().n, 1);
+  const owner = e.DB.sqlite.prepare('SELECT * FROM students').get();
+  const saved = e.DB.sqlite.prepare('SELECT * FROM student_connections').get();
+  assert.equal((await decryptAuthorization(KEY, owner.id, 'ntu_mail', saved.encrypted_authorization)).username, 'b15h06020');
+  const other = await login(e, 'B15H06021');
+  assert.equal(other.body.studentNumber, 'b15h06021');
+  assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM students').get().n, 2);
+});
+test('alphanumeric student numbers still require valid NTU credentials', async () => {
+  const e = env();
+  const response = await request(e, 'auth/login', { method: 'POST', body: { studentNumber: 'B15H06020', password: 'wrong-synthetic-password' } });
+  assert.equal(response.status, 401);
+  assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM students').get().n, 0);
+  assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM sessions').get().n, 0);
+});
+test('malformed alphanumeric student numbers are rejected before contacting NTU', async () => {
+  const e = env(), before = providerCalls.length;
+  for (const studentNumber of ['B15H0602', 'B15H060200', 'B15H06_20', 'B15H06-20', 'B15H06 20', '115H06020', 'B15H06020@ntu.edu.tw', 'Ｂ15H06020', '', null, 123456789]) {
+    const response = await request(e, 'auth/login', { method: 'POST', body: { studentNumber, password: 'synthetic-password' } });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, 'invalid_student_number');
+  }
+  assert.equal(providerCalls.length, before);
+});
 test('sessions restore after reopening with the same database', async () => {
   const e = env(), auth = await login(e);
   const reopened = { ...e, DB: new D1(e.DB.sqlite) };
