@@ -107,6 +107,55 @@ test('COOL fallback reuses only the owner session, verifies live enrollment and 
  }finally{globalThis.fetch=previous;f.sqlite.close();}
 });
 
+test('exam plans and section catalogs persist per student and only refresh on force or a section change',async()=>{
+ const f=await fixture({withSerial:false}),[a,b]=f.owners,previous=globalThis.fetch;
+ const requests=[];
+ const post=(owner,path,body={courseId:owner.courseId})=>worker.fetch(new Request(APP+'/api/exams/'+path,{
+  method:'POST',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+owner.token,'X-CSRF-Token':owner.csrf},body:JSON.stringify(body)}),f.env);
+ const change=(body)=>worker.fetch(new Request(APP+'/api/timetable/courses/'+a.courseId,{
+  method:'PATCH',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+a.token,'X-CSRF-Token':a.csrf},body:JSON.stringify(body)}),f.env);
+ globalThis.fetch=async url=>{
+   requests.push(String(url));
+   if(String(url).includes('/search/'))return catalog();
+   const serial=String(url).split('/').at(-1);
+   return new Response('<html><body><h2>Statics</h2><p>Course Number</p><p>ME1005</p><p>Class '+(serial==='21570'?'02':'01')+'</p><table><tr><td>Week '+(serial==='21570'?'9':'8')+'</td><td></td><td>Midterm exam</td></tr></table></body></html>',{headers:{'Content-Type':'text/html'}});
+ };
+ try{
+  const initial=await post(a,'plan');assert.equal(initial.status,200,await initial.clone().text());
+  const body=await initial.json();assert.equal(body.course.exams[0].week,8);
+  const requestCount=requests.length;assert(requestCount>=2);
+  const encrypted=f.sqlite.prepare("SELECT encrypted_authorization FROM student_connections WHERE student_id=? AND provider='timetable'").get(a.id).encrypted_authorization;
+  assert.doesNotMatch(encrypted,/Midterm exam|52528/);
+  let snapshot=await savedTimetable(f.env,a.id);
+  assert.equal(snapshot.examPlans[a.courseId].result.course.exams[0].week,8);
+  assert(snapshot.sectionOptions[a.courseId].candidates.length>=2);
+  assert.deepEqual((await savedTimetable(f.env,b.id)).examPlans,{});
+  assert.deepEqual((await savedTimetable(f.env,b.id)).sectionOptions,{});
+  assert.equal((await post(a,'plan')).status,200);
+  const options=await post(a,'options');assert.equal(options.status,200);
+  assert.equal((await options.json()).candidates.length,2);
+  assert.equal(requests.length,requestCount,'no NTU requests after saving plan and sections');
+  const rename=await change({version:0,language:'en',name:'Statics Lab'});
+  assert.equal(rename.status,200);snapshot=await savedTimetable(f.env,a.id);
+  assert(snapshot.examPlans[a.courseId]);
+  const refresh=await post(a,'plan',{courseId:a.courseId,force:true});
+  assert.equal(refresh.status,200,await refresh.clone().text());assert(requests.length>requestCount);
+  const edit=await change({version:1,language:'en',offeringSerial:'21570'});
+  assert.equal(edit.status,200,await edit.clone().text());
+  snapshot=await savedTimetable(f.env,a.id);
+  assert.equal(snapshot.examPlans[a.courseId],undefined,'only changed section exam plan is invalidated');
+  assert.equal(snapshot.courseOverrides[a.courseId].examOffering.serial,'21570');
+  assert(snapshot.sectionOptions[a.courseId].candidates.length>=2);
+  const checked=await post(a,'plan');assert.equal(checked.status,200,await checked.clone().text());
+  assert.equal((await checked.json()).course.serial,'21570');
+  snapshot=await savedTimetable(f.env,a.id);
+  assert.equal(snapshot.examPlans[a.courseId].selection,'21570');
+  assert.equal((await post(a,'plan')).status,200);
+  const finalCount=requests.length;
+  assert.equal((await post(a,'options')).status,200);assert.equal(requests.length,finalCount);
+ }finally{globalThis.fetch=previous;f.sqlite.close();}
+});
+
 test('COOL-first plan route requires CSRF and rejects owner/URL overrides before any provider request',async()=>{
  const f=await fixture(),[a,b]=f.owners,previous=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('must not fetch');};
  const post=(owner,body,csrf=owner?.csrf)=>worker.fetch(new Request(APP+'/api/exams/plan',{method:'POST',headers:{Origin:APP,'Content-Type':'application/json',...(owner?{Cookie:'__Host-campus_week='+owner.token,'X-CSRF-Token':csrf}:{})},body:JSON.stringify(body)}),f.env);
