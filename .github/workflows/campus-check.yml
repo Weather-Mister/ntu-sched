@@ -21,7 +21,7 @@ jobs:
       - run: node --check src/mail-translation.mjs
       - run: node --check src/worker.mjs
       - name: Verify real public NTU course lookup and syllabus plans
-        if: github.event_name == 'pull_request' && github.head_ref == 'feat/automatic-course-syllabus'
+        if: github.event_name == 'pull_request' && (github.head_ref == 'feat/automatic-course-syllabus' || github.head_ref == 'feat/cool-exam-fallback')
         run: node scripts/check-ntu-syllabus.mjs
       - name: Test public NTU syllabus retrieval on experiment branch
         if: github.event_name == 'pull_request' && github.head_ref == 'experiment/ntu-course-exam-source'

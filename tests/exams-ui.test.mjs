@@ -24,6 +24,11 @@ test('ambiguous or incomplete metadata offers a section choice, including a sing
  const f=await fixture(async url=>url.includes('serial=52528')?{matching:{status:'student-selected',reason:'Selected'},course:syllabus,candidates:[syllabus]}:{matching:{status:'choose-section',reason:'Choose section'},course:null,candidates:[syllabus]});
  try{assert.equal(f.document.getElementById('picker').hidden,false);await f.change('offering','52528');assert.match(f.document.getElementById('match').textContent,/student selected/);assert.equal(f.document.getElementById('results').hidden,false);}finally{f.cleanup();}
 });
+
+test('missing public exams triggers enrolled COOL fallback and preserves the public course source',async()=>{
+ const f=await fixture(async url=>url==='/api/exams/cool-preview'?{plan:{sourceUrl:'https://cool.ntu.edu.tw/courses/64620',exams:[{kind:'midterm',week:10,date:null,certainty:'week-only',description:'Midterm 2'}]}}:{matching:{status:'matched-cool',reason:'Match'},course:{...syllabus,exams:[]},candidates:[]});
+ try{assert(f.calls.includes('/api/exams/cool-preview'));assert.equal(f.document.getElementById('cool-results').hidden,false);assert.match(f.document.getElementById('cool-exams').textContent,/Week 10 · Exact date unavailable/);assert.match(f.document.getElementById('details').textContent,/Statics/);}finally{f.cleanup();}
+});
 test('late course responses and a changed login cannot display another student’s syllabus',async()=>{
  let release,slow=false;const f=await fixture(async()=>{if(slow)await new Promise(r=>release=r);return{matching:{status:'matched-timetable',reason:'match'},course:syllabus,candidates:[]};});
  try{

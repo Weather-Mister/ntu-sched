@@ -2,14 +2,30 @@ const el=id=>document.getElementById(id),course=el('course'),source=el('source')
 status=el('status'),results=el('results'),match=el('match'),details=el('details'),exams=el('exams'),picker=el('picker'),offering=el('offering');
 const node=(tag,text,klass='')=>{const e=document.createElement(tag);if(klass)e.className=klass;if(text!==undefined)e.textContent=text;return e};
 const say=(text,error=false)=>{status.textContent=text;status.className=error?'error':'muted'};
+const certaintyLabels={explicit:'Explicit date','scheduled-week':'Tentative schedule date','week-only':'Week only','exam-period':'Exam period',cancelled:'Cancelled / no exam',ambiguous:'Unconfirmed timing'};
 let owner=null,epoch=0,request=null,lookupSerial='';
-function clear(){results.hidden=picker.hidden=true;match.replaceChildren();details.replaceChildren();exams.replaceChildren();el('schedule').replaceChildren();offering.replaceChildren();}
+function clear(){results.hidden=picker.hidden=el('cool-results').hidden=true;match.replaceChildren();details.replaceChildren();exams.replaceChildren();el('schedule').replaceChildren();el('cool-exams').replaceChildren();el('cool-status').replaceChildren();offering.replaceChildren();}
 function invalidate(){epoch++;request?.abort();clear();}
 async function get(url,signal) {
  const response=await fetch(url,{credentials:'same-origin',headers:{Accept:'application/json'},cache:'no-store',signal});
  const data=await response.json().catch(()=>({}));
  if(!response.ok)throw new Error(data.error?.message||'NTU request failed.');
  return data;
+}
+async function coolFallback(courseId,serial,csrfToken,signal,ticket,expectedOwner){
+ el('cool-results').hidden=false;el('cool-status').textContent='No public exam entries. Checking your enrolled COOL course syllabus and module titles…';
+ try{
+  const response=await fetch('/api/exams/cool-preview',{method:'POST',credentials:'same-origin',cache:'no-store',signal,headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({courseId,serial})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error?.message||'COOL plan is unavailable.');
+  const current=await get('/api/auth/me',signal);
+  if(ticket!==epoch)return;
+  if(data.studentNumber!==expectedOwner||current.studentNumber!==expectedOwner){owner=null;invalidate();course.disabled=true;return say('Your signed-in account changed. Reload this page to load its courses.',true);}
+  el('cool-status').replaceChildren(node('span','Source: your active enrolled COOL course · '));
+  const a=node('a','Open COOL course');a.href=data.plan.sourceUrl;a.target='_blank';a.rel='noopener noreferrer';el('cool-status').append(a);
+  if(!data.plan.exams.length)el('cool-exams').append(node('p','No exam entries found in the COOL syllabus or module titles. Linked files and individual content pages are not scanned.','muted'));
+  for(const exam of data.plan.exams){const card=node('div',undefined,'exam');card.append(node('strong',exam.kind.charAt(0).toUpperCase()+exam.kind.slice(1)),node('span',' · '+(certaintyLabels[exam.certainty]||'Unconfirmed timing'),'badge'),node('div',exam.date||(exam.week?'Week '+exam.week+' · Exact date unavailable':'Exact date unavailable')),node('p',exam.description,'muted'));el('cool-exams').append(card);}
+ }catch(error){if(ticket===epoch&&error.name!=='AbortError')el('cool-status').textContent=error.message;}
 }
 const accepted=new Set(['matched-identifiers','matched-cool','matched-timetable','student-selected','code-only']);
 export function renderSyllabus(data){
@@ -23,8 +39,7 @@ export function renderSyllabus(data){
  else if(!c.exams?.length)exams.append(node('p','No exam entries were found in this syllabus plan. Your instructor may announce them elsewhere.','muted'));
  else for(const exam of c.exams){
   const item=node('div',undefined,'exam'),top=node('div',undefined,'exam-top');
-  const labels={explicit:'Explicit date','scheduled-week':'Tentative schedule date','week-only':'Week only','exam-period':'Exam period',cancelled:'Cancelled / no exam',ambiguous:'Unconfirmed timing'};
-  top.append(node('strong',exam.kind.charAt(0).toUpperCase()+exam.kind.slice(1)),node('span',labels[exam.certainty]||'Unconfirmed timing','badge'));
+  top.append(node('strong',exam.kind.charAt(0).toUpperCase()+exam.kind.slice(1)),node('span',certaintyLabels[exam.certainty]||'Unconfirmed timing','badge'));
   item.append(top,node('div',exam.date||(exam.week?'Week '+exam.week+' · Exact date unavailable':'Exact date unavailable')),node('p',exam.description,'muted'));exams.append(item);
  }
  for(const row of c.schedule||[]){const tr=node('tr');tr.append(node('td',[row.week?'Week '+row.week:'',...(row.dates||[])].filter(Boolean).join(' · ')),node('td',row.description));el('schedule').append(tr);}
@@ -53,6 +68,7 @@ async function lookup(manual=false){
   }
   renderSyllabus(data);
   say(data.course?'Public syllabus loaded. Preview only; nothing was saved.':data.matching.reason,!data.candidates?.length&&!data.course);
+  if(!manual&&data.course&&!data.course.exams?.length&&accepted.has(data.matching.status))await coolFallback(course.value,data.course.serial,current.csrfToken,signal,ticket,expectedOwner);
  }catch(error){if(ticket===epoch&&error.name!=='AbortError')say(error.message,true);}
  finally{if(ticket===epoch)button.disabled=retry.disabled=!owner;}
 }

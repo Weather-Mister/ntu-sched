@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { syllabusUrl, parseNtuCourseExams, matchImportedCourse, readNtuCourseExams } from '../src/ntu-course-exams.mjs';
+import { syllabusUrl, parseNtuCourseExams, matchImportedCourse, readNtuCourseExams, parseExamEntry } from '../src/ntu-course-exams.mjs';
 
 const source='https://course.ntu.edu.tw/courses/115-1/23006';
 const html = '<html><body><h2>軟體工程設計</h2><div>115-1 開課</div>'+
@@ -85,6 +85,13 @@ test('No Class is not a section number; unrelated homework dates are not explici
  const base='<html><body><h2>Course</h2><p>Course Number</p><p>ME1005</p><div>No Class</div><p>3 Credits</p><table>';
  const result=parseNtuCourseExams(base+'<tr><td>Week 8</td><td></td><td>Midterm exam; homework due 11/3</td></tr><tr><td>Week 9</td><td></td><td>Final exam on 11/10</td></tr></table></body></html>',source);
  assert.equal(result.section,'');assert.equal(result.exams[0].date,null);assert.equal(result.exams[0].certainty,'week-only');assert.equal(result.exams[1].date,'2026-11-10');assert.equal(result.exams[1].certainty,'explicit');
+});
+
+test('real Engineering Mathematics written dates exclude preparation sessions and retain exact exam dates',()=>{
+ for(const text of ['Oct. 12 (M) Solution Audit/Midterm 1 Preparation','Nov. 11 (W) Solution Audit/Midterm 2 Preparation','Review for the midterm exam','期中考複習'])assert.equal(parseExamEntry(text,'115-1',source,{week:6}),null);
+ for(const [text,date]of [['Oct. 14 (W) MIDTERM 1 — Parts 1 and 2. 50-min closed-book exam.','2026-10-14'],['Nov. 18 (W) MIDTERM 2 — Parts 3 and 4.','2026-11-18'],['Dec. 21 (M) FINAL EXAM (10:20 – 12:00)','2026-12-21']]){
+  const entry=parseExamEntry(text,'115-1',source,{week:6});assert.equal(entry.date,date);assert.equal(entry.certainty,'explicit');
+ }
 });
 
 test('bounded public fetch rejects oversized data and never sends credentials',async()=>{

@@ -1,7 +1,7 @@
 import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson } from './security.mjs';
 import { verifyNtuMail } from './ntu-mail.mjs';
 import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails } from './timetable-store.mjs';
-import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars } from './cool-store.mjs';
+import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications } from './mail-store.mjs';
@@ -14,6 +14,7 @@ import { savedAnnouncements, syncAnnouncements } from './cool-announcements.mjs'
 import {readPreferences,savePreferences,readHanziWidget} from './student-preferences.mjs';
 import { readNtuCourseExams, syllabusUrl, matchImportedCourse } from './ntu-course-exams.mjs';
 import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
+import {coolPlanForStudent} from './cool-course-plan.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -188,6 +189,20 @@ export default {
         return json({studentNumber:current.student_number,...await changeCourseDetails(env,current.student_id,courseId,await readJson(request,12000))});
       }
       // Read-only NTU Course Information lab: no grade data, credentials or persistence.
+      if(path==='/api/exams/cool-preview'&&request.method==='POST'){
+        const current=await session(request,env,true),body=await readJson(request,2000);
+        if(new URL(request.url).search||Object.keys(body).some(k=>!['courseId','serial'].includes(k))||
+          !/^[A-Za-z0-9_-]{43}$/.test(body.courseId||'')||!/^\d{4,6}$/.test(body.serial||''))
+          throw new ApiError(400,'invalid_exam_lookup','Choose an imported course and its catalog section.');
+        const {timetable}=await savedTimetable(env,current.student_id);
+        const rows=timetable?.sessions.filter(c=>c.courseId===body.courseId)||[];
+        if(!timetable?.term||!rows.length)throw new ApiError(404,'exam_course_missing','Choose a course from your own imported timetable.');
+        await limit(env,current.student_id,'exam-catalog',30);
+        const candidates=await searchNtuCourses(timetable.term,rows[0]);
+        const resolution=resolveNtuCourse(timetable,rows,candidates,{serial:body.serial});
+        const plan=await coolPlanForStudent(env,current,resolution.selected);
+        return json({studentNumber:current.student_number,plan});
+      }
       if (path === '/api/exams/resolve' && request.method === 'GET') {
         const current=await session(request,env),search=new URL(request.url).searchParams;
         if([...search.keys()].some(k=>!['courseId','serial'].includes(k)) || search.getAll('courseId').length!==1 ||
