@@ -20,7 +20,7 @@ summary{cursor:pointer;font-weight:650}table{width:100%;border-collapse:collapse
 <body><main>
 <header><a href="/">← Campus Week</a><span class="fine">Read-only experiment</span></header>
 <h1>Exam Source Lab</h1>
-<p class="muted">Choose a lesson to load its public NTU syllabus and exam plan. Week-only entries stay week-only. No grades, credentials or exam dates are saved by this lab.</p>
+<p class="muted">Choose a lesson to load its exam plan from NTU COOL first. The public NTU syllabus is the fallback when COOL has no exam entries or is unavailable. Week-only entries stay week-only. No grades, credentials or exam dates are saved by this lab.</p>
 <section class="card"><h2>Find your syllabus</h2>
 <label for="course">Your imported class</label><select id="course" disabled><option>Loading timetable…</option></select>
 <p id="semester" class="fine"></p><button id="retry" disabled>Reload syllabus</button>
@@ -32,5 +32,5 @@ summary{cursor:pointer;font-weight:650}table{width:100%;border-collapse:collapse
 <input id="source" type="url" placeholder="https://course.ntu.edu.tw/courses/115-1/23006" autocomplete="off" spellcheck="false">
 <p class="fine">Find your course at <a href="https://course.ntu.edu.tw/" target="_blank" rel="noopener noreferrer">NTU Course Information</a>. Choose the same semester and section. Do not paste a GradeCheck link or login information.</p>
 <button id="check" disabled>Check syllabus link</button></details></section>
-<section class="card" id="results" hidden><h2>Syllabus &amp; exams</h2><p id="match"></p><div id="details" class="fine"></div><div id="exams"></div><details id="plan"><summary>Full public course plan</summary><table><thead><tr><th>Week / date</th><th>Plan</th></tr></thead><tbody id="schedule"></tbody></table></details><section id="cool-results" hidden><h2>NTU COOL fallback</h2><p id="cool-status" class="fine"></p><div id="cool-exams"></div></section><p class="fine">Syllabus plans may change. A weekly schedule date is tentative; a week number alone does not establish an exam date. Verify updates with your instructor.</p></section>
+<section class="card" id="results" hidden><h2>Syllabus &amp; exams</h2><p id="match"></p><p id="source-status" class="fine"></p><div id="details" class="fine"></div><div id="exams"></div><details id="plan"><summary id="plan-label">Full course plan</summary><table><thead><tr><th>Week / date</th><th>Plan</th></tr></thead><tbody id="schedule"></tbody></table></details><p class="fine">Syllabus plans may change. A weekly schedule date is tentative; a week number alone does not establish an exam date. COOL syllabus text and module titles are scanned; linked files and individual content pages are not scanned. Verify updates with your instructor.</p></section>
 </main><script type="module" src="/exams-lab.mjs"></script></body></html>
