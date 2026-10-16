@@ -6,14 +6,34 @@ import worker from '../src/worker.mjs';
 import {digest,randomToken,encryptAuthorization} from '../src/security.mjs';
 import {savedTimetable} from '../src/timetable-store.mjs';
 const APP='https://campus.example';
-async function fixture(){
+const catalog=()=>Response.json({totalCount:2,courses:['52528','21570'].map((serial,i)=>({semester:'115-1',provider:'NTU',serial,identifier:'ME1005',code:'502 21130',class:i?'02':'01',teacher:i?'Teacher B':'Teacher A',name:'Statics',schedules:[],coolUrl:'https://cool.ntu.edu.tw/courses/66746'}))});
+test('saved course sections are catalog-validated, account-owned, versioned, and drive future exam plans without changing imported identity',async()=>{
+ const f=await fixture({withSerial:false}),[a,b]=f.owners,previous=globalThis.fetch,calls=[];
+ const mutate=(owner,body,csrf=owner.csrf)=>worker.fetch(new Request(APP+'/api/timetable/courses/'+owner.courseId,{method:'PATCH',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+owner.token,'X-CSRF-Token':csrf},body:JSON.stringify(body)}),f.env);
+ const post=(owner,path)=>worker.fetch(new Request(APP+'/api/exams/'+path,{method:'POST',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+owner.token,'X-CSRF-Token':owner.csrf},body:JSON.stringify({courseId:owner.courseId})}),f.env);
+ globalThis.fetch=async(url)=>{calls.push(url);if(url.includes('/search/'))return catalog();const serial=url.split('/').at(-1);return new Response('<html><body><h2>Statics</h2><p>Course Number</p><p>ME1005</p><p>Class '+(serial==='52528'?'01':'02')+'</p><table><tr><td>Week '+(serial==='52528'?'8':'9')+'</td><td></td><td>Midterm exam</td></tr></table></body></html>',{headers:{'Content-Type':'text/html'}});};
+ try{
+  const before=(await savedTimetable(f.env,a.id)).timetable;
+  const options=await post(a,'options');assert.equal(options.status,200);const choices=await options.json();assert.equal(choices.candidates.length,2);assert.equal(choices.course,null);assert.equal(calls.length,1);assert.doesNotMatch(JSON.stringify(choices),/coolId|password|cookie/);
+  assert.equal((await mutate(a,{version:0,language:'en',offeringSerial:'52528'},'wrong')).status,403);
+  for(const body of [{version:0,language:'en',offeringSerial:'99999'},{version:0,language:'en',offeringSerial:52528},{version:0,language:'en',offeringSerial:'52528',examOffering:{section:'fake'}}])assert.equal((await mutate(a,body)).status,400);
+  const response=await mutate(a,{version:0,language:'en',offeringSerial:'21570',room:'Room 114'});assert.equal(response.status,200,await response.clone().text());
+  const saved=await response.json();assert.equal(saved.courseOverrides[a.courseId].examOffering.section,'02');assert.equal(saved.courseOverrides[a.courseId].examOffering.sourceUrl,'https://course.ntu.edu.tw/en/courses/115-1/21570');assert.equal(saved.courseOverrides[a.courseId].examOffering.coolId,undefined);assert.deepEqual(saved.timetable,before);
+  assert.deepEqual((await savedTimetable(f.env,b.id)).courseOverrides,{});
+  const plan=await post(a,'plan');assert.equal(plan.status,200,await plan.clone().text());const payload=await plan.json();assert.equal(payload.course.serial,'21570');assert.equal(payload.course.exams[0].week,9);
+  assert.equal((await mutate(a,{version:0,language:'en',offeringSerial:'52528'})).status,409);
+  const cleared=await(await mutate(a,{version:1,language:'en',offeringSerial:null})).json();assert.equal(cleared.courseOverrides[a.courseId].examOffering,null);assert.equal(cleared.courseOverrides[a.courseId].room,'Room 114');
+  assert.equal((await(await post(a,'plan')).json()).course,null);
+ }finally{globalThis.fetch=previous;f.sqlite.close();}
+});
+async function fixture({withSerial=true}={}){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('../migrations/0001_accounts.sql',import.meta.url),'utf8'));
  const DB={prepare(sql){const s=sqlite.prepare(sql);let v=[];return{bind(...a){v=a;return this;},async first(){return s.get(...v)||null;},async all(){return{results:s.all(...v)};},async run(){return{meta:s.run(...v)};}};}};
  const env={DB,APP_ORIGIN:APP,NTU_CREDENTIAL_KEY:'ab'.repeat(32)},owners=[];
  for(const number of ['b12345678','r23456789']){
   const id=crypto.randomUUID(),token=randomToken(),csrf=randomToken();sqlite.prepare('INSERT INTO students VALUES(?,?,?)').run(id,number,1);
   sqlite.prepare('INSERT INTO sessions VALUES(?,?,?,?,?)').run(await digest(token),id,csrf,1,Math.floor(Date.now()/1000)+3600);
-  const value={timetable:{term:'115-1',sessions:[{title:'Statics',code:'ME1005',serial:number[0]==='b'?'52528':'21570',day:1,start:620,end:730}]}};
+  const value={timetable:{term:'115-1',sessions:[{title:'Statics',code:'ME1005',...(withSerial?{serial:number[0]==='b'?'52528':'21570'}:{}),day:1,start:620,end:730}]}};
   sqlite.prepare('INSERT INTO student_connections VALUES(?,?,?,?,?)').run(id,'timetable',await encryptAuthorization(env.NTU_CREDENTIAL_KEY,id,'timetable',value),'authorized',Date.now());
   const courseId=(await savedTimetable(env,id)).timetable.sessions[0].courseId;owners.push({id,token,courseId,csrf});
  }
