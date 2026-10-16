@@ -28,13 +28,58 @@ export async function encryptedPush(subscription,payload){
  const ciphertext=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:nonce},await crypto.subtle.importKey('raw',key,'AES-GCM',false,['encrypt']),join(plaintext,new Uint8Array([2]))));
  return join(salt,new Uint8Array([0,0,16,0,65]),publicKey,ciphertext);
 }
-export async function sendPush(env,subscription,payload,config){
+// Never expose push endpoint tokens or crypto credentials through diagnostic errors.
+export class PushDeliveryError extends Error {
+ constructor(stage,reason){
+  super('Push '+stage+' '+reason);this.stage=stage;this.reason=reason;
+ }
+}
+async function pushStep(stage,task){
+ try{return await task();}
+ catch(error){
+  if(error instanceof PushDeliveryError)throw error;
+  const name=error?.name;
+  const reason=name==='TimeoutError'||name==='AbortError'?'timeout':
+   name==='NotSupportedError'?'unsupported':name==='DataError'?'invalid_key':
+   name==='OperationError'?'crypto_operation':name==='TypeError'?'type_error':'failed';
+  throw new PushDeliveryError(stage,reason);
+ }
+}
+const knownProviderReasons=new Set([
+ 'BadTtl','BadUrgency','BadWebPushRequest','BadWebPushTopic','VapidPkHashMismatch',
+ 'IdleTimeout','BadAuthorizationHeader','BadJwtToken','BadVapidPublicKey',
+ 'BadPath','MethodNotAllowed','PayloadTooLarge','TooManyRequests',
+ 'InternalServerError','ServiceUnavailable','Shutdown'
+]);
+export async function sendPush(env,subscription,payload,config,{diagnostics=false}={}){
  validateSubscription(subscription);
- const head=base64url(enc.encode(JSON.stringify({typ:'JWT',alg:'ES256'}))),claims=base64url(enc.encode(JSON.stringify({aud:new URL(subscription.endpoint).origin,exp:Math.floor(Date.now()/1000)+3600,sub:env.APP_ORIGIN}))),input=head+'.'+claims;
- const key=await crypto.subtle.importKey('jwk',config.privateKey,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
- const sig=base64url(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,enc.encode(input))));
- const result=await fetch(subscription.endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),headers:{TTL:'600',Urgency:'normal','Content-Type':'application/octet-stream','Content-Encoding':'aes128gcm',Authorization:`vapid t=${input}.${sig}, k=${config.publicKey}`},body:await encryptedPush(subscription,payload)});
- await result.body?.cancel();return result.status;
+ const head=base64url(enc.encode(JSON.stringify({typ:'JWT',alg:'ES256'})));
+ const claims=base64url(enc.encode(JSON.stringify({
+  aud:new URL(subscription.endpoint).origin,exp:Math.floor(Date.now()/1000)+3600,sub:env.APP_ORIGIN
+ })));
+ const input=head+'.'+claims;
+ const signature=await pushStep('signing',async()=>{
+  const key=await crypto.subtle.importKey('jwk',config.privateKey,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+  return base64url(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,enc.encode(input))));
+ });
+ const body=await pushStep('encryption',()=>encryptedPush(subscription,payload));
+ const response=await pushStep('transport',()=>fetch(subscription.endpoint,{
+  method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),
+  headers:{TTL:'600',Urgency:'normal','Content-Type':'application/octet-stream','Content-Encoding':'aes128gcm',
+   Authorization:`vapid t=${input}.${signature}, k=${config.publicKey}`},
+  body
+ }));
+ let providerReason=null;
+ if(diagnostics&&!response.ok){
+  try{const reason=JSON.parse((await response.text()).slice(0,1024))?.reason;
+   if(knownProviderReasons.has(reason))providerReason=reason;
+  }catch{}
+ }else{
+  // An optional response body is irrelevant after the push provider responds.
+  // A stream cleanup error must not turn a successful delivery into a failure.
+  try{await response.body?.cancel();}catch{}
+ }
+ return diagnostics?{status:response.status,providerReason}:response.status;
 }
 export async function subscribe(env,owner,value){
  const subscription=validateSubscription(value),id=await digest(subscription.endpoint);
@@ -61,13 +106,25 @@ export async function testPushDelivery(env,owner,id){
  if(!claimed)throw new ApiError(429,'push_test_wait','Please wait 20 seconds before sending another test.');
  const subscription=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'mail_push',device.encrypted_subscription);
  const config=await pushConfiguration(env);
- let status;
- try{status=await sendPush(env,subscription,{kind:'test',studentNumber:owner.student_number},config);}
- catch{throw new ApiError(502,'push_test_failed','Could not reach the push service. Please retry.');}
+ let report;
+ try{report=await sendPush(env,subscription,{kind:'test',studentNumber:owner.student_number},config,{diagnostics:true});}
+ catch(error){
+  if(error instanceof PushDeliveryError){
+   const category={
+    signing:'VAPID signing',encryption:'payload encryption',transport:'connection to the push provider'
+   }[error.stage]||'push delivery';
+   throw new ApiError(502,'push_'+error.stage+'_'+error.reason,
+    'Test failed during '+category+' ('+error.reason.replaceAll('_',' ')+').');
+  }
+  throw new ApiError(502,'push_test_internal','The push test failed before delivery. Check the server configuration.');
+ }
+ const {status,providerReason}=report;
  if(status===404||status===410){
   await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(owner.student_id,id).run();
   throw new ApiError(410,'push_subscription_expired','Your push subscription expired. Enable mail alerts again.');
  }
- if(status<200||status>=300)throw new ApiError(502,'push_test_rejected','The push provider rejected this test (HTTP '+status+').');
+ if(status<200||status>=300)throw new ApiError(502,'push_test_rejected',
+  'Push provider rejected the test (HTTP '+status+(providerReason?' · '+providerReason:'')+').');
  return {accepted:true,providerStatus:status};
+
 }
