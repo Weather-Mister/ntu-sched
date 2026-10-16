@@ -8,7 +8,9 @@ export async function preferredExamPlan(env,student,timetable,candidate,{coolRea
  let sourceReason='COOL has no exam entries in its syllabus or module titles. Showing the public syllabus fallback.';
  try{
   const plan=await coolRead(env,student,candidate);
-  if(plan.exams?.length)return {...metadata,...plan,source:'ntu-cool',sourceReason:plan.sourcePart==='modules'
+  // Exam-week placeholders alone cannot suppress more specific official evidence.
+  // Explicit cancellations still take precedence, so an old syllabus cannot resurrect them.
+  if(plan.exams?.some(e=>e.certainty!=='exam-period'))return {...metadata,...plan,source:'ntu-cool',sourceReason:plan.sourcePart==='modules'
     ?'Source: NTU COOL weekly modules. Other syllabus sources were skipped because these modules contain exam entries.'
     :plan.sourcePart==='syllabus'?'COOL modules have no exam entries. Using the COOL syllabus; the public syllabus was skipped.'
     :'NTU COOL is the primary source. Active course enrollment was verified.'};

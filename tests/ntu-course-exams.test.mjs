@@ -99,3 +99,31 @@ test('bounded public fetch rejects oversized data and never sends credentials',a
  globalThis.fetch=async(_url,options)=>{assert.equal(options.credentials,'omit');assert.equal(options.redirect,'manual');assert.equal(options.headers.Cookie,undefined);return new Response('x'.repeat(1024*1024+1),{headers:{'Content-Type':'text/html'}});};
  try{await assert.rejects(readNtuCourseExams(source),{code:'exam_source_unavailable'});}finally{globalThis.fetch=previous;}
 });
+
+test('midterm week without exams is never interpreted as a scheduled midterm',()=>{
+ for(const description of [
+  'Midterm week no exam',
+  'Week 8 — Midterm Week (NO EXAMS)',
+  'Mid-term week: no written exam',
+  'Midterm week — without a midterm test',
+  'Week 8 Midterm week, no examination',
+  '期中考週（不用考試）',
+  '期中考週（不考試）',
+  '期中考取消'
+ ]){
+  const entry=parseExamEntry(description,'115-1',source,{week:8});
+  assert(entry,description);
+  assert.equal(entry.certainty,'cancelled',description);
+ }
+ for(const description of ['Midterm week','Finals week','期中考週','期末考週']){
+  const entry=parseExamEntry(description,'115-1',source,{week:8});
+  assert.equal(entry.certainty,'exam-period',description);
+ }
+ const real=parseExamEntry('Midterm week: written exam on Nov 3','115-1',source,{week:8});
+ assert.notEqual(real.certainty,'exam-period');
+ assert.notEqual(real.certainty,'cancelled');
+ const dated=parseExamEntry('Midterm exam on Nov 3','115-1',source,{week:8});
+ assert.equal(dated.date,'2026-11-03');
+ const quiz=parseExamEntry('Week 8 Midterm 1 Exam 10/28','115-1',source,{week:8});
+ assert.notEqual(quiz.certainty,'cancelled');
+});

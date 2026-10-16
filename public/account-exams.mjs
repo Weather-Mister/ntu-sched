@@ -1,3 +1,5 @@
+import {isNonExamEntry} from './exam-classification.mjs';
+
 // Exam plans belong to the student's encrypted server snapshot, not device storage.
 // A sign-in checks only uncached classes; manual refresh and section changes reload.
 export class AccountExams {
@@ -123,7 +125,7 @@ export function examSourceKey(courseId,exam,ordinal=0,serial=''){
   return 'import:'+JSON.stringify([courseId,serial,exam.kind||'',ordinal]);
 }
 export function examFeed(entries,today,personal=[]){
-  const upcoming=[],past=[],overrides=new Map();
+  const upcoming=[],past=[],hidden=[],overrides=new Map();
   for(const exam of personal)if(exam.sourceKey&&!exam.deleted)overrides.set(exam.sourceKey,exam);
   let defaultTerm=null;
   const add=(item,weekStart)=>{
@@ -139,18 +141,22 @@ export function examFeed(entries,today,personal=[]){
     defaultTerm??=course.term;
     const firstWeek=weekOne(course),seen=new Map();
     for(const exam of course.exams||[]){
-      if(exam.certainty==='cancelled')continue;
       const kindKey=exam.kind||'';
       const ordinal=seen.get(kindKey)||0;seen.set(kindKey,ordinal+1);
       const sourceKey=examSourceKey(courseId,exam,ordinal,course.serial),override=overrides.get(sourceKey);
+      // Cached plans from older parser versions must not resurrect exam-week
+      // markers, nor a row that explicitly says the exam is cancelled.
+      if(isNonExamEntry(exam))continue;
       // Never infer a precise date for an automatic source. Only an explicit
       // manual override or a sourced exact date may populate the calendar day.
       const date=override?override.date:['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
       const week=override?.week??(override?null:weekNumber(exam.week));
       const combined=override?{...exam,kind:override.kind,description:override.notes||'',date,week,certainty:'manual-override'}:exam;
       const weekStart=week&&firstWeek?addDays(firstWeek,(week-1)*7):null;
-      add({courseId,course,exam:combined,url,date,week,stale:!!entry.error,sourceKey,
-        manualRecord:override||null,custom:false,title:override?.title||null},weekStart);
+      const item={courseId,course,exam:combined,url,date,week,stale:!!entry.error,sourceKey,
+        manualRecord:override||null,custom:false,title:override?.title||null};
+      if(override?.hidden)hidden.push(item);
+      else add(item,weekStart);
     }
   }
   for(const saved of personal){
@@ -164,5 +170,5 @@ export function examFeed(entries,today,personal=[]){
   const byName=(a,b)=>String(a.title||a.course.title||'').localeCompare(String(b.title||b.course.title||''))||String(a.exam.kind||'').localeCompare(String(b.exam.kind||''));
   upcoming.sort((a,b)=>a.sortDate.localeCompare(b.sortDate)||byName(a,b));
   past.sort((a,b)=>b.sortDate.localeCompare(a.sortDate)||byName(a,b));
-  return {upcoming,past};
+  return {upcoming,past,hidden};
 }

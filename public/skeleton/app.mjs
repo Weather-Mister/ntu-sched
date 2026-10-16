@@ -79,7 +79,7 @@ const dict={
   }
 };
 let language='en',student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
-let pastExamsOpen=false,missingExamsOpen=false;
+let pastExamsOpen=false,hiddenExamsOpen=false,missingExamsOpen=false;
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,initialSyncBusy=false,liveTimetableInfo='',liveCoolInfo='';
 let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},liveExamPlans={},liveSectionOptions={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
@@ -504,6 +504,17 @@ function renderExams(){
   if(feed.past.length)feed.past.forEach(item=>addExam(item,pastList));
   else pastList.append(node('p','exam-past-empty',language==='zh'?'沒有已結束的考試。':'No past exams.'));
   history.append(pastList);list.append(history);
+  // A student may hide a generic or incorrect NTU syllabus entry without
+  // deleting the upstream record or affecting another student's schedule.
+  if(feed.hidden.length){
+    const hiddenList=node('details','exam-hidden');
+    hiddenList.open=hiddenExamsOpen;
+    hiddenList.addEventListener('toggle',()=>{hiddenExamsOpen=hiddenList.open;});
+    hiddenList.append(node('summary','',language==='zh'?('隱藏的考試 ('+feed.hidden.length+')'):('Hidden exams ('+feed.hidden.length+')')));
+    const entries=node('div','exam-hidden-list');
+    feed.hidden.forEach(item=>addExam(item,entries));
+    hiddenList.append(entries);list.append(hiddenList);
+  }
 
   // Replace the ordinary exams footer with a concise, account-specific warning.
   // Pending requests are not failures; an empty syllabus is distinguished from a fetch error.

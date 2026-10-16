@@ -35,6 +35,13 @@
 .exam-past-empty{margin:5px 4px 12px;color:var(--muted);font-size:11px}
 .exam-past .exam-card{opacity:.78}
 .exam-past .exam-card:hover,.exam-past .exam-card:focus-within{opacity:1}
+.exam-hidden{margin-top:9px;padding:7px 2px 0;border-top:1px solid var(--line)}
+.exam-hidden>summary{padding:7px 4px;cursor:pointer;color:var(--muted);font-size:11px;font-weight:750}
+.exam-hidden-list{display:flex;flex-direction:column;gap:7px;margin-top:7px}
+.exam-hidden .exam-card{opacity:.68}
+.exam-hidden .exam-card:hover,.exam-hidden .exam-card:focus-within{opacity:1}
+.exam-editor-actions #exam-editor-hide:not([hidden]){border-color:var(--line);color:var(--muted)}
+
 
 
 /* Footer summary: nearly the original one-line footnote height until expanded. */

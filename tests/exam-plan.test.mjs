@@ -23,3 +23,15 @@ test('COOL cancellation entries retain priority over old public exams',async()=>
  const result=await preferredExamPlan({}, {},{term:'115-1'},candidate,{coolRead:async()=>({...coolPlan,exams:[{kind:'midterm',certainty:'cancelled',date:null}]}),publicRead:async()=>{throw Error('must not fetch');}});
  assert.equal(result.source,'ntu-cool');assert.equal(result.exams[0].certainty,'cancelled');
 });
+
+test('generic COOL midterm week does not prevent a specific public exam, but an explicit no-exam does',async()=>{
+ const calls=[];
+ const weekOnly={...coolPlan,exams:[{kind:'midterm',week:8,date:null,description:'Midterm week',certainty:'exam-period'}]};
+ const fallback=await preferredExamPlan({}, {},{term:'115-1'},candidate,{coolRead:async()=>{calls.push('cool');return weekOnly;},publicRead:async()=>{calls.push('public');return publicCourse;}});
+ assert.deepEqual(calls,['cool','public']);
+ assert.equal(fallback.source,'public-ntu');
+ await preferredExamPlan({}, {},{term:'115-1'},candidate,{
+  coolRead:async()=>({...coolPlan,exams:[{kind:'midterm',week:8,description:'Midterm week — no exams',certainty:'cancelled'}]}),
+  publicRead:async()=>{throw Error('cancellation should prevent public fallback');}
+ });
+});

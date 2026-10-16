@@ -38,6 +38,27 @@ test('custom exams validate dates, weeks, and personal overrides without inventi
    assert.throws(()=>normalizeCustomExam(input));
 });
 
+test('only sourced exams may be hidden, and a hidden item needs no invented date',()=>{
+ const payload=values({date:null,week:null,sourceKey:'import:specific-key',hidden:true});
+ assert.equal(normalizeCustomExam(payload).hidden,true);
+ assert.equal(normalizeCustomExam({...payload,hidden:false}).date,null,'restoring source without a known date is valid');
+ assert.throws(()=>normalizeCustomExam(values({hidden:true})));
+ assert.throws(()=>normalizeCustomExam(values({hidden:'true',sourceKey:'import:x'})));
+});
+
+test('hidden imported exams are owner-scoped and can be shown again',async()=>{
+ const f=fixture();
+ try{
+  const a=await f.owner('b12345678'),b=await f.owner('r23456789');
+  const id=crypto.randomUUID(),value=values({title:'PE midterm',date:null,week:null,sourceKey:'import:pe-midterm',hidden:true});
+  assert.equal((await f.request(a,'custom-exams','POST',{id,...value})).status,201);
+  assert.equal((await f.request(a)).body.exams[0].hidden,true);
+  assert.equal((await f.request(b)).body.exams.length,0);
+  const changed=await f.request(a,'custom-exams/'+id,'PATCH',{version:1,...value,hidden:false,date:'2026-11-04'});
+  assert.equal(changed.status,200);assert.equal(changed.body.exam.hidden,false);
+ }finally{f.close();}
+});
+
 test('custom exams persist and isolate students; edits require version; restores do not modify original',async()=>{
  const f=fixture();
  try{
@@ -47,6 +68,7 @@ test('custom exams persist and isolate students; edits require version; restores
   assert.equal((await f.request(a)).body.exams.length,1);
   assert.equal((await f.request(b)).body.exams.length,0);
   assert.equal((await f.request(a,'custom-exams','POST',{id,...values()})).status,201);
+
   assert.equal((await f.request(a)).body.exams.length,1);
   assert.equal((await f.request(a,'custom-exams','POST',{id,...values({title:'Collision'})})).status,409);
   assert.equal((await f.request(b,'custom-exams/'+id,'DELETE',{version:1})).status,404);

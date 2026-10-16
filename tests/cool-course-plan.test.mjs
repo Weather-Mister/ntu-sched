@@ -67,3 +67,26 @@ test('expired COOL sessions are reported without following login redirects',asyn
  const previous=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;return new Response(null,{status:302,headers:{Location:'https://adfs.ntu.edu.tw/adfs/ls'}});};
  try{await assert.rejects(readCoolCoursePlan(new CookieJar(),'64620','115-1'),{code:'cool_session_expired'});assert.equal(calls,1);}finally{globalThis.fetch=previous;}
 });
+
+test('COOL midterm-week labels without examinations do not masquerade as exams',()=>{
+ const plan=parseCoolCoursePlan('',[
+  {name:'Week 8 - Midterm week no exam',items:[]},
+  {name:'Week 9 Midterm week',items:[]},
+  {name:'Week 10 - Midterm Exam',items:[]}
+ ],'115-1',SOURCE);
+ assert.deepEqual(plan.exams.map(e=>e.certainty),['cancelled','exam-period','week-only']);
+});
+test('COOL period-only modules fall through to detailed syllabus content',async()=>{
+ const old=globalThis.fetch,seen=[];
+ globalThis.fetch=async url=>{
+  const u=new URL(url);seen.push(u.pathname);
+  if(u.pathname==='/api/v1/courses')return Response.json([{id:64620}]);
+  if(u.pathname.endsWith('/modules'))return Response.json([{id:1,name:'Week 8 — Midterm week',items:[],items_count:0}]);
+  return Response.json({id:64620,syllabus_body:'<table><tr><td>Week 9</td><td>11/03</td><td>Midterm exam</td></tr></table>'});
+ };
+ try{
+  const result=await readCoolCoursePlan(new CookieJar(),'64620','115-1');
+  assert.equal(result.exams[0].certainty,'scheduled-week');
+  assert.deepEqual(seen,['/api/v1/courses','/api/v1/courses/64620/modules','/api/v1/courses/64620']);
+ }finally{globalThis.fetch=old;}
+});
