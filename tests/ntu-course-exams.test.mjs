@@ -81,6 +81,12 @@ test('an absent syllabus section cannot independently verify an imported section
  assert.equal(matchImportedCourse({term:'115-1'},{code:'CSIE5734',section:'02'},info).status,'code-only');
 });
 
+test('No Class is not a section number; unrelated homework dates are not explicit exam dates',()=>{
+ const base='<html><body><h2>Course</h2><p>Course Number</p><p>ME1005</p><div>No Class</div><p>3 Credits</p><table>';
+ const result=parseNtuCourseExams(base+'<tr><td>Week 8</td><td></td><td>Midterm exam; homework due 11/3</td></tr><tr><td>Week 9</td><td></td><td>Final exam on 11/10</td></tr></table></body></html>',source);
+ assert.equal(result.section,'');assert.equal(result.exams[0].date,null);assert.equal(result.exams[0].certainty,'week-only');assert.equal(result.exams[1].date,'2026-11-10');assert.equal(result.exams[1].certainty,'explicit');
+});
+
 test('bounded public fetch rejects oversized data and never sends credentials',async()=>{
  const previous=globalThis.fetch;
  globalThis.fetch=async(_url,options)=>{assert.equal(options.credentials,'omit');assert.equal(options.redirect,'manual');assert.equal(options.headers.Cookie,undefined);return new Response('x'.repeat(1024*1024+1),{headers:{'Content-Type':'text/html'}});};
