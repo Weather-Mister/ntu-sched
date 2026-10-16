@@ -14,7 +14,15 @@ async function authorization(env, studentId, provider, row) {
 }
 async function publicTimetable(value, status) {
   const timetable = value?.timetable ? {...value.timetable, sessions:await Promise.all(value.timetable.sessions.map(async session => ({...session,courseId:await digest(courseIdentity(value.timetable,session))})))} : null;
-  return {timetable,courseOverrides:value?.courseOverrides || {},connectionStatus:status || 'not_connected',checkIntervalMs:TIMETABLE_INTERVAL};
+  const examPlans={};
+  // Never expose exams associated with a different term, removed class, or section.
+  for(const session of timetable?.sessions||[]){
+    const id=session.courseId,entry=value?.examPlans?.[id];
+    if(entry?.term===timetable.term&&entry.selection===(value?.courseOverrides?.[id]?.examOffering?.serial||'')&&entry.result){
+      examPlans[id]=entry;
+    }
+  }
+  return {timetable,courseOverrides:value?.courseOverrides || {},examPlans,connectionStatus:status || 'not_connected',checkIntervalMs:TIMETABLE_INTERVAL};
 }
 export async function savedTimetable(env, studentId) {
   const row = await connection(env, studentId);
@@ -66,9 +74,31 @@ export async function changeCourseDetails(env,studentId,courseId,body) {
     }
     if(!body.reset)for(const key of ['name','room','description'])if(Object.hasOwn(body,key))next[key==='name'?(body.language==='en'?'nameEn':'nameZh'):key]=body[key]===null || key==='name'&&!body[key].trim()?null:body[key].trim();
     next.version=body.version+1;
-    return {...value,courseOverrides:{...value.courseOverrides,[courseId]:next}};
+    const changedOffering=(previous?.examOffering?.serial||'')!==(next.examOffering?.serial||'');
+    const examPlans={...(value.examPlans||{})};
+    if(body.reset||changedOffering)delete examPlans[courseId];
+    return {...value,examPlans,courseOverrides:{...value.courseOverrides,[courseId]:next}};
   });
 }
+// The exam plan is data, not a credential; keep it encrypted with the student's
+// existing timetable record to avoid a second store or unowned client cache.
+export async function saveStudentExamPlan(env,studentId,courseId,term,selection,result){
+  const data=JSON.stringify(result);
+  if(data.length>200000)throw new ApiError(502,'exam_plan_too_large','The course exam plan could not be saved.');
+  return updateRecord(env,studentId,async value=>{
+    if(!value?.timetable||value.timetable.term!==term)
+      throw new ApiError(409,'exam_timetable_changed','Your timetable changed while checking exams.');
+    const matching=await Promise.all(value.timetable.sessions.map(s=>digest(courseIdentity(value.timetable,s))));
+    if(!matching.includes(courseId))throw new ApiError(409,'exam_course_changed','This course is no longer in your timetable.');
+    if((value.courseOverrides?.[courseId]?.examOffering?.serial||'')!==selection)
+      throw new ApiError(409,'exam_section_changed','The saved section changed while checking exams.');
+    const plans={...(value.examPlans||{}),[courseId]:{term,selection,result,savedAt:Date.now()}};
+    // Avoid accumulating obsolete terms or removed classes.
+    for(const id of Object.keys(plans))if(plans[id]?.term!==term||!matching.includes(id))delete plans[id];
+    return {...value,examPlans:plans};
+  });
+}
+
 export async function syncTimetable(env, student, password, force = false) {
   const previous = await connection(env, student.student_id);
   const retained = await authorization(env, student.student_id, 'timetable', previous);
