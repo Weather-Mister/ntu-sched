@@ -121,7 +121,7 @@ test('phone exam tabs and date inputs cannot overlap, with Add exam inline',()=>
   assert.match(examStyles,/\.exam-list-heading\{display:flex;align-items:center;justify-content:space-between/);
   assert.match(examStyles,/@media\(max-width:600px\)\{\s*\.exam-editor-fields\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(examStyles,/\.exam-editor-fields input\{display:block;width:100%;max-width:100%;min-width:0;/);
-  assert.match(mobileOverflow,/@media \\(max-width:790px\\) \\{[\\s\\S]*?\\.event-dialog \\.event-fields \\{[\\s\\S]*?display:block;/);
+  assert.match(mobileOverflow,/@media \(max-width:790px\) \{[\s\S]*?\.event-dialog \.event-fields \{[\s\S]*?display:block;/);
   assert.match(mobileOverflow,/\.event-dialog \.event-fields input,[\s\S]*?\.event-dialog #event-until \{[\s\S]*?box-sizing:border-box;/);
 });
 
