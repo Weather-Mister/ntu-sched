@@ -195,27 +195,91 @@ export async function checkSend(env,owner,id){
  if(job.status==='sent'||job.status==='failed')return {id,status:job.status};
  return withMailbox(env,owner,async s=>{const found=await findMessage(s,s.folders.sent,job.message_id);if(found)await env.DB.prepare("UPDATE mail_sends SET status='sent',updated_at=? WHERE student_id=? AND id=?").bind(clock(),owner.student_id,id).run();return {id,status:found?'sent':job.status==='preparing'?'failed':'uncertain'};});
 }
-export async function refreshMailNotifications(env){
- const due=await env.DB.prepare('SELECT m.student_id,s.student_number FROM mail_state m JOIN students s ON s.id=m.student_id WHERE m.next_check<=? AND m.lease_until<? AND EXISTS(SELECT 1 FROM mail_push p WHERE p.student_id=m.student_id) ORDER BY m.next_check LIMIT 4').bind(clock(),clock()).all();
- for(const owner of due.results){try{await withMailbox(env,owner,async(s,state)=>{
-   const result=await s.list('INBOX',1);
-   const latest=result.rows.reduce((n,r)=>Math.max(n,Number(r.uid)),0),old=state.baseline?JSON.parse(state.baseline):null;
-   // Never notify the initial history; newest UID also catches arrivals already marked read.
-   let pending=null;if(old&&latest>old.uid)pending={title:'New NTU mail',body:'You have new mail in Campus Mail.',tag:'ntu-mail-'+owner.student_number,studentNumber:owner.student_number,url:'/skeleton/?mail=1'};
-   if(pending){const config=await pushConfiguration(env),devices=await env.DB.prepare('SELECT * FROM mail_push WHERE student_id=? AND notified_uid<?').bind(owner.student_id,latest).all();let failed=false;
-    for(const device of devices.results){try{const sub=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'mail_push',device.encrypted_subscription),status=await sendPush(env,sub,pending,config);if(status===404||status===410)await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(owner.student_id,device.id).run();else if(status<200||status>=300)throw new Error('Push rejected');else await env.DB.prepare('UPDATE mail_push SET notified_uid=? WHERE student_id=? AND id=?').bind(latest,owner.student_id,device.id).run();}catch{failed=true;}}
-    if(failed)throw new ApiError(502,'push_retry','Notification delivery will retry.');
+
+const MANUAL_MAIL_CHECK_SCHEMA='CREATE TABLE IF NOT EXISTS mail_manual_checks (student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, checked_at INTEGER NOT NULL DEFAULT 0)';
+async function checkOneMailNotification(env,owner){
+ return withMailbox(env,owner,async(s,state)=>{
+  // Identical detection and per-device deduplication for both cron and manual checks.
+  // Never expose message titles, senders or bodies in test responses.
+  const result=await s.list('INBOX',1);
+  const latest=result.rows.reduce((n,r)=>Math.max(n,Number(r.uid)),0);
+  const previous=state.baseline?JSON.parse(state.baseline):null;
+  const isNew=!!previous&&latest>previous.uid;
+  let delivered=0,expired=0;
+  if(isNew){
+   const config=await pushConfiguration(env);
+   const devices=await env.DB.prepare('SELECT * FROM mail_push WHERE student_id=? AND notified_uid<?').bind(owner.student_id,latest).all();
+   let failed=false;
+   const payload={title:'New NTU mail',body:'You have new mail in Campus Mail.',tag:'ntu-mail-'+owner.student_number,studentNumber:owner.student_number,url:'/skeleton/?mail=1'};
+   for(const device of devices.results){
+    try{
+     const sub=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'mail_push',device.encrypted_subscription);
+     const status=await sendPush(env,sub,payload,config);
+     if(status===404||status===410){
+      await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(owner.student_id,device.id).run();
+      expired++;
+     }else if(status<200||status>=300)throw new Error('Push rejected');
+     else{
+      await env.DB.prepare('UPDATE mail_push SET notified_uid=? WHERE student_id=? AND id=?').bind(latest,owner.student_id,device.id).run();
+      delivered++;
+     }
+    }catch{failed=true;}
    }
-   if(!old||latest<old.uid)await env.DB.prepare('UPDATE mail_push SET notified_uid=? WHERE student_id=?').bind(latest,owner.student_id).run();
-   await env.DB.prepare('UPDATE mail_state SET baseline=?,checked_at=?,next_check=?,failures=0,last_error=NULL,inbox_at=0 WHERE student_id=?').bind(JSON.stringify({uid:latest}),clock(),Math.floor(clock()/300000)*300000+300000,owner.student_id).run();
-  },{retryRead:true});}catch(error){await env.DB.prepare('UPDATE mail_state SET next_check=?,failures=failures+1,last_error=? WHERE student_id=?').bind(clock()+(error.code==='reauthorize'?365*86400000:Math.min(3600000,300000*2**Math.min(4,(await env.DB.prepare('SELECT failures FROM mail_state WHERE student_id=?').bind(owner.student_id).first())?.failures||0))),({
+   if(failed)throw new ApiError(502,'push_retry','New mail was found, but notification delivery failed. Try the push test.');
+  }
+  if(!previous||latest<previous.uid)
+   await env.DB.prepare('UPDATE mail_push SET notified_uid=? WHERE student_id=?').bind(latest,owner.student_id).run();
+  const checkedAt=clock();
+  await env.DB.prepare('UPDATE mail_state SET baseline=?,checked_at=?,next_check=?,failures=0,last_error=NULL,inbox_at=0 WHERE student_id=?')
+   .bind(JSON.stringify({uid:latest}),checkedAt,Math.floor(checkedAt/300000)*300000+300000,owner.student_id).run();
+  return {
+   outcome:!previous?'baseline_created':isNew?'new_mail':'no_new_mail',
+   acceptedDevices:delivered,expiredDevices:expired,checkedAt
+  };
+ },{retryRead:true});
+}
+async function recordNotificationCheckFailure(env,owner,error){
+ const failures=(await env.DB.prepare('SELECT failures FROM mail_state WHERE student_id=?').bind(owner.student_id).first())?.failures||0;
+ const message={
   reauthorize:'Sign in again to reconnect NTU Mail.',
   ntu_session_expired:'NTU Mail session expired; try signing in again.',
   ntu_login_unconfirmed:'NTU did not confirm the background mail sign-in.',
   ntu_unavailable:'NTU Mail could not be reached during the background check.',
   ntu_action_failed:'NTU rejected the background inbox check.',
   mail_busy:'Mailbox was busy during the scheduled check.',
-  push_retry:'Push delivery failed; run the test in Settings.',
-  push_test_failed:'Push delivery failed.'
- }[error?.code]||'Background mail check failed; retry scheduled.'),owner.student_id).run();}}
+  push_retry:'Push delivery failed; run the test in Settings.'
+ }[error?.code]||'Background mail check failed; retry scheduled.';
+ const delay=error?.code==='reauthorize'?365*86400000:Math.min(3600000,300000*2**Math.min(4,failures));
+ await env.DB.prepare('UPDATE mail_state SET next_check=?,failures=failures+1,last_error=? WHERE student_id=?')
+  .bind(clock()+delay,message,owner.student_id).run();
+}
+export async function checkNewMailNow(env,owner,deviceId){
+ // The test requires a current registration on the signed-in account.
+ if(typeof deviceId!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(deviceId))
+  throw new ApiError(400,'invalid_push','Choose your registered notification device.');
+ if(!await env.DB.prepare('SELECT id FROM mail_push WHERE student_id=? AND id=?').bind(owner.student_id,deviceId).first())
+  throw new ApiError(404,'push_device_missing','This device is not registered. Enable notifications in Campus Mail.');
+ // Independent of the push-only test limit. This operation logs into NTU Mail.
+ await env.DB.prepare(MANUAL_MAIL_CHECK_SCHEMA).run();
+ await env.DB.prepare('INSERT OR IGNORE INTO mail_manual_checks(student_id) VALUES(?)').bind(owner.student_id).run();
+ const now=clock();
+ const claim=await env.DB.prepare('UPDATE mail_manual_checks SET checked_at=? WHERE student_id=? AND checked_at<=? RETURNING checked_at')
+  .bind(now,owner.student_id,now-60000).first();
+ if(!claim)throw new ApiError(429,'mail_check_rate','Wait one minute before checking for new mail again.');
+ try{return await checkOneMailNotification(env,owner);}
+ catch(error){
+  await recordNotificationCheckFailure(env,owner,error);
+  // Only display a safe failure category, not NTU cookies, account details or errors.
+  if(error?.code==='push_retry')throw error;
+  if(error?.code==='mail_busy')throw error;
+  if(error?.code==='reauthorize')throw error;
+  throw new ApiError(502,'mail_check_failed','Could not check NTU Mail right now. The notification checker will retry.');
+ }
+}
+export async function refreshMailNotifications(env){
+ const due=await env.DB.prepare('SELECT m.student_id,s.student_number FROM mail_state m JOIN students s ON s.id=m.student_id WHERE m.next_check<=? AND m.lease_until<? AND EXISTS(SELECT 1 FROM mail_push p WHERE p.student_id=m.student_id) ORDER BY m.next_check LIMIT 4').bind(clock(),clock()).all();
+ for(const owner of due.results){
+  try{await checkOneMailNotification(env,owner);}
+  catch(error){await recordNotificationCheckFailure(env,owner,error);}
+ }
 }
