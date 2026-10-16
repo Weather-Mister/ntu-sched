@@ -155,7 +155,7 @@ export default {
           });return json({...owner,ok:true});
         }
         if(path==='/api/mail/push'&&request.method==='GET'){
-          const state=await env.DB.prepare('SELECT checked_at,next_check,last_error FROM mail_state WHERE student_id=?').bind(current.student_id).first();
+          const state=await env.DB.prepare('SELECT checked_at,next_check,last_error,failures FROM mail_state WHERE student_id=?').bind(current.student_id).first();
           const devices=await env.DB.prepare('SELECT id,created_at FROM mail_push WHERE student_id=?').bind(current.student_id).all();
           return json({...owner,publicKey:(await pushConfiguration(env)).publicKey,devices:devices.results,state:state||null});
         }
