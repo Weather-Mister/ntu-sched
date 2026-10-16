@@ -80,7 +80,9 @@ export async function readCoolCoursePlan(jar,id,term) {
    }
   }
   const sourceUrl=`${COOL}/courses/${id}`,modulePlan=parseCoolCoursePlan('',modules,term,sourceUrl);
-  if(modulePlan.exams.length)return modulePlan;
+  // A generic academic exam week is not proof of a scheduled exam.
+  // An explicit cancellation is authoritative and must not be replaced by an older public listing.
+  if(modulePlan.exams.some(e=>e.certainty!=='exam-period'))return modulePlan;
   const {data:course}=await one(new URL(`/api/v1/courses/${id}?include[]=syllabus_body`,COOL),`/api/v1/courses/${id}`);
   if(String(course?.id)!==id)throw unavailable();
   return parseCoolCoursePlan(course.syllabus_body,[],term,sourceUrl);
