@@ -33,3 +33,17 @@ body[data-theme=dark] .settings-avatar{background:#384735;border-color:#4e6045;c
 .dashboard-hanzi-label button svg{width:17px;height:17px;stroke-width:2}
 .dashboard-hanzi-label button:hover:not(:disabled){background:var(--hub-soft);color:var(--hub-accent)}
 .dashboard-hanzi-label button:disabled{opacity:.55;cursor:wait}
+
+/* Mail notification diagnostics: compact, mobile-safe and readable in both themes. */
+.settings-notify-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:17px 0}
+.settings-notify-grid>div{min-width:0;padding:13px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);display:flex;flex-direction:column;gap:6px}
+.settings-notify-grid span{font-size:10px;font-weight:700;color:var(--muted)}
+.settings-notify-grid strong{font-size:12px;line-height:1.45;font-weight:750;overflow-wrap:anywhere}
+.settings-notify-actions{display:flex;gap:8px;flex-wrap:wrap}
+.settings-notify-actions button{min-width:0}
+.settings-notify-status,.settings-notify-help{font-size:12px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
+.settings-notify-status{min-height:18px;margin:10px 0 0}
+.settings-notify-status.is-error{color:#b45145}
+.settings-notify-help{margin:10px 0 0}
+@media(max-width:600px){.settings-notify-grid{gap:6px}.settings-notify-grid>div{padding:10px 8px}.settings-notify-grid strong{font-size:10px}.settings-notify-actions button{flex:1 1 auto;font-size:11px}.settings-notify-help,.settings-notify-status{font-size:11px}}
+@media(max-width:360px){.settings-notify-grid{grid-template-columns:1fr}.settings-notify-grid>div{flex-direction:row;justify-content:space-between;gap:8px}}
