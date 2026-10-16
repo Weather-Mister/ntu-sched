@@ -153,3 +153,16 @@ test('Undo remove controls and transient sync popups are absent, while retryable
   assert.match(html,/id="tasks-retry"/);
   assert.match(html,/id="events-retry"/);
 });
+
+test('imported exams can be hidden per student and restored without touching synced syllabus',()=>{
+ const editor=readFileSync(new URL('exam-editor.mjs',skeleton),'utf8');
+ const examsCss=readFileSync(new URL('exams.css',skeleton),'utf8');
+ const {document}=parseHTML(html);
+ assert(document.getElementById('exam-editor-hide'));
+ assert.match(editor,/editing\?\.sourceKey/);
+ assert.match(editor,/saveExam\(!editing\?\.manualRecord\?\.hidden\)/);
+ assert.match(editor,/Restore original/);
+ assert.match(js,/const hiddenList=node\('details','exam-hidden'\)/);
+ assert.match(js,/feed\.hidden\.forEach\(item=>addExam\(item,entries\)\)/);
+ assert.match(examsCss,/\.exam-hidden>summary/);
+});
