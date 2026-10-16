@@ -53,6 +53,8 @@ Tests use synthetic credentials, mocked NTU servers, SQLite, and an inert DOM. T
 
 ## Configure Cloudflare
 
+Branch previews intentionally expose static UI only: the `previews` configuration disables sign-in and binds no production database. Authenticated integrations are tested with fixtures and verified on the production origin after the checked merge.
+
 Use the official Wrangler CLI and account `56ed116482d3c27b6980d1d13dff17c8`:
 
 1. Run `wrangler login` without copying tokens into the repository or chat.
