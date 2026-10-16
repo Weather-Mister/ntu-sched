@@ -1,6 +1,7 @@
 // Campus Week theme-ready interface: fictional preview and opt-in live NTU data.
 import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
 import { AccountAnnouncements } from '/account-announcements.mjs';
+import { AccountExams, examFeed } from '/account-exams.mjs';
 import { applyCourseOverrides, scheduleAccent } from '/course-model.mjs';
 import { formatPeriods } from '/ntu-periods.mjs';
 import { AccountTasks } from '/account-tasks.mjs';
@@ -41,6 +42,7 @@ const profiles = {
 };
 const dict={
   en:{
+    upcomingExams:'Upcoming exams',chooseSection:'Choose your course section',section:'Section',automaticSection:'Automatic matching',
     loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Sign in',loginIntro:'Use your NTU student number and Mail password.',checkingSession:'Checking your session…',tryPreview:'Try a sample timetable',previewLabel:'Sample student',engineeringProfile:'Engineering student',socialProfile:'Social sciences student',enterPreview:'Open sample timetable',loginSafety:'Sample data only. No NTU account is required.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK PREVIEW',mySchedule:'My Schedule',
     chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',reloadSite:'Reload site',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Preview tasks stay in memory and disappear on reload.',
     lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Preview edits last until you leave this preview.',
@@ -58,6 +60,7 @@ const dict={
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
+    upcomingExams:'近期考試',chooseSection:'選擇你的課程班次',section:'班次',automaticSection:'自動比對',
     loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'登入',loginIntro:'使用臺大學號和電子郵件密碼登入。',checkingSession:'正在檢查登入狀態…',tryPreview:'試用範例課表',previewLabel:'範例學生',engineeringProfile:'工程學院學生',socialProfile:'社會科學院學生',enterPreview:'開啟範例課表',loginSafety:'僅使用範例資料，不需要臺大帳號。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK 預覽',mySchedule:'我的課表',
     chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',reloadSite:'重新載入網站',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'預覽任務僅暫存於記憶體，重新整理後會消失。',
     lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'預覽編輯僅保留至離開此預覽。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'此預覽使用每週重複課表。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
@@ -85,6 +88,7 @@ const taskStore = new AccountTasks(account, {
   onSessionExpired:()=>sessionExpired()
 });
 const announcementStore=new AccountAnnouncements(account,()=>{if(student&&liveMode)renderDeadlines();},()=>sessionExpired());
+const examStore=new AccountExams(account,()=>{if(student&&liveMode){if(coolView==='exams')renderDeadlines();renderCalendar();}},()=>sessionExpired());
 const eventUI=createEventUI({account,isLive:()=>liveMode,getLanguage:()=>language,getDate:()=>selectedDate,onChange(){if(student){renderBanner();renderCalendar();}},onSessionExpired:()=>sessionExpired()});
 function scheduleOn(key){return[...student.courses.filter(c=>c[0]===weekday(key)),...eventsOn(eventUI.events(),key)].sort((a,b)=>a[1].localeCompare(b[1]));}
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
@@ -278,6 +282,7 @@ function renderCalendar(){
     const period=lessonPeriod(c);if(period)clock.append(node('small','lesson-period',period));
     const card=node('span','lesson-card');card.dataset.color=String(scheduleAccent(c));
     card.append(node('span','lesson-name',c[language==='zh'?4:3]),node('span','lesson-room',c[5]));
+    if(liveMode&&courseOffering(c))card.append(node('span','lesson-section',sectionLabel(courseOffering(c))));
     if(c[7])card.append(node('small','event-kind',t('customEvent')));
     if(items.some(other=>other!==c&&other[1]<c[2]&&c[1]<other[2]))card.append(node('span','state-pill',t('overlap')));
     btn.append(clock,card);btn.addEventListener('click',()=>showLesson(c,selectedDate));list.append(btn);
@@ -342,6 +347,7 @@ function renderDeadlinesContent(){
   updateSyncDots();
   const list=$('cool-list'),expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));list.replaceChildren();if(!student)return;
   if(liveMode){renderLiveDeadlines(expanded);return;}
+  if(coolView==='exams'){renderExams();return;}
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
   $('cool-list').setAttribute('aria-labelledby',coolView==='assignments'?'cool-assignments-tab':'cool-announcements-tab');
   $('cool-heading').textContent=coolView==='assignments'?t('upcomingDates'):t('announcements');
@@ -368,6 +374,7 @@ function renderDeadlinesContent(){
   }
 }
 function renderLiveDeadlines(expanded=new Set()){
+  if(coolView==='exams'){renderExams();return;}
   const list=$('cool-list');
   document.querySelectorAll('[data-cool-view]').forEach(button=>
     button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
@@ -422,6 +429,51 @@ function renderLiveDeadlines(expanded=new Set()){
   }
 }
 
+function courseOffering(c){
+  return liveCourseOverrides[c[8]]?.examOffering||examStore.entries.get(c[8])?.result?.selected||liveTimetable?.sessions.find(s=>s.courseId===c[8]&&s.section);
+}
+function sectionLabel(offering){return offering?(t('section')+' '+(offering.section||'—')+(offering.teacher?' · '+offering.teacher:'')):'';}
+function renderExams(){
+  const list=$('cool-list');
+  document.querySelectorAll('[data-cool-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.coolView===coolView)));
+  list.setAttribute('aria-labelledby','cool-exams-tab');$('cool-heading').textContent=t('upcomingExams');
+  $('cool-refresh').disabled=liveMode&&examStore.busy;
+  $('cool-preview-note').textContent=language==='zh'?'優先使用 COOL 課程計畫，無考試資訊時才查詢臺大課程網。僅有週次時不推算日期。':'COOL first; NTU course syllabus as fallback. Week-only entries have no confirmed date.';
+  if(!liveMode){list.append(node('div','empty-card',language==='zh'?'登入以載入你的課程考試。':'Sign in to load exams for your classes.'));return;}
+  if(!examStore.courses.length){list.append(node('div','empty-card',t('liveNoTimetable')));return;}
+  if(examStore.busy)list.append(node('p','exam-group-title',language==='zh'?'正在檢查課程考試…':'Checking course exam plans…'));
+  const feed=examFeed(examStore.entries,taipeiToday());
+  function addExam(item){
+    const {courseId,course,exam,url,date,stale}=item,c=student.courses.find(c=>c[8]===courseId);
+    const card=node('article','cool-item exam-card card'),main=node('a','cool-main'),stamp=node('span','cool-date'),copy=node('span','cool-copy');
+    main.href=url;main.target='_blank';main.rel='noopener noreferrer';
+    if(date)stamp.append(node('strong','',String(dateFor(date).getUTCDate())),node('small','',dateFor(date).toLocaleDateString(language==='zh'?'zh-TW':'en-US',{timeZone:'UTC',month:'short'})));
+    else stamp.append(node('strong','',exam.week?String(exam.week):'—'),node('small','',language==='zh'?'週次':'Week'));
+    const kind=({quiz:language==='zh'?'小考':'Quiz',midterm:language==='zh'?'期中考':'Midterm',final:language==='zh'?'期末考':'Final exam'})[exam.kind]||t('upcomingExams');
+    const title=c?.[language==='zh'?4:3]||course.title;
+    copy.append(node('strong','',title+' · '+kind),node('small','',exam.description||kind));
+    const details=[sectionLabel(course),course.source==='ntu-cool'?'NTU COOL':(language==='zh'?'臺大課程網':'NTU course syllabus')].filter(Boolean);
+    copy.append(node('small','exam-source',details.join(' · ')));
+    if(examStore.entries.get(courseId)?.result?.matching?.status==='matched-timetable')copy.append(node('small','exam-confidence',language==='zh'?'依上課時間比對班次 · 請確認':'Section matched by timetable · confirm in Class details'));
+    const confidence=date?(exam.certainty==='explicit'?(language==='zh'?'來源明載日期':'Date stated in source'):(language==='zh'?'課程週表日期 · 請確認':'Schedule date · confirm')):(language==='zh'?'日期待確認':'Date to confirm');
+    copy.append(node('small','exam-confidence',confidence+(stale?(language==='zh'?' · 更新失敗，顯示上次結果':' · Refresh failed; last result shown'):'')));
+    main.setAttribute('aria-label',(language==='zh'?'在臺大課程網開啟：':'Open NTU course page: ')+title+' · '+kind);
+    main.append(stamp,copy);card.append(main);list.append(card);
+  }
+  if(feed.dated.length){list.append(node('h4','exam-group-title',language==='zh'?'近期考試':'Upcoming exams'));feed.dated.forEach(addExam);}
+  if(feed.unconfirmed.length){list.append(node('h4','exam-group-title',language==='zh'?'時間待確認':'Timing to confirm'));feed.unconfirmed.forEach(addExam);}
+  if(!feed.dated.length&&!feed.unconfirmed.length&&!examStore.busy)list.append(node('div','empty-card',language==='zh'?'目前未找到近期考試，請查看下方各課程狀態。':'No upcoming exams found. Check each course status below.'));
+  const statuses=node('details','exam-course-status');statuses.append(node('summary','',language==='zh'?'各課程狀態 / 選擇班次':'Course status / choose sections'));
+  for(const source of examStore.courses){
+    const c=student.courses.find(c=>c[8]===source.courseId),entry=examStore.entries.get(source.courseId),result=entry?.result;
+    const row=node('div','exam-status-row'),button=node('button','exam-course-button',c?.[language==='zh'?4:3]||source.title);
+    button.type='button';button.addEventListener('click',()=>{if(c)showLesson(c,offset(monday(selectedDate),c[0]));});
+    const status=entry?.error?liveNotice(entry.error):!entry?(language==='zh'?'尚未檢查':'Not checked yet'):!result?.course?(language==='zh'?'請選擇班次或確認課程資料':'Choose a section or check course information'):!result.course.exams?.length?(language==='zh'?'來源未列出考試':'No exam entries in available sources'):sectionLabel(result.course);
+    row.append(button,node('small','',status));statuses.append(row);
+  }
+  list.append(statuses);
+}
+
 function renderTasks(){
   updateSyncDots();
   const list=$('todo-list');list.replaceChildren();$('task-count').textContent=tasks.length+' '+(tasks.length===1?t('singleTask'):t('tasks'));
@@ -473,6 +525,7 @@ function populateLesson(c,key){
 }
 function lessonControls(){
   for(const control of $('lesson-edit-form').querySelectorAll('input,textarea,button'))control.disabled=lessonSaving;
+  $('lesson-section-input').disabled=lessonSaving||!lessonDraft?.sectionsReady;
   $('close-lesson').disabled=lessonSaving;
   $('lesson-save').textContent=t(lessonSaving?'lessonSaving':'lessonSave');
 }
@@ -481,9 +534,37 @@ function showLesson(c,key){
   opened={c,key};
   const version=(liveMode?liveCourseOverrides:previewCourseOverrides)[c[8]]?.version||0;
   lessonDraft={id:c[8],language,version,initial:{name:c[language==='zh'?4:3],room:c[5],description:c[9]||''}};
+  lessonDraft.initial.serial=liveMode?liveCourseOverrides[c[8]]?.examOffering?.serial||'':'';
+  const choice=node('option','',t('automaticSection'));choice.value='';
+  $('lesson-section-input').replaceChildren(choice);
+  if(lessonDraft.initial.serial){const saved=node('option','',sectionLabel(liveCourseOverrides[c[8]].examOffering));saved.value=lessonDraft.initial.serial;$('lesson-section-input').append(saved);}
+  $('lesson-section-input').value=lessonDraft.initial.serial;
+  $('lesson-section-status').textContent=liveMode?(language==='zh'?'正在載入臺大課程班次…':'Loading NTU course sections…'):(language==='zh'?'登入後可選擇真實課程班次。':'Sign in to choose a real course section.');
   $('lesson-name-input').value=lessonDraft.initial.name;$('lesson-room-input').value=lessonDraft.initial.room;
   $('lesson-description-input').value=lessonDraft.initial.description;$('lesson-edit-message').hidden=true;
   lessonSaving=false;lessonControls();populateLesson(c,key);$('lesson-dialog').showModal();
+  if(liveMode)void loadLessonSections(lessonDraft,liveEpoch);
+}
+async function loadLessonSections(draft,epoch){
+  try{
+    const result=await account.courseOptions(draft.id);
+    if(lessonDraft!==draft||epoch!==liveEpoch)return;
+    if(result.studentNumber!==liveAccount?.studentNumber){sessionExpired();return;}
+    const automatic=node('option','',t('automaticSection')+(result.selected?' · '+sectionLabel(result.selected):''));automatic.value='';
+    $('lesson-section-input').replaceChildren(automatic);
+    for(const offering of result.candidates){
+      const option=node('option','',sectionLabel(offering)+' · '+offering.serial);option.value=offering.serial;$('lesson-section-input').append(option);
+    }
+    if(draft.initial.serial&&!result.candidates.some(c=>c.serial===draft.initial.serial)){
+      const missing=node('option','',language==='zh'?'已儲存班次已無法使用 · 請重新選擇':'Saved section unavailable · choose again');missing.value=draft.initial.serial;$('lesson-section-input').append(missing);
+    }
+    $('lesson-section-input').value=draft.initial.serial;draft.sectionsReady=true;lessonControls();
+    $('lesson-section-status').textContent=result.candidates.length?(language==='zh'?'選擇你實際修課的班次，儲存後更新考試。':'Choose your enrolled section. Save changes to update its exam plan.'):(language==='zh'?'本學期未找到符合的公開課程。':'No matching public course was found for this semester.');
+  }catch(error){
+    if(lessonDraft!==draft||epoch!==liveEpoch)return;
+    if(error.status===401){sessionExpired();return;}
+    $('lesson-section-status').textContent=language==='zh'?'無法載入班次，請關閉後重開再試。其他欄位仍可編輯。':'Could not load sections. Reopen this class to retry; other details can still be edited.';
+  }
 }
 async function saveLessonDetails(reset=false){
   if(!opened||!lessonDraft||lessonSaving||!$('lesson-edit-form').reportValidity())return;
@@ -491,6 +572,7 @@ async function saveLessonDetails(reset=false){
   if(!reset)for(const [key,id]of [['name','lesson-name-input'],['room','lesson-room-input'],['description','lesson-description-input']]){
     const value=$(id).value.trim();if(value!==draft.initial[key])body[key]=key==='name'&&!value?null:value;
   }
+  if(!reset&&draft.sectionsReady&&$('lesson-section-input').value!==draft.initial.serial)body.offeringSerial=$('lesson-section-input').value||null;
   if(!reset&&Object.keys(body).length===2){$('lesson-dialog').close();return;}
   lessonSaving=true;liveDetailsRevision++;lessonControls();$('lesson-edit-message').hidden=true;
   try{
@@ -520,7 +602,7 @@ function leavePreview(){
   liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
   if($('settings-dialog').open)$('settings-dialog').close();
-  taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);settingsUI.reset();$('task-input').value='';
+  taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);settingsUI.reset();$('task-input').value='';
   eventUI.reset();
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');coolScroll.reset();
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
@@ -618,7 +700,7 @@ function updateSyncDots(){
   const online=navigator.onLine!==false,tasksState=taskStore.state,announcements=announcementStore;
   const entries=[
     ['timetable',!!liveTimetable&&liveTimetableOk,liveTimetableInfo],
-    ['cool',coolView==='announcements'?!!announcements.items&&!announcements.error&&!announcements.loading&&!announcements.busy:!!liveCalendar&&liveCalendarOk,coolView==='announcements'?announcements.error?.message:liveCoolInfo],
+    ['cool',coolView==='exams'?!!examStore.entries.size&&!examStore.busy&&![...examStore.entries.values()].some(e=>e.error):coolView==='announcements'?!!announcements.items&&!announcements.error&&!announcements.loading&&!announcements.busy:!!liveCalendar&&liveCalendarOk,coolView==='announcements'?announcements.error?.message:coolView==='exams'?'':liveCoolInfo],
     ['tasks',tasksState.ready&&!tasksState.error&&!tasksState.saving&&!tasksState.loading,tasksState.error?(language==='zh'?'同步失敗':'Sync failed'):'']
   ];
   for(const [key,ready,detail]of entries){
@@ -641,6 +723,7 @@ function updateLiveStatus(){
   $('live-cool-settings-status').textContent=messageC;
 }
 function renderLiveAccount(){
+  examStore.configure(liveTimetable,liveCourseOverrides);
   student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides);
   renderAll();dashboardResize.place();
 }
@@ -737,7 +820,7 @@ function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
   liveMode=true;liveEpoch++;initialSyncBusy=false;$('initial-sync-notice').hidden=true;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';coolScroll.reset();
-  $('task-input').value='';taskStore.bind(current);mailUI.bind(current);
+  $('task-input').value='';taskStore.bind(current);mailUI.bind(current);examStore.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
   $('login-screen').hidden=true;$('app-screen').hidden=false;
   
@@ -807,7 +890,7 @@ async function endLiveAccount(){
 
 function enterPreview(){
   liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
-  taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);$('task-input').value='';
+  taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);$('task-input').value='';
   eventUI.reset();
   const key=$('preview-profile').value;if(!Object.hasOwn(profiles,key))return;
   previewCourseOverrides={};student={...profiles[key],courses:previewCourseRows(profiles[key])};tasks=student.tasks.map(text=>({id:++counter,text,done:false}));
@@ -832,11 +915,12 @@ $('next-week').addEventListener('click',()=>{selectedDate=offset(selectedDate,7)
 $('jump-today').addEventListener('click',()=>{selectedDate=taipeiToday();renderCalendar();});
 $('choose-date').addEventListener('change',e=>{try{dateFor(e.target.value);selectedDate=e.target.value;renderCalendar();}catch{$('choose-date').value=selectedDate;}});
 $('cool-refresh').addEventListener('click',()=>{
-  if(liveMode){if(coolView==='announcements')void announcementStore.refresh();else void syncLive('cool');return;}
+  if(liveMode){if(coolView==='exams')void examStore.refresh(true);else if(coolView==='announcements')void announcementStore.refresh();else void syncLive('cool');return;}
   renderDeadlines();$('toast').textContent=t('previewRefresh');
 });
 document.querySelectorAll('[data-cool-view]').forEach(button=>button.addEventListener('click',()=>{
-  coolView=button.dataset.coolView;renderDeadlines();
+  coolView=button.dataset.coolView;examStore.active=liveMode&&coolView==='exams';renderDeadlines();
+  if(examStore.active)void examStore.refresh();
 }));
 $('task-form').addEventListener('submit',async e=>{
   e.preventDefault();if(!student)return;const content=$('task-input').value.trim();if(!content)return;

@@ -187,7 +187,9 @@ export default {
       }
       if (path.startsWith('/api/timetable/courses/') && request.method === 'PATCH') {
         const current=await session(request,env,true),courseId=path.slice('/api/timetable/courses/'.length);
-        return json({studentNumber:current.student_number,...await changeCourseDetails(env,current.student_id,courseId,await readJson(request,12000))});
+        const body=await readJson(request,12000);
+        if(body.offeringSerial!=null)await limit(env,current.student_id,'exam-catalog',30);
+        return json({studentNumber:current.student_number,...await changeCourseDetails(env,current.student_id,courseId,body)});
       }
       // Read-only NTU Course Information lab: no grade data, credentials or persistence.
       if(path==='/api/exams/cool-preview'&&request.method==='POST'){
@@ -204,8 +206,8 @@ export default {
         const plan=await coolPlanForStudent(env,current,resolution.selected);
         return json({studentNumber:current.student_number,plan});
       }
-      if (path === '/api/exams/resolve' && request.method === 'GET' || path==='/api/exams/plan'&&request.method==='POST') {
-        const coolFirst=path==='/api/exams/plan',current=await session(request,env,coolFirst);
+      if (path === '/api/exams/resolve' && request.method === 'GET' || ['/api/exams/plan','/api/exams/options'].includes(path)&&request.method==='POST') {
+        const optionsOnly=path==='/api/exams/options',coolFirst=path!=='/api/exams/resolve',current=await session(request,env,coolFirst);
         let search=new URL(request.url).searchParams;
         if(coolFirst){
           const body=await readJson(request,2000);
@@ -234,14 +236,16 @@ export default {
           if(snapshot&&Date.now()-snapshot.syncedAt<86400000)
             coolIds=[...new Set([...(snapshot.courses||[]).map(c=>String(c.id)),...(snapshot.items||[]).map(c=>String(c.courseId))])];
         } catch { /* Public lookup still works without a COOL connection. */ }
-        const resolution=resolveNtuCourse(timetable,rows,candidates,{serial:search.get('serial')||undefined,coolIds});
+        const savedOffering=saved.courseOverrides?.[search.get('courseId')]?.examOffering;
+        const resolution=resolveNtuCourse(timetable,rows,candidates,{serial:search.get('serial')||(!optionsOnly&&savedOffering?.serial)||undefined,coolIds});
         let course=null;
-        if(resolution.selected){
+        if(resolution.selected&&!optionsOnly){
           course=coolFirst?await preferredExamPlan(env,current,timetable,resolution.selected):await readNtuCourseExams(resolution.selected.sourceUrl);
           if(!coolFirst&&matchImportedCourse(timetable,{code:resolution.selected.courseCode,serial:resolution.selected.serial,section:resolution.selected.section},course).status!=='matched-identifiers')
             throw new ApiError(502,'exam_catalog_changed','The syllabus and catalog metadata disagree. No dates were imported.');
         }
-        return json({studentNumber:current.student_number,matching:resolution.matching,course,
+        const {coolId:unused,...selected}=resolution.selected||{};
+        return json({studentNumber:current.student_number,matching:resolution.matching,course,selected:resolution.selected?selected:null,
           candidates:resolution.candidates.map(({coolId,...c})=>c)});
       }
       if (path === '/api/exams/preview' && request.method === 'GET') {

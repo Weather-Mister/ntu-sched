@@ -1,6 +1,7 @@
 import { ApiError, decryptAuthorization, encryptAuthorization, digest } from './security.mjs';
 import { courseIdentity } from '../public/course-model.mjs';
 import { readNtuTimetable } from './ntu-timetable.mjs';
+import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
 
 export const TIMETABLE_INTERVAL = 5 * 24 * 60 * 60 * 1000;
 async function connection(env, studentId, provider = 'timetable') {
@@ -34,10 +35,11 @@ async function updateRecord(env, studentId, transform, verifiedAt) {
 }
 export async function changeCourseDetails(env,studentId,courseId,body) {
   const invalid=()=>new ApiError(400,'invalid_course_details','Check the lesson name, room and description.');
-  if(!/^[A-Za-z0-9_-]{43}$/.test(courseId)||!Number.isSafeInteger(body.version)||body.version<0||Object.keys(body).some(k=>!['version','language','name','room','description','reset'].includes(k)))throw invalid();
+  if(!/^[A-Za-z0-9_-]{43}$/.test(courseId)||!Number.isSafeInteger(body.version)||body.version<0||Object.keys(body).some(k=>!['version','language','name','room','description','offeringSerial','reset'].includes(k)))throw invalid();
   if(body.reset !== undefined && (body.reset !== true || Object.keys(body).some(k=>!['version','reset'].includes(k))))throw invalid();
   if(!body.reset){
-    if(!['en','zh'].includes(body.language)||!['name','room','description'].some(k=>Object.hasOwn(body,k)))throw invalid();
+    if(!['en','zh'].includes(body.language)||!['name','room','description','offeringSerial'].some(k=>Object.hasOwn(body,k)))throw invalid();
+    if(Object.hasOwn(body,'offeringSerial')&&body.offeringSerial!==null&&(typeof body.offeringSerial!=='string'||!/^\d{4,6}$/.test(body.offeringSerial)))throw invalid();
     for(const [key,max]of [['name',160],['room',200],['description',1000]]){
       const v=body[key];if(v === undefined || v === null)continue;
       if(typeof v!=='string'||Array.from(v.trim()).length>max||/[\x00-\x08\x0b-\x1f\x7f]/.test(v)||key!=='description'&&/[\r\n]/.test(v))throw invalid();
@@ -51,6 +53,17 @@ export async function changeCourseDetails(env,studentId,courseId,body) {
     if((previous?.version || 0)!==body.version)throw new ApiError(409,'course_changed','These details changed on another device. Reopen this lesson to load the latest details.');
     if(!previous&&Object.keys(value.courseOverrides || {}).length>=1000)throw new ApiError(409,'course_details_full','There are too many saved lesson customizations.');
     const next=body.reset ? {nameEn:null,nameZh:null,room:null,description:null} : {...previous};
+    if(!body.reset&&Object.hasOwn(body,'offeringSerial')){
+      next.examOffering=null;
+      if(body.offeringSerial!==null){
+        const rows=value.timetable.sessions.filter((s,i)=>ids[i]===courseId);
+        const candidates=await searchNtuCourses(value.timetable.term,rows[0]);
+        const selected=resolveNtuCourse(value.timetable,rows,candidates,{serial:body.offeringSerial}).selected;
+        if(!selected)throw invalid();
+        const {term,serial,section,teacher,courseCode,courseIdentifier,sourceUrl}=selected;
+        next.examOffering={term,serial,section,teacher,courseCode,courseIdentifier,sourceUrl};
+      }
+    }
     if(!body.reset)for(const key of ['name','room','description'])if(Object.hasOwn(body,key))next[key==='name'?(body.language==='en'?'nameEn':'nameZh'):key]=body[key]===null || key==='name'&&!body[key].trim()?null:body[key].trim();
     next.version=body.version+1;
     return {...value,courseOverrides:{...value.courseOverrides,[courseId]:next}};
