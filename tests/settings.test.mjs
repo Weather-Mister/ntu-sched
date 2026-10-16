@@ -41,3 +41,14 @@ test('all settings sections coexist on one page, with valid jump targets and acc
  for(const id of ['account-id','log-out','stat-courses','stat-sessions','stat-hours','settings-hanzi-enabled','settings-hanzi-username','settings-language'])assert.equal((section.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.doesNotMatch(section,/Coming later|settings-rail|data-settings-panel="security"/);assert.match(section,/Preview · Sample data/);assert.doesNotMatch(section,/settings-section-index|A little more you|Your week, in numbers|Your week\. One tap away|Make room for learning|Made for student life|Go with the flow|After hours/);
 });
+
+test('Settings provides permission, device registration, local test and server push test',()=>{
+ const html=readFileSync(new URL('../public/skeleton/index.html',import.meta.url),'utf8');
+ const js=readFileSync(new URL('../public/skeleton/settings.mjs',import.meta.url),'utf8');
+ const testUI=readFileSync(new URL('../public/skeleton/notification-settings.mjs',import.meta.url),'utf8');
+ for(const id of ['settings-notify-permission','settings-notify-device','settings-notify-checker','settings-notify-check','settings-notify-local','settings-notify-push','settings-notify-status'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/data-settings-panel="notifications"/);
+ assert.match(js,/notificationSettings\.inspect\(\)/);
+ assert.match(testUI,/registration\.showNotification\(/);
+ assert.match(testUI,/mail\/push\/test/);
+});
