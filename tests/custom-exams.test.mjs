@@ -38,6 +38,13 @@ test('custom exams validate dates, weeks, and personal overrides without inventi
    assert.throws(()=>normalizeCustomExam(input));
 });
 
+test('only sourced exams may be hidden, and a hidden item needs no invented date',()=>{
+ const payload=values({date:null,week:null,sourceKey:'import:specific-key',hidden:true});
+ assert.equal(normalizeCustomExam(payload).hidden,true);
+ assert.throws(()=>normalizeCustomExam(values({hidden:true})));
+ assert.throws(()=>normalizeCustomExam(values({hidden:'true',sourceKey:'import:x'})));
+});
+
 test('custom exams persist and isolate students; edits require version; restores do not modify original',async()=>{
  const f=fixture();
  try{
@@ -47,6 +54,13 @@ test('custom exams persist and isolate students; edits require version; restores
   assert.equal((await f.request(a)).body.exams.length,1);
   assert.equal((await f.request(b)).body.exams.length,0);
   assert.equal((await f.request(a,'custom-exams','POST',{id,...values()})).status,201);
+  const hideId=crypto.randomUUID(),hiddenPayload=values({title:'PE midterm',date:null,week:null,sourceKey:'import:pe-midterm',hidden:true});
+  assert.equal((await f.request(a,'custom-exams','POST',{id:hideId,...hiddenPayload})).status,201);
+  const hiddenRecord=(await f.request(a)).body.exams.find(x=>x.id===hideId);
+  assert.equal(hiddenRecord.hidden,true);
+  assert.equal((await f.request(b)).body.exams.length,0);
+  assert.equal((await f.request(a,'custom-exams/'+hideId,'PATCH',{version:1,...hiddenPayload,hidden:false,date:'2026-11-04'})).status,200);
+
   assert.equal((await f.request(a)).body.exams.length,1);
   assert.equal((await f.request(a,'custom-exams','POST',{id,...values({title:'Collision'})})).status,409);
   assert.equal((await f.request(b,'custom-exams/'+id,'DELETE',{version:1})).status,404);
