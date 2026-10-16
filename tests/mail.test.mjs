@@ -459,3 +459,81 @@ test('successful provider response uses manual redirect in the push delivery pat
   assert.equal(mode,'manual');
  }finally{globalThis.fetch=previousFetch;e.sqlite.close();}
 });
+
+test('manual notification check establishes a baseline, then pushes only when newer mail exists',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ const first=await request(e,a,'push/check-new','POST',{id:device.id});
+ assert.equal(first.status,200,await first.clone().text());
+ assert.equal((await first.json()).outcome,'baseline_created');
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,0);
+ assert.equal(JSON.parse(e.sqlite.prepare('SELECT baseline FROM mail_state').get().baseline).uid,20);
+ // Even with a future cron deadline, an explicit test checks the mailbox now.
+ assert.ok(e.sqlite.prepare('SELECT next_check FROM mail_state').get().next_check>Date.now());
+ e.sqlite.prepare('UPDATE mail_manual_checks SET checked_at=0').run();
+ latest=21;
+ const second=await request(e,a,'push/check-new','POST',{id:device.id});
+ assert.equal(second.status,200,await second.clone().text());
+ const notification=await second.json();
+ assert.equal(notification.outcome,'new_mail');
+ assert.equal(notification.acceptedDevices,1);
+ assert.equal(notification.expiredDevices,0);
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
+ assert.ok(!calls.some(c=>c.action==='send'),'a check must not send an email');
+ e.sqlite.prepare('UPDATE mail_manual_checks SET checked_at=0').run();
+ const third=await(await request(e,a,'push/check-new','POST',{id:device.id})).json();
+ assert.equal(third.outcome,'no_new_mail');
+ assert.equal(third.acceptedDevices,0);
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
+ e.sqlite.close();
+});
+test('manual mail notification checks are account-scoped, CSRF protected and rate limited',async()=>{
+ const e=env(),a=await identity(e),b=await identity(e,'r23456789'),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ assert.equal((await request(e,null,'push/check-new','POST',{id:device.id})).status,401);
+ assert.equal((await request(e,{...a,csrf:'wrong'},'push/check-new','POST',{id:device.id})).status,403);
+ assert.equal((await request(e,b,'push/check-new','POST',{id:device.id})).status,404);
+ assert.equal((await request(e,a,'push/check-new','POST',{id:'unsafe'})).status,400);
+ assert.equal(calls.filter(c=>c.action==='list').length,0);
+ const check=await request(e,a,'push/check-new','POST',{id:device.id});
+ assert.equal(check.status,200);
+ const due=await request(e,a,'push/check-new','POST',{id:device.id});
+ assert.equal(due.status,429);
+ assert.equal((await due.json()).error.code,'mail_check_rate');
+ assert.equal(calls.filter(c=>c.action==='list').length,1);
+ e.sqlite.close();
+});
+test('manual new-mail checks retain retry state on failed delivery, then retry safely',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ await request(e,a,'push/check-new','POST',{id:device.id});
+ latest=21;pushStatus=503;
+ e.sqlite.prepare('UPDATE mail_manual_checks SET checked_at=0').run();
+ const failing=await request(e,a,'push/check-new','POST',{id:device.id});
+ assert.equal(failing.status,502);
+ assert.equal((await failing.json()).error.code,'push_retry');
+ assert.equal(JSON.parse(e.sqlite.prepare('SELECT baseline FROM mail_state').get().baseline).uid,20);
+ assert.equal(e.sqlite.prepare('SELECT failures FROM mail_state').get().failures,1);
+ e.sqlite.prepare('UPDATE mail_manual_checks SET checked_at=0').run();
+ pushStatus=201;
+ const recovered=await(await request(e,a,'push/check-new','POST',{id:device.id})).json();
+ assert.equal(recovered.outcome,'new_mail');
+ assert.equal(recovered.acceptedDevices,1);
+ assert.equal(JSON.parse(e.sqlite.prepare('SELECT baseline FROM mail_state').get().baseline).uid,21);
+ assert.equal(e.sqlite.prepare('SELECT failures FROM mail_state').get().failures,0);
+ e.sqlite.close();
+});
+test('manual checks share cron notification history and never resend an already notified message',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ await request(e,a,'push/check-new','POST',{id:device.id});
+ latest=21;
+ e.sqlite.prepare('UPDATE mail_state SET next_check=0').run();
+ await refreshMailNotifications(e);
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
+ e.sqlite.prepare('UPDATE mail_manual_checks SET checked_at=0').run();
+ const outcome=await(await request(e,a,'push/check-new','POST',{id:device.id})).json();
+ assert.equal(outcome.outcome,'no_new_mail');
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
+ e.sqlite.close();
+});
