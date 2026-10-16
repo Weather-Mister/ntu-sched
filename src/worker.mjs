@@ -354,10 +354,18 @@ export default {
     }
   },
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil((async () => { await env.DB.batch([
+    // Independent tasks must not block incoming-mail notifications when an
+    // unrelated scheduled send or synchronization fails or takes too long.
+    ctx.waitUntil(env.DB.batch([
       env.DB.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(now()),
       env.DB.prepare('DELETE FROM login_limits WHERE expires_at <= ?').bind(now())
-    ]); await processDueComposeJobs(env); await refreshMailNotifications(env); if(!_event.cron||new Date(_event.scheduledTime||Date.now()).getUTCMinutes()===15){await refreshDueTimetables(env); await refreshDueCoolCalendars(env);} })());
+    ]));
+    ctx.waitUntil(processDueComposeJobs(env));
+    ctx.waitUntil(refreshMailNotifications(env));
+    if(!_event.cron||new Date(_event.scheduledTime||Date.now()).getUTCMinutes()===15){
+      ctx.waitUntil(refreshDueTimetables(env));
+      ctx.waitUntil(refreshDueCoolCalendars(env));
+    }
   }
 };
 
