@@ -8,12 +8,7 @@
 .exam-card .exam-source{margin-top:5px;font-size:10px}
 .exam-card .exam-confidence{margin-top:3px;font-size:10px;color:var(--muted)}
 .exam-group-title{margin:8px 2px 2px;font-size:11px;line-height:1.5;color:var(--muted);font-weight:750}
-.exam-course-status{padding:12px 3px;font-size:12px;line-height:1.5;color:var(--muted)}
-.exam-course-status>summary{cursor:pointer;font-weight:700}
-.exam-status-row{padding:10px 0;border-bottom:1px solid var(--line)}
-.exam-status-row>small{display:block;overflow-wrap:anywhere}
-.exam-course-button{display:block;border:0;background:none;padding:0;color:var(--text);font:inherit;font-weight:700;text-align:start;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.exam-course-button:focus-visible,.exam-card a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:5px}
+.exam-card a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:5px}
 
 /* Exam stamp: week + number and (only when sourced) month + day. */
 .exam-card .cool-main{grid-template-columns:48px minmax(0,1fr);column-gap:9px}
@@ -28,3 +23,24 @@
 .exam-past-empty{margin:5px 4px 12px;color:var(--muted);font-size:11px}
 .exam-past .exam-card{opacity:.78}
 .exam-past .exam-card:hover,.exam-past .exam-card:focus-within{opacity:1}
+
+/* When a class has no usable exam plan, the usual feed footnote becomes
+   a compact warning. Use semantic color values consistent on mobile/dark. */
+.cool-column .preview-footnote.exam-warning{
+  display:flex;flex-direction:column;gap:7px;
+  padding:11px 12px;margin:11px 0 0;
+  border:1px solid #e3aea8;border-radius:11px;
+  background:color-mix(in srgb,#f7d7d3 55%,var(--card));
+  color:color-mix(in srgb,#8c3835 80%,var(--text));
+  font-size:11px;line-height:1.45;overflow-wrap:anywhere;
+}
+.cool-column .preview-footnote.exam-warning[hidden]{display:none}
+.exam-warning-heading{font-size:11px;font-weight:800;line-height:1.4}
+.exam-warning-items{list-style:none;display:flex;flex-direction:column;gap:5px;margin:0;padding:0}
+.exam-warning-item{display:flex;gap:3px 7px;flex-wrap:wrap;align-items:baseline;min-width:0}
+.exam-warning-class{display:inline;max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:750;text-align:left;overflow-wrap:anywhere}
+button.exam-warning-class{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer}
+button.exam-warning-class:hover{text-decoration-thickness:2px}
+button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:2px}
+.exam-warning-reason{font-weight:450;opacity:.93}
+.exam-warning-reason::before{content:"— " }
