@@ -1,5 +1,5 @@
 {
-  "name": "ntu-sched",
+  "name": "ntu",
   "main": "src/worker.mjs",
   "account_id": "56ed116482d3c27b6980d1d13dff17c8",
   "compatibility_date": "2026-10-01",
@@ -23,7 +23,7 @@
     }
   ],
   "vars": {
-    "APP_ORIGIN": "https://ntu-sched.s20gamingfake.workers.dev",
+    "APP_ORIGIN": "https://ntu.campusweek.workers.dev",
     "GEMINI_MODEL": "gemini-3.1-flash-lite",
     "NTU_LOGIN_ENABLED": "true"
   },
