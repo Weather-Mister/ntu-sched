@@ -34,7 +34,7 @@ export async function decryptAuthorization(secret, studentId, provider, record) 
 export function normalizeStudentNumber(value) {
   if (typeof value !== 'string') throw new ApiError(400, 'invalid_student_number', 'Enter your NTU student number.');
   const number = value.trim().toLowerCase();
-  if (!/^[a-z]\d{8}$/.test(number)) throw new ApiError(400, 'invalid_student_number', 'Use your NTU student number, such as b12345678.');
+  if (!/^[a-z][a-z0-9]{8}$/.test(number)) throw new ApiError(400, 'invalid_student_number', 'Use your 9-character NTU student number, such as b12345678 or B15H06020.');
   return number;
 }
 export async function readJson(request, limit = 4096) {
