@@ -1,7 +1,7 @@
 // Campus Week theme-ready interface: fictional preview and opt-in live NTU data.
 import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
 import { AccountAnnouncements } from '/account-announcements.mjs';
-import { AccountExams, examFeed } from '/account-exams.mjs';
+import { AccountExams, examFeed, examUnavailableCourses } from '/account-exams.mjs';
 import { applyCourseOverrides, scheduleAccent } from '/course-model.mjs';
 import { formatPeriods } from '/ntu-periods.mjs';
 import { AccountTasks } from '/account-tasks.mjs';
@@ -357,7 +357,7 @@ function renderDeadlinesContent(){
   const list=$('cool-list'),expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));list.replaceChildren();if(!student)return;
   if(liveMode){renderLiveDeadlines(expanded);return;}
   if(coolView==='exams'){renderExams();return;}
-  $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');
+  $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');$('cool-preview-note').removeAttribute('role');
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
   $('cool-list').setAttribute('aria-labelledby',coolView==='assignments'?'cool-assignments-tab':'cool-announcements-tab');
   $('cool-heading').textContent=coolView==='assignments'?t('upcomingDates'):t('announcements');
@@ -385,7 +385,7 @@ function renderDeadlinesContent(){
 }
 function renderLiveDeadlines(expanded=new Set()){
   if(coolView==='exams'){renderExams();return;}
-  $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');
+  $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');$('cool-preview-note').removeAttribute('role');
   const list=$('cool-list');
   document.querySelectorAll('[data-cool-view]').forEach(button=>
     button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
@@ -450,7 +450,7 @@ function renderExams(){
   list.setAttribute('aria-labelledby','cool-exams-tab');$('cool-heading').textContent=t('upcomingExams');
   $('cool-refresh').disabled=liveMode&&examStore.busy;
   const footer=$('cool-preview-note');
-  footer.hidden=true;footer.classList.remove('exam-warning');footer.replaceChildren();
+  footer.hidden=true;footer.classList.remove('exam-warning');footer.removeAttribute('role');footer.replaceChildren();
   if(!liveMode){list.append(node('div','empty-card',language==='zh'?'登入以載入你的課程考試。':'Sign in to load exams for your classes.'));return;}
   if(!examStore.courses.length){list.append(node('div','empty-card',t('liveNoTimetable')));return;}
   if(examStore.busy)list.append(node('p','exam-group-title',language==='zh'?'正在檢查課程考試…':'Checking course exam plans…'));
@@ -486,41 +486,29 @@ function renderExams(){
 
   // Replace the ordinary exams footer with a concise, account-specific warning.
   // Pending requests are not failures; an empty syllabus is distinguished from a fetch error.
-  const missing=[];
-  for(const course of examStore.courses){
-    const entry=examStore.entries.get(course.courseId);
-    if(!entry&&examStore.busy)continue;
-    const result=entry?.result,plan=result?.course;
-    if(plan?.exams?.length&&!entry.error)continue;
-    let reason;
-    if(entry?.error){
-      reason=plan?.exams?.length
-        ?(language==='zh'?'更新失敗，仍顯示已儲存的考試':'Refresh failed; saved exams still shown')
-        :(language==='zh'?'無法載入考試資料':'Could not load exam information');
-    }else if(!entry){
-      reason=language==='zh'?'尚未載入':'Not loaded yet';
-    }else if(!plan){
-      reason=result?.matching?.status==='choose-section'
-        ?(language==='zh'?'請在課程詳情中選擇班別':'Choose your class in Class details')
-        :(language==='zh'?'找不到對應的課程班別':'Could not match a class');
-    }else{
-      reason=language==='zh'?'來源未列出考試':'No exams listed in available sources';
-    }
-    const c=student.courses.find(row=>row[8]===course.courseId);
-    missing.push({name:c?.[language==='zh'?4:3]||course.title||course.courseId,reason,c});
-  }
+  const missing=examUnavailableCourses(examStore.courses,examStore.entries,{busy:examStore.busy});
+  const reasons={
+    'refresh-failed':language==='zh'?'更新失敗，仍顯示已儲存的考試':'Refresh failed; saved exams still shown',
+    'load-failed':language==='zh'?'無法載入考試資料':'Could not load exam information',
+    'not-loaded':language==='zh'?'尚未載入':'Not loaded yet',
+    'choose-class':language==='zh'?'請在課程詳情中選擇班別':'Choose your class in Class details',
+    'unmatched-class':language==='zh'?'找不到對應的課程班別':'Could not match a class',
+    'no-exams':language==='zh'?'來源未列出考試':'No exams listed in available sources'
+  };
   if(missing.length){
-    footer.hidden=false;footer.classList.add('exam-warning');
+    footer.hidden=false;footer.classList.add('exam-warning');footer.setAttribute('role','status');
     footer.append(node('strong','exam-warning-heading',language==='zh'?'部分課程考試資料無法取得':'Exam information unavailable for some classes'));
     const listItems=node('ul','exam-warning-items');
     for(const item of missing){
       const li=node('li','exam-warning-item');
-      if(item.c){
-        const button=node('button','exam-warning-class',item.name);
-        button.type='button';button.addEventListener('click',()=>showLesson(item.c,offset(monday(selectedDate),item.c[0])));
+      const c=student.courses.find(row=>row[8]===item.courseId);
+      const title=c?.[language==='zh'?4:3]||item.title;
+      if(c){
+        const button=node('button','exam-warning-class',title);
+        button.type='button';button.addEventListener('click',()=>showLesson(c,offset(monday(selectedDate),c[0])));
         li.append(button);
-      }else li.append(node('strong','exam-warning-class',item.name));
-      li.append(node('span','exam-warning-reason',item.reason));listItems.append(li);
+      }else li.append(node('strong','exam-warning-class',title));
+      li.append(node('span','exam-warning-reason',reasons[item.type]));listItems.append(li);
     }
     footer.append(listItems);
   }
