@@ -29,10 +29,13 @@ export function createEventUI({account,isLive,getLanguage,getDate,onChange,onSes
     for(const n of form.querySelectorAll('input,select,textarea,button'))n.disabled=busy;
     $('event-save').textContent=text(busy?'saving':'save');
     // Silent background refresh/saves; announce only actionable failures.
-    $('events-status').textContent=isLive()&&state.error?errorText():'';
-    $('events-status').hidden=!isLive()||!state.error;
-    $('events-retry').hidden=!isLive()||!state.error;$('events-retry').disabled=busy||state.loading;
-    if(dialog.open&&state.error)error(errorText());
+    // Quietly keep displaying saved events if an automatic background poll
+    // fails. Show errors when the initial load or a student's edit needs help.
+    const actionableError=isLive()&&!!state.error&&(state.error.phase!=='load'||!state.ready);
+    $('events-status').textContent=actionableError?errorText():'';
+    $('events-status').hidden=!actionableError;
+    $('events-retry').hidden=!actionableError;$('events-retry').disabled=busy||state.loading;
+    if(dialog.open&&state.error&&state.error.phase!=='load')error(errorText());
   }
   function frequency(){const weekly=$('event-frequency').value==='weekly';$('event-weekly').hidden=!weekly;$('event-until').min=$('event-date').value||'2000-01-01';locale();}
   function open(event=null,key=getDate()){
