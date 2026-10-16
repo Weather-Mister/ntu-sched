@@ -6,7 +6,7 @@ import worker from '../src/worker.mjs';
 import {digest,randomToken,encryptAuthorization,decryptAuthorization,base64url} from '../src/security.mjs';
 import {sanitizeMail,buildMime,validateSend,rootHeaders,mailListText} from '../src/mail-content.mjs';
 import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
-import {encryptedPush,validateSubscription} from '../src/mail-push.mjs';
+import {encryptedPush,validateSubscription,sendPush,PushDeliveryError} from '../src/mail-push.mjs';
 import {reviseDraft,AI_SYSTEM} from '../src/mail-compose-ai.mjs';
 import {processDueComposeJobs} from '../src/mail-composer-store.mjs';
 import {COMPOSER_SCHEMA} from '../src/mail-composer-schema.mjs';
@@ -385,4 +385,38 @@ test('test endpoint reports stale push devices and removes expired subscriptions
  assert.equal((await request(e,a,'push/test','POST',{id:registered.id})).status,410);
  assert.equal(e.sqlite.prepare('SELECT COUNT(*) AS n FROM mail_push').get().n,0);
  e.sqlite.close();
+});
+
+test('push diagnostic returns safe transport failure details without leaking a subscription URL',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ const originalFetch=globalThis.fetch;
+ globalThis.fetch=async(url,init)=>{
+  if(new URL(url).hostname==='fcm.googleapis.com')throw new TypeError('URL with secret token must not appear');
+  return originalFetch(url,init);
+ };
+ try{
+  const response=await request(e,a,'push/test','POST',{id:device.id});
+  assert.equal(response.status,502);
+  const body=await response.json();
+  assert.equal(body.error.code,'push_transport_type_error');
+  assert.match(body.error.message,/connection to the push provider/);
+  assert.doesNotMatch(JSON.stringify(body),/synthetic|secret token|fcm.googleapis.com/);
+ }finally{globalThis.fetch=originalFetch;e.sqlite.close();}
+});
+test('push diagnostics reveal safe Apple-style provider rejection reasons',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ const oldFetch=globalThis.fetch;
+ globalThis.fetch=async(url,init)=>{
+  if(new URL(url).hostname==='fcm.googleapis.com')return Response.json({reason:'BadJwtToken'}, {status:403});
+  return oldFetch(url,init);
+ };
+ try{
+  const response=await request(e,a,'push/test','POST',{id:device.id});
+  assert.equal(response.status,502);
+  const body=await response.json();
+  assert.equal(body.error.code,'push_test_rejected');
+  assert.match(body.error.message,/HTTP 403 · BadJwtToken/);
+ }finally{globalThis.fetch=oldFetch;e.sqlite.close();}
 });
