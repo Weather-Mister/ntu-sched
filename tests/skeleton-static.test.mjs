@@ -109,3 +109,18 @@ test('custom exams and imported overrides use a separate account-backed editor a
   assert.match(editor,/normalizeCustomExam/);
   assert.match(editor,/store.remove\(editing.manualRecord\)/);
 });
+
+test('phone exam tabs and date inputs cannot overlap, with Add exam inline',()=>{
+  const examStyles=readFileSync(new URL('exams.css',skeleton),'utf8');
+  const mobileOverflow=readFileSync(new URL('mobile-overflow.css',skeleton),'utf8');
+  assert.match(examStyles,/\.cool-column \.cool-panel-header \.cool-view-switch\{\s*display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(examStyles,/\.cool-column \.cool-panel-header \.cool-view-switch button\{[\s\S]*?white-space:normal;[\s\S]*?overflow-wrap:anywhere;/);
+  assert.match(js,/const headingRow=node\('div','exam-list-heading'\)/);
+  assert.match(js,/headingRow\.append\(heading,addExamButton\);list\.append\(headingRow\)/);
+  assert.doesNotMatch(js,/list\.append\(addExamButton\)/);
+  assert.match(examStyles,/\.exam-list-heading\{display:flex;align-items:center;justify-content:space-between/);
+  assert.match(examStyles,/@media\(max-width:600px\)\{\s*\.exam-editor-fields\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(examStyles,/\.exam-editor-fields input\{display:block;width:100%;max-width:100%;min-width:0;/);
+  assert.match(mobileOverflow,/@media \(max-width:600px\) \{[\s\S]*?\.event-dialog \.event-fields \{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(mobileOverflow,/\.event-dialog \.event-fields input,[\s\S]*?\.event-dialog #event-until \{[\s\S]*?box-sizing:border-box;/);
+});

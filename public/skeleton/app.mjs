@@ -460,9 +460,12 @@ function renderExams(){
   footer.hidden=true;footer.classList.remove('exam-warning');footer.removeAttribute('role');footer.replaceChildren();
   if(!liveMode){list.append(node('div','empty-card',language==='zh'?'登入以載入你的課程考試。':'Sign in to load exams for your classes.'));return;}
   if(!examStore.courses.length&&!examEditor.items().length)list.append(node('div','empty-card',t('liveNoTimetable')));
+  const headingRow=node('div','exam-list-heading');
+  const heading=node('h4','exam-group-title',language==='zh'?'近期考試':'Upcoming exams');
   const addExamButton=node('button','button small exam-add-button',language==='zh'?'+ 新增考試':'+ Add exam');
-  addExamButton.type='button';addExamButton.addEventListener('click',()=>examEditor.open());list.append(addExamButton);
-  if(examStore.busy)list.append(node('p','exam-group-title',language==='zh'?'正在檢查課程考試…':'Checking course exam plans…'));
+  addExamButton.type='button';addExamButton.addEventListener('click',()=>examEditor.open());
+  headingRow.append(heading,addExamButton);list.append(headingRow);
+  if(examStore.busy)list.append(node('p','exam-loading-label',language==='zh'?'正在檢查課程考試…':'Checking course exam plans…'));
   const feed=examFeed(examStore.entries,taipeiToday(),examEditor.items());
   function addExam(item,parent=list){
     const {courseId,course,exam,url,date,week,stale}=item,c=student.courses.find(c=>c[8]===courseId);
@@ -491,7 +494,7 @@ function renderExams(){
     edit.addEventListener('click',()=>examEditor.open(item));
     card.append(edit);parent.append(card);
   }
-  if(feed.upcoming.length){list.append(node('h4','exam-group-title',language==='zh'?'近期考試':'Upcoming exams'));feed.upcoming.forEach(item=>addExam(item));}
+  if(feed.upcoming.length)feed.upcoming.forEach(item=>addExam(item));
   if(!feed.upcoming.length&&!examStore.busy)list.append(node('div','empty-card',language==='zh'?'目前沒有可顯示的近期考試。':'No upcoming exams to display.'));
   const history=node('details','exam-past');
   history.open=pastExamsOpen;

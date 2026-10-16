@@ -1,4 +1,16 @@
-.cool-column .cool-panel-header .cool-view-switch button{white-space:normal;line-height:1.25;min-width:0;padding-inline:6px}
+/* Three equal-width tabs keep long labels inside their own segment on phones.
+   The previous flex buttons could paint text across the next button. */
+.cool-column .cool-panel-header .cool-view-switch{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;
+  width:100%;max-width:100%;box-sizing:border-box;min-width:0;
+}
+.cool-column .cool-panel-header .cool-view-switch button{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;max-width:100%;min-width:0;min-height:40px;
+  padding:5px 3px;font-size:clamp(10px,2.75vw,12px);line-height:1.16;
+  white-space:normal;text-align:center;text-wrap:balance;overflow-wrap:anywhere;
+  word-break:normal;overflow:hidden;
+}
 .lesson-edit-form>select{display:block;width:100%;min-width:0;min-height:42px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:13px}
 .lesson-section{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
 .cool-list .cool-item.exam-card{display:block}
@@ -43,7 +55,13 @@ button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-o
 .exam-warning-reason{opacity:.9}
 .exam-warning-reason::before{content:"— "}
 
-.exam-add-button{align-self:flex-start;min-height:28px;padding:5px 10px;font-size:11px;margin:0 0 1px}
+/* Keep the action beside the heading, not on a separate vertical row. */
+.exam-list-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;margin:5px 2px 2px}
+.exam-list-heading .exam-group-title{margin:0;min-width:0;flex:1 1 auto}
+.exam-list-heading .exam-add-button{flex:0 0 auto;align-self:center}
+.exam-add-button{min-height:28px;padding:5px 9px;font-size:11px;margin:0;white-space:nowrap}
+.exam-loading-label{margin:3px 2px;font-size:11px;color:var(--muted)}
+@media(max-width:350px){.exam-list-heading{gap:4px}.exam-add-button{font-size:10px;padding:5px 7px}}
 .exam-card{position:relative}
 .exam-card .cool-main{padding-right:46px}
 .exam-card .exam-edit-button{position:absolute;right:8px;top:9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:4px 6px;cursor:pointer}
@@ -58,10 +76,17 @@ button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-o
  width:100%;min-width:0;min-height:38px;box-sizing:border-box;background:var(--panel);color:var(--text);
  border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;padding:7px 9px;
 }
-.exam-editor-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:9px}
-.exam-editor-fields>div{min-width:0}
+.exam-editor-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:9px;min-width:0;max-width:100%}
+.exam-editor-fields>div{min-width:0;min-inline-size:0;max-width:100%}
+.exam-editor-fields input{display:block;width:100%;max-width:100%;min-width:0;min-inline-size:0;box-sizing:border-box}
 .exam-editor-form .preview-footnote{margin:0 0 2px;line-height:1.4}
 .exam-editor-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}
 .exam-editor-actions>span{flex:1 1 auto}
 .exam-editor-actions .button{min-height:33px;font-size:12px}
-@media(max-width:390px){.exam-editor-fields{grid-template-columns:1fr}.exam-editor-actions{gap:5px}}
+/* Native iOS date inputs have a large intrinsic width: stack instead of
+   letting their internal picker controls overlap the week field. */
+@media(max-width:600px){
+  .exam-editor-fields{grid-template-columns:minmax(0,1fr)}
+  .exam-editor-fields>div,.exam-editor-fields input{min-width:0;max-width:100%}
+}
+@media(max-width:390px){.exam-editor-actions{gap:5px}}

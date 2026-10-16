@@ -201,3 +201,21 @@
   .mailx-dialog .mailx-label-desktop {display:none}
   .mailx-dialog .mailx-label-mobile {display:inline}
 }
+
+
+/* iOS native date/time widgets have a larger intrinsic width than their
+   CSS box. Keep all personal-event fields inside the sheet on phones. */
+@media (max-width:600px) {
+  .event-dialog .event-form {min-width:0;max-width:100%;box-sizing:border-box}
+  .event-dialog .event-fields {
+    display:grid;grid-template-columns:minmax(0,1fr);
+    min-width:0;max-width:100%;gap:6px;
+  }
+  .event-dialog .event-fields>div {min-width:0;min-inline-size:0;max-width:100%}
+  .event-dialog .event-fields input,
+  .event-dialog .event-fields select,
+  .event-dialog #event-until {
+    display:block;width:100%;min-width:0;min-inline-size:0;max-width:100%;
+    box-sizing:border-box;
+  }
+}
