@@ -250,6 +250,22 @@
     min-inline-size:0;
     max-inline-size:100%;
   }
+  /* iOS WebKit miscalculates 100% date/time input widths when the host
+     input has padding (WebKit 301648). Remove host padding instead of
+     relying on clipping. Native pickers still open when the field is tapped. */
+  .event-dialog .event-form input[type="date"],
+  .event-dialog .event-form input[type="time"],
+  .exam-editor-dialog .exam-editor-form input[type="date"] {
+    -webkit-appearance:none;
+    appearance:none;
+    padding:0;
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+    width:100%;
+    line-height:1.25;
+    overflow:hidden;
+  }
   /* The nested WebKit date/time value is allowed to shrink with its input. */
   .event-dialog input[type="date"]::-webkit-date-and-time-value,
   .event-dialog input[type="time"]::-webkit-date-and-time-value,
