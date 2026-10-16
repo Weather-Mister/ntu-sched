@@ -97,3 +97,30 @@ button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-o
   .exam-editor-fields>div,.exam-editor-fields input{min-width:0;max-width:100%}
 }
 @media(max-width:390px){.exam-editor-actions{gap:5px}}
+
+
+/* Exam completion uses the same per-student local checklist as assignments.
+   Keep Edit and the checkmark in their own narrow action column. */
+.cool-list .cool-item.exam-card.cool-checkable{
+  display:block;
+  position:relative;
+  min-height:94px;
+  padding:12px 11px;
+}
+.exam-card .exam-card-actions{
+  position:absolute;
+  right:8px;
+  top:9px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+  z-index:1;
+}
+.exam-card .exam-card-actions .exam-edit-button{
+  position:static;
+  margin:0;
+}
+.exam-card .exam-card-actions .cool-done-button{
+  margin:0;
+}

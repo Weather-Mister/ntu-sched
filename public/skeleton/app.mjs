@@ -9,6 +9,7 @@ import { eventsOn, nextEventDates } from '/event-model.mjs';
 import { createEventUI } from './custom-events.mjs';
 import {createExamEditor} from './exam-editor.mjs';
 import { createMailUI } from './mail.mjs';
+import { examCompletionKey } from '/exam-completion.mjs';
 import { createSettings } from './settings.mjs';
 import { missingInitialSources, syncInitialSources } from './initial-sync.mjs';
 import { createCoolFeedScroll } from './cool-feed-scroll.mjs';
@@ -54,7 +55,7 @@ const dict={
     next:'UP NEXT',live:'HAPPENING NOW',startsIn:'Starts in',endsIn:'Ends in',classes:'classes',singleClass:'class',noClasses:'No classes today',noClassesDesc:'Your sample timetable is clear on this date.',tasks:'tasks',singleTask:'task',addPlaceholder:'Add a task…',noTasks:'No tasks yet. Add one above.',completed:'Finished',upcoming:'Upcoming',scheduled:'Scheduled',previewRefresh:'This is sample data; no live refresh was made.',overlap:'Time clash',
     dayView:'Day',weekView:'Week',weeklyTimetable:'Weekly timetable',calendarLabel:'CLASS TIMETABLE',weekViewScroll:'Weekly timetable; scroll vertically or sideways to explore classes',
     liveEntryHeading:'Or use your real NTU account',liveEntryDesc:'Connect through the existing Campus Week account and backend.',restoreSession:'Use existing session',signInNtu:'Sign in',realAccount:'REAL NTU ACCOUNT',realLoginExplanation:'Uses the existing secure Campus Week login and the same timetable/COOL backend as the original site.',studentNumber:'NTU student number',ntuPassword:'NTU Mail password',accountSecurity:'Only sign in on your trusted Campus Week website.',timetableConnection:'Timetable connection',coolConnection:'COOL connection',syncTimetable:'Sync timetable',syncCool:'Sync COOL',realAssignmentsNote:'Live COOL calendar · ✓ marks done only here; submit assignments in COOL',realAnnouncementsNote:'Live COOL announcements · Last 90 days · Refreshes every 2 minutes while focused',noCalendar:'No connected COOL calendar. Select Refresh or connect from Settings.',liveNoAssignments:'No upcoming calendar deadlines.',liveNoTimetable:'No saved classes yet. Use Settings → Timetable → Sync timetable.',
-    doneLocally:'Marked done here only; this does not submit to COOL.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
+    doneLocally:'Marked done here only; this does not submit to COOL.',examDoneLocally:'Completed here only; this does not change the NTU exam plan.',markDone:'Mark done',markUndone:'Mark not done',englishNamesMissing:'NTU did not provide an English title for some classes; showing their original names.',
     assignments:'Assignments',announcements:'Announcements',sampleAnnouncements:'Fictional announcements for layout preview; not connected to COOL.',campusAccessEyebrow:'CAMPUS',campusShortcuts:'Campus shortcuts',freeDay:'Free',
     scheduleItem:'event',scheduleItems:'events',customEvent:'PERSONAL',
     tasksLoading:'Loading your saved tasks…',tasksSaving:'Saving…',tasksLoadFailed:'Could not load tasks. Refresh tasks to try again.',tasksSaveFailed:'Could not confirm the save. Your last saved tasks are shown; please try again.',tasksConflict:'This task changed on another device. Latest tasks loaded; please try again.',tasksFull:'You have 500 tasks. Remove an old task before adding another.',tasksRetry:'Refresh tasks',tasksUndo:'Undo remove',removeTask:'Remove task',
@@ -71,7 +72,7 @@ const dict={
     next:'下一堂課',live:'正在上課',startsIn:'距離開始',endsIn:'距離結束',classes:'堂課',singleClass:'堂課',noClasses:'今天沒有課',noClassesDesc:'這天的範例課表沒有課程。',tasks:'項任務',singleTask:'項任務',addPlaceholder:'新增任務…',noTasks:'目前沒有任務。',completed:'已結束',upcoming:'即將開始',scheduled:'已排定',previewRefresh:'這是範例資料，未執行線上同步。',overlap:'時間衝突',
     dayView:'單日',weekView:'整週',weeklyTimetable:'每週課表',calendarLabel:'課程時間表',weekViewScroll:'每週課表；可上下及左右捲動查看課程',
     liveEntryHeading:'或使用真正的臺大帳號',liveEntryDesc:'使用現有 Campus Week 帳號與後端連線。',restoreSession:'使用現有登入狀態',signInNtu:'登入',realAccount:'真實臺大帳號',realLoginExplanation:'沿用既有安全的 Campus Week 登入與課表、COOL 後端。',studentNumber:'臺大學號',ntuPassword:'臺大郵件密碼',accountSecurity:'請只在正確的 Campus Week 網址登入。',timetableConnection:'課表連線',coolConnection:'COOL 連線',syncTimetable:'同步課表',syncCool:'同步 COOL',realAssignmentsNote:'COOL 行事曆；✓ 僅在此標記完成，作業仍需至 COOL 提交',realAnnouncementsNote:'COOL 公告 · 最近 90 天 · 頁面使用中每兩分鐘更新',noCalendar:'尚無 COOL 行事曆，請按重新整理或至設定連線。',liveNoAssignments:'目前沒有近期行事曆截止日期。',liveNoTimetable:'尚無已儲存課表，請到設定 → 課表同步。',
-    doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
+    doneLocally:'僅在本站標記完成，不會向 COOL 提交作業。',examDoneLocally:'僅在本站標記已完成，不會更改臺大考試資料。',markDone:'標記完成',markUndone:'取消完成',englishNamesMissing:'NTU 未提供部分課程的英文名稱，將保留原始課名。',
     assignments:'作業',announcements:'公告',sampleAnnouncements:'以上為虛構公告，尚未連接 NTU COOL。',campusAccessEyebrow:'校園',campusShortcuts:'校園捷徑',freeDay:'無課',
     scheduleItem:'項行程',scheduleItems:'項行程',customEvent:'個人行程',
     tasksLoading:'正在載入已儲存的任務…',tasksSaving:'儲存中…',tasksLoadFailed:'無法載入任務，請重新整理任務再試一次。',tasksSaveFailed:'無法確認是否已儲存，畫面保留上次儲存的任務，請再試一次。',tasksConflict:'此任務已在其他裝置變更，已載入最新任務，請再試一次。',tasksFull:'已達 500 項任務，請先移除舊任務。',tasksRetry:'重新整理任務',tasksUndo:'復原移除',removeTask:'移除任務',
@@ -320,19 +321,20 @@ const announcements={
 };
 // Use the same official NTU period boundaries and format as the production timetable.
 function lessonPeriod(c){return c[7]?'':formatPeriods(minutes(c[1]),minutes(c[2]),language==='zh'?'zh-TW':'en',true);}
-function addCoolCheck(card,key,doneStore,save=()=>{}){
+function addCoolCheck(card,key,doneStore,save=()=>{},host=card){
+  if(!key)return;
   const done=doneStore.has(key);
   card.classList.add('cool-checkable');
   card.classList.toggle('done',done);
   const control=node('button','cool-done-button'+(done?' is-done':''),'✓');
   control.type='button';control.setAttribute('aria-pressed',String(done));
   control.setAttribute('aria-label',t(done?'markUndone':'markDone'));
-  control.title=t('doneLocally');
+  control.title=t(key.startsWith('exam:')?'examDoneLocally':'doneLocally');
   control.addEventListener('click',()=>{
     if(doneStore.has(key))doneStore.delete(key);else doneStore.add(key);
     save();renderDeadlines();
   });
-  card.append(control);
+  host.append(control);
 }
 async function coolDoneKey(studentNumber){
   const data=new TextEncoder().encode('campus-week-v1\\0'+studentNumber);
@@ -345,7 +347,7 @@ async function restoreCoolChecks(current,epoch){
     if(!liveMode||epoch!==liveEpoch)return;
     coolDoneStorageKey=key;
     const raw=JSON.parse(localStorage.getItem(key)||'[]');
-    coolDone=new Set(Array.isArray(raw)?raw.filter(x=>typeof x==='string'&&x.length<=512).slice(0,500):[]);
+    coolDone=new Set(Array.isArray(raw)?raw.filter(x=>typeof x==='string'&&x.length<=1024).slice(0,500):[]);
     renderDeadlines();
   }catch{if(epoch===liveEpoch){coolDoneStorageKey='';coolDone=new Set();}}
 }
@@ -492,7 +494,9 @@ function renderExams(){
     const edit=node('button','exam-edit-button',language==='zh'?'編輯':'Edit');
     edit.type='button';edit.setAttribute('aria-label',(language==='zh'?'編輯考試：':'Edit exam: ')+title);
     edit.addEventListener('click',()=>examEditor.open(item));
-    card.append(edit);parent.append(card);
+    const actions=node('div','exam-card-actions');actions.append(edit);
+    addCoolCheck(card,examCompletionKey(item),coolDone,saveCoolChecks,actions);
+    card.append(actions);parent.append(card);
   }
   if(feed.upcoming.length)feed.upcoming.forEach(item=>addExam(item));
   if(!feed.upcoming.length&&!examStore.busy)list.append(node('div','empty-card',language==='zh'?'目前沒有可顯示的近期考試。':'No upcoming exams to display.'));
