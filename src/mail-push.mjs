@@ -64,11 +64,17 @@ export async function sendPush(env,subscription,payload,config,{diagnostics=fals
  });
  const body=await pushStep('encryption',()=>encryptedPush(subscription,payload));
  const response=await pushStep('transport',()=>fetch(subscription.endpoint,{
-  method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),
+  method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),
   headers:{TTL:'600',Urgency:'normal','Content-Type':'application/octet-stream','Content-Encoding':'aes128gcm',
    Authorization:`vapid t=${input}.${signature}, k=${config.publicKey}`},
   body
  }));
+ // Cloudflare Workers does not implement redirect:'error'. Reject redirects
+ // ourselves: never follow a push-provider response to an arbitrary URL.
+ if(response.status>=300&&response.status<400){
+  try{await response.body?.cancel();}catch{}
+  throw new PushDeliveryError('transport','unexpected_redirect');
+ }
  let providerReason=null;
  if(diagnostics&&!response.ok){
   try{const reason=JSON.parse((await response.text()).slice(0,1024))?.reason;
