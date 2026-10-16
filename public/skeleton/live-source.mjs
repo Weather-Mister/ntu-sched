@@ -52,7 +52,7 @@ export function mapCalendar(snapshot) {
     .sort((a,b) => Date.parse(a.dueAt)-Date.parse(b.dueAt))
     .map(item => ({
       id: label(item.id).slice(0,512) || [label(item.title),label(item.course),item.dueAt].join('|'),
-      title: label(item.title), course: label(item.course) || 'NTU COOL',
+      title: label(item.title), course: label(item.course) || 'NTU COOL', courseId: label(item.courseId),
       kind: item.kind === 'event' ? 'event' : 'assignment',
       dueAt: item.dueAt, allDay: item.allDay === true, url: coolLink(item.url)
     }));
