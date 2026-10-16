@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS mail_push_tests (student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, last_sent_at INTEGER NOT NULL DEFAULT 0);
