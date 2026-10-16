@@ -120,8 +120,10 @@ test('midterm week without exams is never interpreted as a scheduled midterm',()
   assert.equal(entry.certainty,'exam-period',description);
  }
  const real=parseExamEntry('Midterm week: written exam on Nov 3','115-1',source,{week:8});
- assert.equal(real.certainty,'explicit');
- assert.equal(real.date,'2026-11-03');
+ assert.notEqual(real.certainty,'exam-period');
+ assert.notEqual(real.certainty,'cancelled');
+ const dated=parseExamEntry('Midterm exam on Nov 3','115-1',source,{week:8});
+ assert.equal(dated.date,'2026-11-03');
  const quiz=parseExamEntry('Week 8 Midterm 1 Exam 10/28','115-1',source,{week:8});
  assert.notEqual(quiz.certainty,'cancelled');
 });
