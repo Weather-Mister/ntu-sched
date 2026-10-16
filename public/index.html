@@ -1,45 +1,312 @@
 <!doctype html>
 <html lang="en">
 <head>
- <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
- <meta name="description" content="Your NTU timetable with persistent sign-in, automatic ePortfolio checks and local timetable imports.">
- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
- <title>Campus Week · NTU timetable demo</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><script type="module" src="app.mjs"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Your NTU timetable, assignments, exams, tasks and campus mail in one place.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src 'self' blob:; worker-src 'self'; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#f6f3ed">
+<title>Campus Week</title>
+<link rel="manifest" href="/skeleton/manifest.webmanifest">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/mail-icon-512.png">
+<link rel="stylesheet" href="/skeleton/styles.css">
+<link rel="stylesheet" href="/skeleton/desktop.css">
+<link rel="stylesheet" href="/skeleton/mail-composer.css">
+<link rel="stylesheet" href="/skeleton/settings.css">
+<link rel="stylesheet" href="/skeleton/mobile-overflow.css">
+<link rel="stylesheet" href="/skeleton/exams.css">
+<script type="module" src="/skeleton/app.mjs"></script>
 </head>
 <body>
- <header class="topbar"><a class="brand" href="#"><span class="brand-icon" aria-hidden="true">▦</span> campus week<span class="prototype">PROTOTYPE</span></a><div class="topbar-actions"><div class="view-toggle language-toggle" role="group" aria-label="Language / 語言"><button id="language-en" data-language="en" class="active" aria-pressed="true">English</button><button id="language-zh" data-language="zh-TW" aria-pressed="false">中文</button></div><button class="text-button" id="integration-link">About NTU connection <span aria-hidden="true">↗</span></button></div></header>
- <main>
-  <section class="intro"><div><p class="eyebrow">NATIONAL TAIWAN UNIVERSITY · 臺灣大學</p><h1>Your week, <span>in one place.</span></h1><p class="lead">A little less admin. A little more campus life.</p></div><div class="local-note"><span class="dot"></span> Your week, saved<p>Signed-in timetables are saved securely.<br>File imports stay in this tab.</p></div></section>
-  <div class="workspace">
-   <aside>
-    <section class="panel connect-panel"><p class="eyebrow">01 / GET STARTED</p><h2>Bring your week in.</h2><p>Sign in to sync your ePortfolio timetable, try a sample week, or import your own classes.</p><button class="primary full" id="connection-info-main">Connect NTU · unavailable</button><p class="micro">Live integration is not authorized yet</p><button class="secondary full" id="demo-login">Try demo login <span aria-hidden="true">→</span></button><p class="micro">Mock login · fictional profile</p><div class="separator"><span>or use your timetable</span></div><button class="secondary full" id="open-import">Import file or paste <span aria-hidden="true">↑</span></button><div class="connection-status"><span class="status-icon" aria-hidden="true">◌</span><div><strong>NTU ePortfolio timetable</strong><p>Checks for changes every five days after connecting. Refresh manually whenever you need.</p><button class="inline-link" id="connection-info">See connection details</button></div></div></section>
-    <section class="quiet-panel"><span class="small-icon" aria-hidden="true">✦</span><h3>A calmer kind of schedule.</h3><p>Course times, rooms, and clashes, at a glance. Choose account sync or a local timetable import.</p><div class="tag-row"><span>CSV / TSV</span><span>Account sync</span></div></section>
-   </aside>
-   <section class="panel schedule-panel" aria-labelledby="schedule-heading">
-    <div class="schedule-toolbar"><div><p class="eyebrow" id="source-label">YOUR CANVAS</p><h2 id="schedule-heading">Your daily schedule</h2></div><div class="view-toggle" aria-label="Timetable view"><button id="day-view-button" class="active" aria-pressed="true">Day</button><button id="week-view" aria-pressed="false">Week</button><button id="list-view" aria-pressed="false">List</button></div></div>
-    <div class="schedule-meta"><span class="source-pill" id="source-pill">No timetable yet</span><span>Taipei time · recurring week</span></div>
-    <div class="stats" id="stats" hidden><div><strong id="course-count">0</strong><span>courses</span></div><div><strong id="session-count">0</strong><span>sessions / week</span></div><div><strong id="hour-count">0</strong><span>hours / week</span></div><div><strong id="free-count">0</strong><span>free weekdays</span></div></div>
-    <div id="clash-notice" class="notice warning" hidden></div>
-    <p id="lesson-language-note" class="micro" hidden></p>
-    <div id="daily-schedule" hidden>
-     <button class="schedule-next" id="schedule-next" type="button" aria-label="Show next class"><span><span class="eyebrow" id="next-label">UP NEXT</span><strong id="next-title"></strong><span id="next-meta"></span></span><span class="next-countdown" id="next-countdown"></span></button>
-     <div class="day-navigation"><div class="week-navigation"><button class="date-arrow" id="previous-week" aria-label="Previous week">‹</button><span id="week-range"></span><button class="date-arrow" id="next-week" aria-label="Next week">›</button></div><div class="date-controls"><label for="schedule-date" class="sr-only">Jump to a date</label><input type="date" id="schedule-date" aria-label="Jump to a date"><button class="secondary" id="schedule-today">Today</button></div></div>
-     <div id="schedule-day-strip" class="schedule-day-strip" role="group" aria-label="Choose a schedule day"></div>
-     <section id="day-view" aria-labelledby="selected-day"><div class="selected-day-heading"><div><h3 id="selected-day"></h3><p id="selected-date"></p></div><span id="selected-class-count"></span></div><div id="day-lessons"></div></section>
-     <p class="micro day-pattern-note">Repeats weekly · confirm semester dates and holiday changes with NTU.</p>
-    </div>
-    <div class="calendar-scroll" id="calendar-view" hidden><div class="calendar" id="calendar"></div></div>
-    <div id="agenda" hidden></div>
-    <div class="empty-state" id="empty-state"><div class="empty-art" aria-hidden="true"><div class="mini-calendar"><span></span><span></span><span></span><span></span><i></i><b></b><em></em></div><span class="spark">✧</span></div><h3>Make room for your week.</h3><p>Start with the demo profile or import a timetable.<br>Your classes will find their place here.</p><button class="inline-link" id="empty-demo">Explore a sample week →</button></div>
-    <div class="schedule-footer"><span id="schedule-note">Ready when you are.</span><div><button class="text-button" id="export" disabled>↓ Export CSV</button><button class="text-button" id="clear" disabled>Clear</button></div></div>
-   </section>
+<!-- Lucide Settings and RefreshCw SVG paths (ISC). License: ./LUCIDE-LICENSE.txt -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false" class="icon-symbols">
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 5H5v14h4m5-10 4 3-4 3m-4-3h8"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4m-3 14h2"/></symbol>
+<symbol id="i-week" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-13 4h2m4 0h2m-8 4h2"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 5-7 7 7 7"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 5 7 7-7 7"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 11 9-7 9 7v9H3zM9 20v-7h6v7"/></symbol>
+<symbol id="i-cool" viewBox="0 0 24 24"><path d="m2 9 10-5 10 5-10 5L2 9Zm4 3v5c3 3 9 3 12 0v-5m4-3v7"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 4h16l2 12v4H2v-4L4 4Z"/><path d="M2 15h6l2 3h4l2-3h6"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.2 6.6 7.3 1.1-5.3 5.1 1.3 7.2-6.5-3.4-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1.1L12 2Z"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4L22 2ZM11 13 22 2"/></symbol>
+<symbol id="i-draft" viewBox="0 0 24 24"><path d="M14 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9Z"/><path d="M14 2v7h7M8 14h8m-8 4h5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18m-2-1v16H5V5m4-2h6m-6 7v7m6-7v7"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v13h14V8m-10 5h6"/></symbol>
+</svg>
+<section id="login-screen" class="login-screen" aria-labelledby="login-heading" data-auth-check="checking">
+<div class="login-wrap">
+<div class="login-lang-bar"><div class="language-toggle" role="group" aria-label="Language"><button id="login-language-en" type="button" aria-pressed="true">EN</button><button id="login-language-zh" type="button" aria-pressed="false">中文</button></div></div>
+<div class="login-mark"><svg aria-hidden="true"><use href="#i-week"/></svg></div>
+<p class="eyebrow" data-i18n="loginEyebrow">NTU · CAMPUS WEEK</p>
+<h1 id="login-heading" data-i18n="loginTitle">Sign in</h1>
+<p class="login-intro" data-i18n="loginIntro">Use your NTU student number and Mail password.</p>
+<div class="login-panel card">
+  <div class="login-checking" role="status" aria-live="polite"><span class="login-spinner" aria-hidden="true"></span><span data-i18n="checkingSession">Checking your session…</span></div>
+  <div class="login-auth-content">
+    <form id="live-login-form" class="login-inline-form">
+      <label for="live-login-number" data-i18n="studentNumber">NTU student number</label>
+      <input id="live-login-number" type="text" name="studentNumber" required maxlength="80" autocomplete="username" autocapitalize="none" spellcheck="false">
+      <label for="live-login-password" data-i18n="ntuPassword">NTU Mail password</label>
+      <input id="live-login-password" type="password" name="password" required maxlength="1024" autocomplete="current-password">
+      <p id="live-login-error" class="live-login-error" role="alert" hidden></p>
+      <button id="live-login-submit" class="button primary" type="submit" data-i18n="signInNtu">Sign in</button>
+    </form>
+    <p id="live-login-status" class="login-session-status" role="status" aria-live="polite" hidden></p>
+    <p class="login-privacy" data-i18n="accountSecurity">Only sign in on your trusted Campus Week website.</p>
+    <details class="login-preview">
+      <summary data-i18n="tryPreview">Try a sample timetable</summary>
+      <div class="login-preview-inner">
+        <label for="preview-profile" data-i18n="previewLabel">Sample student</label>
+        <select id="preview-profile">
+          <option value="engineering" data-i18n="engineeringProfile">Engineering student</option>
+          <option value="social" data-i18n="socialProfile">Social sciences student</option>
+        </select>
+        <button id="enter-preview" type="button" class="button" data-i18n="enterPreview">Open sample timetable</button>
+        <p data-i18n="loginSafety">Sample data only. No NTU account is required.</p>
+      </div>
+    </details>
   </div>
-  <footer class="footer"><span>Independent demonstrator · not an official NTU service</span><span>No uploads. No stored timetable. Just your week.</span></footer>
- </main>
- <dialog id="login-dialog"><div class="dialog-top"><span class="prototype">MOCK LOGIN</span><button class="close" data-close="login-dialog" aria-label="Close demo login">×</button></div><div class="avatar" aria-hidden="true">S</div><h2>Meet your demo student.</h2><p>This simulates signing in and loading a timetable. Every class and room in this profile is fictional.</p><div class="profile"><strong>Sample Student</strong><span>Fictional campus profile · 4 courses</span></div><p class="notice">This is a demo interaction. No NTU login takes place, and no account details are requested.</p><button class="primary full" id="continue-demo">Continue as Sample Student →</button></dialog>
- <dialog id="lesson-dialog"><div class="dialog-top"><p class="eyebrow">YOUR CLASS / TAIPEI TIME</p><button class="close" data-close="lesson-dialog" aria-label="Close lesson details">×</button></div><h2 id="lesson-title"></h2><p id="lesson-date"></p><div class="lesson-detail-grid"><div><span>Time</span><strong id="lesson-time"></strong></div><div id="lesson-period-row" hidden><span>Periods</span><strong id="lesson-periods"></strong></div><div><span>Room</span><strong id="lesson-room"></strong></div><div><span>Course code</span><strong id="lesson-code"></strong></div><div><span>Duration</span><strong id="lesson-duration"></strong></div></div><p id="lesson-status" class="notice"></p><p class="micro">This date uses your imported weekly pattern. Holidays, cancellations and term boundaries are not inferred.</p></dialog>
- <dialog id="import-dialog" class="wide-dialog"><div class="dialog-top"><p class="eyebrow">YOUR TIMETABLE / LOCAL IMPORT</p><button class="close" data-close="import-dialog" aria-label="Close import">×</button></div><h2>Bring your own classes.</h2><p>Upload a CSV/TSV or paste a table using the headers below. One row per weekly meeting. You can copy rows from a spreadsheet.</p><div class="import-help"><code>course, day, start, end, room, code</code><p><strong>Required:</strong> course, day, start, end. Room and code are optional. Use Monday–Sunday (or 星期一–星期日) and 24-hour times, e.g. 09:10. This template is our format; arbitrary NTU page text and PDFs are not supported.</p><button class="inline-link" id="template">↓ Download template</button><button class="inline-link" id="paste-sample">Use sample rows</button></div><label class="file-label" for="file">↑ Choose a CSV or TSV <span id="filename">Up to 1 MB · stays in this tab</span></label><input id="file" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"><label for="paste" class="field-label">Or paste your rows</label><textarea id="paste" spellcheck="false" placeholder="course,day,start,end,room,code&#10;Economics,Monday,09:10,12:00,Room 101,ECON1001"></textarea><p id="import-error" class="notice error" role="alert" hidden></p><div id="import-preview" hidden><h3 id="preview-title"></h3><div id="preview-rows"></div><p id="preview-warnings" class="micro"></p></div><div class="dialog-actions"><button class="secondary" id="preview-import">Preview timetable</button><button class="primary" id="apply-import" disabled>Use this timetable →</button></div><p class="micro">Import replaces the current timetable after you review it. Nothing is uploaded or saved.</p></dialog>
- <dialog id="integration-dialog" class="wide-dialog"><div class="dialog-top"><p class="eyebrow">YOUR NTU CONNECTION</p><button class="close" data-close="integration-dialog" aria-label="Close connection details">×</button></div><h2>Your timetable, connected.</h2><p>Campus Week reads your current weekly timetable from NTU ePortfolio using your own account. Your saved connection and timetable are encrypted and belong to your Campus Week account.</p><div class="notice">Timetables check for changes every five days. Use the timetable refresh button whenever you want a fresh check. If NTU is unavailable, your last successful timetable stays available.</div><p>Timetables show a recurring week. Confirm semester dates, holidays and one-off cancellations with NTU. Courses without fixed weekly times cannot be placed on the timetable.</p><p>COOL homework connects through your saved NTU login and checks its calendar every five minutes while this site is open. Announcements and the inbox are the next connections. Campus Week is an independent student tool, not an official NTU service.</p><a href="https://portal.aca.ntu.edu.tw/eportfolio/course-overview" target="_blank" rel="noopener noreferrer">Open NTU ePortfolio ↗</a></dialog>
- <p id="toast" class="toast" role="status" hidden></p>
-<script type="module" src="/local-login.mjs"></script></body></html>
+</div>
+<p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
+</div>
+</section>
+<div id="app-screen" class="app-shell" hidden>
+<section class="dashboard-hero" aria-label="Campus Week overview">
+<header class="topbar">
+<div><p class="eyebrow" data-i18n="headerEyebrow">NTU · CAMPUS WEEK</p><h1 data-i18n="mySchedule">My Schedule</h1></div>
+<div class="topbar-actions">
+<div class="language-toggle" role="group" aria-label="Language"><button id="language-en" type="button" aria-pressed="true">EN</button><button id="language-zh" type="button" aria-pressed="false">中文</button></div>
+<button id="page-refresh" class="icon-button" type="button" aria-label="Reload site" title="Reload site"><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+<button id="open-settings" class="icon-button" type="button" aria-label="Settings" title="Settings"><svg aria-hidden="true"><use href="#i-settings"/></svg></button>
+</div>
+</header>
+<section class="next-class" aria-live="off">
+<div class="next-copy"><p id="next-label" class="eyebrow">UP NEXT</p><div id="next-title" class="next-title">—</div><p id="next-meta" class="next-meta"></p><p id="next-countdown" class="next-relative">—</p></div>
+<div class="next-badge"><strong id="next-badge-day">—</strong><small id="next-badge-time">—</small></div>
+</section>
+</section>
+<section class="week-section" aria-label="Week and day navigation">
+<nav class="week-toolbar" aria-label="Date navigation">
+<div class="week-caption"><span class="eyebrow" data-i18n="week">Week</span><strong id="week-range" class="week-range" aria-live="polite"></strong></div>
+<div class="week-actions">
+<div class="timetable-view-switch" role="group" aria-label="Timetable view">
+<button id="view-day" type="button" aria-pressed="true" data-i18n="dayView">Day</button>
+<button id="view-week" type="button" aria-pressed="false" data-i18n="weekView">Week</button>
+</div>
+<button id="previous-week" type="button" class="icon-button" aria-label="Previous week"><svg aria-hidden="true"><use href="#i-left"/></svg></button>
+<button id="jump-today" type="button" class="button small" data-i18n="today">Today</button>
+<button id="next-week" type="button" class="icon-button" aria-label="Next week"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
+<span class="calendar-picker"><svg aria-hidden="true"><use href="#i-week"/></svg><label class="sr-only" for="choose-date" data-i18n="chooseDate">Choose date</label><input id="choose-date" type="date" aria-label="Choose date"></span>
+</div>
+</nav>
+<div class="day-strip-row"><div id="day-strip" class="day-strip" aria-label="Choose day"></div></div>
+</section>
+<main class="workspace">
+<section class="schedule-column" aria-labelledby="selected-day">
+<span id="timetable-sync-dot" class="sync-dot" role="img" hidden></span>
+<div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><div class="section-action"><span id="class-count" class="section-side"></span><button id="add-event" type="button" class="button primary small">＋ Add event</button></div></div>
+<div id="schedule-list" class="schedule-list" aria-live="polite"></div>
+<div class="personal-event-status"><p id="events-status" class="preview-footnote" role="status"></p><button id="events-retry" class="button small" type="button" hidden>Retry</button></div>
+<section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
+<div class="week-timetable-title">
+<div><p class="eyebrow" data-i18n="calendarLabel">TIMETABLE</p><h2 id="week-timetable-heading" data-i18n="weeklyTimetable">Weekly timetable</h2></div>
+<span id="week-timetable-range" class="week-timetable-range"></span>
+</div>
+<div id="week-timetable-scroll" class="week-timetable-scroll" tabindex="0" aria-label="Weekly timetable, scroll horizontally and vertically">
+<div id="week-timetable-grid" class="week-timetable-grid"></div>
+</div>
+</section>
+</section>
+<section class="cool-column" aria-labelledby="cool-heading">
+<span id="cool-sync-dot" class="sync-dot" role="img" hidden></span>
+<div class="section-head cool-panel-header">
+<p class="eyebrow" data-i18n="coursesLabel">NTU + COURSES</p>
+<h3 id="cool-heading" class="sr-only" data-i18n="upcomingDates">Upcoming dates</h3>
+<div class="cool-view-switch" role="tablist" aria-label="NTU content">
+<button id="cool-assignments-tab" type="button" role="tab" aria-selected="true" aria-controls="cool-list" data-cool-view="assignments" data-i18n="assignments">Assignments</button>
+<button id="cool-announcements-tab" type="button" role="tab" aria-selected="false" aria-controls="cool-list" data-cool-view="announcements" data-i18n="announcements">Announcements</button>
+<button id="cool-exams-tab" type="button" role="tab" aria-selected="false" aria-controls="cool-list" data-cool-view="exams" data-i18n="upcomingExams">Upcoming exams</button>
+</div>
+<button id="cool-refresh" class="icon-button cool-header-refresh" type="button" aria-label="Refresh" title="Refresh"><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+</div>
+<div id="cool-list" class="cool-list" role="tabpanel" aria-labelledby="cool-assignments-tab"></div>
+<div id="cool-preview-note" class="preview-footnote" data-i18n="sampleDeadlines">Illustrative events and deadlines; not connected to COOL.</div>
+</section>
+<aside class="side-column" aria-label="Tasks and shortcuts">
+<section class="tasks-column" aria-labelledby="tasks-heading">
+<span id="tasks-sync-dot" class="sync-dot" role="img" hidden></span>
+<div class="section-head"><div><p class="eyebrow" data-i18n="toDo">TO DO</p><h3 id="tasks-heading" data-i18n="manualTasks">Manual tasks</h3></div><span id="task-count" class="section-side"></span></div>
 
+<div id="todo-list" class="todo-list" aria-live="polite"></div>
+<form id="task-form" class="todo-form">
+<label for="task-input" class="sr-only" data-i18n="newTask">New task</label><input id="task-input" type="text" maxlength="140" autocomplete="off" placeholder="Add a task…">
+<button type="submit" class="button primary small" data-i18n="add">Add</button>
+</form>
+<p id="tasks-status" class="preview-footnote" role="status" aria-live="polite"></p>
+<div class="task-actions"><button id="tasks-retry" class="button small" type="button" hidden>Refresh tasks</button></div>
+</section>
+
+<section id="dashboard-hanzi" class="dashboard-hanzi" hidden aria-label="Hanzi Steps widget"></section>
+<section class="shortcuts-panel">
+<div class="shortcuts-heading"><div><p class="eyebrow" data-i18n="campusAccessEyebrow">QUICK ACCESS</p><h3 data-i18n="campusShortcuts">Campus shortcuts</h3></div></div>
+<nav class="ntu-grid" aria-label="NTU shortcuts">
+<a class="ntu-link" href="https://my.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon"><svg aria-hidden="true"><use href="#i-home"/></svg></span>myNTU</a>
+<a class="ntu-link" href="https://cool.ntu.edu.tw/" target="_blank" rel="noopener noreferrer external"><span class="ntu-icon cool"><svg aria-hidden="true"><use href="#i-cool"/></svg></span>NTU COOL</a>
+<button class="ntu-link" type="button" data-open-mail aria-label="Open Campus Mail"><span class="ntu-icon mail"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><span data-mail-i18n="mail">Campus Mail</span></button>
+</nav>
+</section>
+</aside>
+<div class="column-resizer" data-divider="left" role="separator" tabindex="0"
+     aria-orientation="vertical" aria-label="Resize Schedule and NTU panels. Use arrow keys; double-click to reset."
+     aria-valuemin="0" aria-valuemax="100" aria-valuenow="37" hidden><span class="resize-grip" aria-hidden="true"></span></div>
+<div class="column-resizer" data-divider="right" role="separator" tabindex="0"
+     aria-orientation="vertical" aria-label="Resize NTU and Tasks panels. Use arrow keys; double-click to reset."
+     aria-valuemin="0" aria-valuemax="100" aria-valuenow="69" hidden><span class="resize-grip" aria-hidden="true"></span></div>
+</main>
+<p class="login-footer" data-i18n="disclaimer">Independent student project · Not an official NTU service</p>
+</div>
+<dialog id="exam-editor-dialog" class="dialog exam-editor-dialog" aria-labelledby="exam-editor-title">
+<form id="exam-editor-form" class="detail-sheet exam-editor-form">
+<h2 id="exam-editor-title">Add exam</h2>
+<label for="exam-editor-name" id="exam-editor-title-label">Exam name</label>
+<input id="exam-editor-name" type="text" maxlength="140" autocomplete="off" required>
+<label for="exam-editor-class" id="exam-editor-className-label">Class (optional)</label>
+<input id="exam-editor-class" type="text" list="exam-editor-classes" maxlength="160" autocomplete="off" placeholder="e.g. Statics"><datalist id="exam-editor-classes"></datalist>
+<label for="exam-editor-kind" id="exam-editor-type-label">Type</label>
+<select id="exam-editor-kind"><option value="quiz">Quiz</option><option value="midterm">Midterm</option><option value="final">Final</option><option value="other">Other</option></select>
+<div class="exam-editor-fields">
+<div><label for="exam-editor-date" id="exam-editor-date-label">Exact date (optional)</label><input id="exam-editor-date" type="date" min="2000-01-01" max="2199-12-31"></div>
+<div><label for="exam-editor-week" id="exam-editor-week-label">Week (optional)</label><input id="exam-editor-week" type="number" min="1" max="30" step="1"></div>
+</div>
+<p id="exam-editor-hint-label" class="preview-footnote">Enter a date, a week, or both. Week-only exams will not show an invented date.</p>
+<label for="exam-editor-notes" id="exam-editor-notes-label">Notes (optional)</label><textarea id="exam-editor-notes" rows="3" maxlength="500"></textarea>
+<p id="exam-editor-error" class="event-error" role="alert" hidden></p>
+<div class="exam-editor-actions">
+<button type="button" id="exam-editor-hide" class="button small" hidden>Hide exam</button>
+<button type="button" id="exam-editor-remove" class="button small danger" hidden>Delete exam</button>
+<button type="button" id="exam-editor-reset" class="button small" hidden>Restore original</button>
+<span></span>
+<button type="button" id="exam-editor-close" class="button">Cancel</button>
+<button type="submit" id="exam-editor-save" class="button primary">Save exam</button>
+</div>
+</form></dialog>
+<dialog id="event-dialog" class="dialog event-dialog" aria-labelledby="event-heading">
+<form id="event-form" class="detail-sheet event-form">
+<button id="event-close" type="button" class="icon-button dialog-close" aria-label="Close">×</button>
+<p class="eyebrow" data-event-copy="personal">PERSONAL EVENT</p><h2 id="event-heading">Add event</h2>
+<label for="event-title" data-event-copy="name">Event name</label><input id="event-title" type="text" maxlength="140" required autocomplete="off" placeholder="e.g. Study group">
+<label for="event-location" data-event-copy="location">Location (optional)</label><input id="event-location" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Main Library">
+<div class="event-fields"><div><label for="event-date" id="event-date-label">Date</label><input id="event-date" type="date" min="2000-01-01" max="2199-12-31" required></div><div><label for="event-frequency" data-event-copy="repeat">Repeat</label><select id="event-frequency"><option value="once" data-event-copy="once">One time</option><option value="weekly" data-event-copy="weekly">Every week</option></select></div></div>
+<div class="event-fields"><div><label for="event-start" data-event-copy="start">Start time</label><input id="event-start" type="time" required></div><div><label for="event-end" data-event-copy="end">End time</label><input id="event-end" type="time" required></div></div>
+<fieldset id="event-weekly" hidden><legend data-event-copy="days">Repeat on</legend><div id="event-days" class="event-days"></div><label for="event-until" data-event-copy="until">Repeat until (optional)</label><input id="event-until" type="date" min="2000-01-01" max="2199-12-31"><p class="preview-footnote" data-event-copy="series">Changes apply to the whole weekly event.</p></fieldset>
+<details><summary data-event-copy="notes">Notes (optional)</summary><label class="sr-only" for="event-notes" data-event-copy="notes">Notes (optional)</label><textarea id="event-notes" rows="3" maxlength="500"></textarea></details>
+<p id="event-help" class="preview-footnote"></p><p id="event-error" class="event-error" role="alert" hidden></p>
+<div class="event-footer"><button id="event-remove" type="button" class="button small danger" hidden>Remove event</button><span></span><button id="event-cancel" type="button" class="button" data-event-copy="cancel">Cancel</button><button id="event-save" type="submit" class="button primary" data-event-copy="save">Save event</button></div>
+</form></dialog>
+<dialog id="lesson-dialog" class="dialog detail-dialog" aria-labelledby="lesson-dialog-name">
+<div class="detail-sheet">
+<button id="close-lesson" class="icon-button dialog-close" aria-label="Close" type="button"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+<p class="eyebrow" data-i18n="classDetails">CLASS DETAILS</p><h2 id="lesson-dialog-name" class="detail-title"></h2>
+<div class="detail-line"><span data-i18n="time">Time</span><strong id="lesson-dialog-time"></strong></div>
+<div class="detail-line"><span data-i18n="status">Status</span><strong id="lesson-dialog-status"></strong></div>
+<form id="lesson-edit-form" class="lesson-edit-form">
+<label id="lesson-name-label" for="lesson-name-input">Name (English)</label><input id="lesson-name-input" type="text" maxlength="160" autocomplete="off">
+<label for="lesson-room-input" data-i18n="location">Location</label><input id="lesson-room-input" type="text" maxlength="200" autocomplete="off">
+<label for="lesson-section-input" data-i18n="chooseSection">Choose your class</label><select id="lesson-section-input" aria-describedby="lesson-section-status" disabled><option value="">Automatic matching</option></select>
+<p id="lesson-section-status" class="micro detail-note" role="status"></p>
+<label for="lesson-description-input" data-i18n="lessonDescription">Description</label><textarea id="lesson-description-input" rows="3" maxlength="1000"></textarea>
+<p id="lesson-edit-help" class="micro detail-note"></p>
+<p id="lesson-edit-message" class="lesson-edit-message" role="status" hidden></p>
+<div class="lesson-edit-actions"><button id="lesson-reset" type="button" class="button small" data-i18n="lessonReset">Restore original details</button><span></span><button id="lesson-edit-cancel" type="button" class="button" data-i18n="lessonCancel">Cancel</button><button id="lesson-save" type="submit" class="button primary" data-i18n="lessonSave">Save changes</button></div>
+</form>
+</div>
+</dialog>
+<dialog id="settings-dialog" class="dialog settings-dialog settings-hub" aria-labelledby="settings-heading">
+<header class="settings-topbar"><div class="settings-brand"><span class="settings-brand-mark"><svg aria-hidden="true"><use href="#i-week"/></svg></span><span id="settings-heading" data-settings-copy="settings">Settings</span></div><button id="settings-close-desktop" class="icon-button settings-close" type="button" aria-label="Close settings"><svg aria-hidden="true"><use href="#i-close"/></svg></button><button id="settings-close-mobile" type="button" hidden aria-label="Close settings"></button></header>
+<div class="settings-main">
+<section class="settings-account" aria-labelledby="account-id"><div class="settings-avatar" aria-hidden="true"><svg><use href="#i-week"/></svg></div><div class="settings-account-copy"><span class="settings-kicker" data-settings-copy="studentAccount">STUDENT NUMBER</span><h2 id="account-id">—</h2><p id="account-name"></p><span id="settings-account-status" class="settings-pill"></span></div><div class="settings-account-actions"><button id="log-out" type="button" class="button settings-logout"><svg aria-hidden="true"><use href="#i-logout"/></svg><span data-i18n="logOut">Log out</span></button><button id="switch-account" type="button" hidden data-i18n="switchAccount">Switch account</button></div></section>
+<nav class="settings-jumps" aria-label="Settings sections"><button type="button" data-settings-tab="appearance" data-settings-copy="appearance">Appearance</button><button type="button" data-settings-tab="timetable" data-settings-copy="yourWeek">Your week</button><button type="button" data-settings-tab="notifications" data-notify-copy="tab">Alerts</button><button type="button" data-settings-tab="install" data-settings-copy="onYourPhone">Install</button><button type="button" data-settings-tab="widgets" data-settings-copy="extras">Hanzi Steps</button></nav>
+<section class="settings-section settings-appearance" data-settings-panel="appearance" aria-labelledby="settings-appearance-title"><div class="settings-section-heading"><div><h3 id="settings-appearance-title" data-settings-copy="chooseLook">Appearance</h3></div><span id="settings-save-state" class="settings-save-state" role="status" aria-live="polite"></span></div><div class="settings-theme-grid" role="group" aria-label="Choose theme">
+<button class="theme-card" data-theme-choice="light" type="button" aria-pressed="true"><span class="theme-window theme-window-light" aria-hidden="true"><span class="theme-window-chrome"><i></i><i></i><i></i></span><span class="theme-window-body"><span class="theme-mini-rail"><i></i><i></i><i></i><i></i></span><span class="theme-mini-main"><span class="theme-mini-banner"></span><span class="theme-mini-week"><i></i><i></i><i></i><i></i><i></i></span><span class="theme-mini-cards"><i></i><i></i><i></i></span></span><span class="theme-mini-side"><i></i><i></i><i></i></span></span></span><span class="theme-card-caption"><span><strong data-settings-copy="light">Daylight</strong></span><span class="theme-check" aria-hidden="true">✓</span></span></button>
+<button class="theme-card" data-theme-choice="dark" type="button" aria-pressed="false"><span class="theme-window theme-window-dark" aria-hidden="true"><span class="theme-window-chrome"><i></i><i></i><i></i></span><span class="theme-window-body"><span class="theme-mini-rail"><i></i><i></i><i></i><i></i></span><span class="theme-mini-main"><span class="theme-mini-banner"></span><span class="theme-mini-week"><i></i><i></i><i></i><i></i><i></i></span><span class="theme-mini-cards"><i></i><i></i><i></i></span></span><span class="theme-mini-side"><i></i><i></i><i></i></span></span></span><span class="theme-card-caption"><span><strong data-settings-copy="dark">Dark</strong></span><span class="theme-check" aria-hidden="true">✓</span></span></button>
+<button class="theme-card" data-theme-choice="system" type="button" aria-pressed="false"><span class="theme-window theme-window-system" aria-hidden="true"><span class="theme-window-chrome"><i></i><i></i><i></i></span><span class="theme-window-body"><span class="theme-mini-rail"><i></i><i></i><i></i><i></i></span><span class="theme-mini-main"><span class="theme-mini-banner"></span><span class="theme-mini-week"><i></i><i></i><i></i><i></i><i></i></span><span class="theme-mini-cards"><i></i><i></i><i></i></span></span><span class="theme-mini-side"><i></i><i></i><i></i></span></span></span><span class="theme-card-caption"><span><strong data-settings-copy="system">System</strong></span><span class="theme-check" aria-hidden="true">✓</span></span></button>
+</div><div class="settings-appearance-bottom"><span class="settings-inline-note"><svg aria-hidden="true"><use href="#i-globe"/></svg><label for="settings-language" data-i18n="interfaceLanguage">Interface language</label></span><select id="settings-language"><option value="en">English</option><option value="zh">繁體中文</option></select><select id="theme-select" class="sr-only" tabindex="-1" aria-label="Theme"><option value="light">Daylight</option><option value="dark">Dark</option><option value="system">System</option></select></div></section>
+<section class="settings-section settings-statistics" data-settings-panel="timetable" aria-labelledby="settings-stats-title"><div class="settings-section-heading"><div><h3 id="settings-stats-title" data-settings-copy="weekNumbers">Your week</h3><p id="settings-timetable-meta"></p></div><span id="settings-semester" class="settings-pill"></span></div><div class="settings-stats-strip"><div><strong id="stat-courses">0</strong><span data-settings-copy="courses">courses</span></div><div><strong id="stat-sessions">0</strong><span data-settings-copy="sessions">sessions / week</span></div><div><strong id="stat-hours">0</strong><span data-settings-copy="hours">hours / week</span></div></div><div class="settings-weekly-breakdown"><div class="settings-chart-copy"><span class="settings-kicker" data-settings-copy="weeklyRhythm">Weekly hours</span><strong id="settings-busiest-day"></strong><p data-settings-copy="statsNote">Includes breaks between consecutive periods. Personal events excluded.</p></div><ul id="settings-week-chart" class="settings-week-chart" aria-label="Scheduled class hours by day"></ul></div><details class="settings-connections"><summary><span class="settings-inline-note"><span class="settings-connection-dot"></span><span data-settings-copy="connections">Sync &amp; refresh</span></span><span aria-hidden="true">＋</span></summary><div class="settings-connection-grid"><div><h4 data-i18n="timetableConnection">Timetable connection</h4><p id="live-timetable-settings-status"></p><button id="live-timetable-refresh" type="button" class="button small" data-i18n="syncTimetable">Sync timetable</button></div><div><h4 data-i18n="coolConnection">COOL connection</h4><p id="live-cool-settings-status"></p><button id="live-cool-refresh" type="button" class="button small" data-i18n="syncCool">Sync COOL</button></div></div></details></section>
+<section class="settings-section settings-notifications" data-settings-panel="notifications" aria-labelledby="settings-notifications-title">
+<div class="settings-section-heading"><div><h3 id="settings-notifications-title" data-notify-copy="title">Mail notifications</h3><p data-notify-copy="intro">Check your device and send a real test push. No email is sent.</p></div></div>
+<div class="settings-notify-grid" aria-label="Notification diagnostics">
+ <div><span data-notify-copy="permissionLabel">Permission</span><strong id="settings-notify-permission">—</strong></div>
+ <div><span data-notify-copy="deviceLabel">This device</span><strong id="settings-notify-device">—</strong></div>
+ <div><span data-notify-copy="checkerLabel">Mail checker</span><strong id="settings-notify-checker">—</strong></div>
+</div>
+<div class="settings-notify-actions">
+ <button type="button" class="button small" id="settings-notify-check" data-notify-copy="check">Check setup</button>
+ <button type="button" class="button small" id="settings-notify-local" data-notify-copy="local">Show local test</button>
+ <button type="button" class="button small" id="settings-notify-push" data-notify-copy="send">Send push test</button>
+ <button type="button" class="button small" id="settings-notify-inbox" data-notify-copy="newMail">Check new mail</button>
+</div>
+<p id="settings-notify-status" class="settings-notify-status" role="status" aria-live="polite"></p>
+<p class="settings-notify-help" data-notify-copy="help">Enable alerts in Campus Mail first. A local test checks display permission; a push test checks the server and provider. Provider acceptance does not guarantee the phone displayed an alert.</p>
+</section>
+<section class="settings-section settings-install" data-settings-panel="install" aria-labelledby="settings-install-title"><div class="settings-section-heading"><div><h3 id="settings-install-title" data-settings-copy="homeScreen">Install Campus Week</h3><p data-settings-copy="installIntro">Add Campus Week to your Home Screen.</p></div><span id="settings-installed" class="settings-pill" hidden data-settings-copy="installed">Already installed</span></div><div class="settings-install-grid"><div class="install-guide"><div class="install-guide-heading"><span class="install-platform-icon"><svg aria-hidden="true"><use href="#i-phone"/></svg></span><div><h4>iPhone & iPad</h4><span>Safari</span></div></div><ol><li><span data-settings-copy="appleStep1">Open Campus Week in Safari.</span></li><li><span data-settings-copy="appleStep2">Tap Share, then Add to Home Screen.</span></li><li><span data-settings-copy="appleStep3">Keep Open as Web App on if shown, then tap Add.</span></li></ol><a href="https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios" target="_blank" rel="noopener noreferrer" class="settings-text-link" data-settings-copy="appleGuide">Apple’s guide ↗</a></div><div class="install-phone-scene" aria-hidden="true"><div class="install-phone"><div class="install-phone-island"></div><span class="install-phone-time">9:41</span><div class="install-phone-date">THURSDAY, 15 OCT</div><div class="install-phone-app"><span><svg><use href="#i-week"/></svg></span><small>Campus Week</small></div><div class="install-phone-dock"><i></i><i></i><i></i></div><div class="install-phone-home"></div></div></div><div class="install-guide"><div class="install-guide-heading"><span class="install-platform-icon android"><svg aria-hidden="true"><use href="#i-phone"/></svg></span><div><h4>Android</h4><span>Chrome</span></div></div><ol><li><span data-settings-copy="androidStep1">Open Campus Week in Chrome.</span></li><li><span data-settings-copy="androidStep2">Tap the three-dot menu, then Add to Home screen.</span></li><li><span data-settings-copy="androidStep3">Choose Install, then confirm. Some versions show Install app directly.</span></li></ol><div class="install-guide-actions"><button id="settings-install-button" class="button small" type="button" hidden data-settings-copy="installNow">Install Campus Week</button><a href="https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=en" target="_blank" rel="noopener noreferrer" class="settings-text-link" data-settings-copy="androidGuide">Google’s guide ↗</a></div></div></div></section>
+<section class="settings-section settings-extras" data-settings-panel="widgets" aria-labelledby="settings-extras-title"><div class="settings-section-heading"><div><h3 id="settings-extras-title" data-settings-copy="keepLearning">Hanzi Steps widget</h3></div><label class="settings-toggle"><input id="settings-hanzi-enabled" type="checkbox" aria-label="Show Hanzi Steps widget"><span aria-hidden="true"></span></label></div><div class="settings-hanzi-layout"><div class="settings-hanzi-config"><span class="settings-hanzi-wordmark"><span lang="zh-Hant">字</span>Hanzi Steps</span><p data-settings-copy="hanziHelp">Show your streak, practice progress and next character beside your schedule. Enter your Hanzi Steps username to connect.</p><form id="settings-hanzi-form"><label for="settings-hanzi-username" data-settings-copy="hanziUsername">Hanzi Steps username</label><div><input id="settings-hanzi-username" type="text" minlength="2" maxlength="32" pattern="[A-Za-z0-9_]{2,32}" autocomplete="off" placeholder="your_username"><button type="submit" class="button" id="settings-hanzi-connect" data-settings-copy="connectWidget">Connect widget</button></div></form><p id="settings-hanzi-status" class="settings-feedback" role="status" aria-live="polite"></p><span class="settings-inline-note settings-widget-note" data-settings-copy="hanziOptional">Optional. Switch it off any time.</span></div><div class="settings-widget-stage"><span class="settings-preview-tag" data-settings-copy="widgetPreview">Sample progress</span><div id="settings-hanzi-preview" class="hanzi-companion"></div></div></div></section>
+<footer class="settings-footer"><span>Campus Week <span aria-hidden="true">·</span> <span data-settings-copy="independent">Independent NTU project</span></span><span class="settings-footer-heart" aria-hidden="true">✳</span></footer>
+</div>
+</dialog>
+<dialog id="mail-dialog" class="dialog mailx-dialog" aria-labelledby="mail-dialog-heading">
+<div class="mailx-shell">
+<header class="mailx-topbar">
+<div class="mailx-brand"><span class="mailx-brand-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><h2 id="mail-dialog-heading" class="mailx-title" data-mail-i18n="mail">Campus Mail</h2></div>
+<button class="mailx-compose-main" type="button" data-mail-i18n="compose" disabled>＋ Compose</button>
+<span class="mailx-account-switch" title="Current Campus Week account">NTU</span>
+<div class="mailx-header-tools" role="group" aria-label="Mail controls">
+<button class="mailx-icon-button mailx-refresh-button" type="button" title="Refresh" aria-label="Refresh" disabled><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+<a class="mailx-top-action mailx-official-link" href="https://wmail1.cc.ntu.edu.tw/rc/index.php" target="_blank" rel="noopener noreferrer external" data-mail-i18n="officialMail">Official NTU Mail ↗</a>
+</div>
+<button class="mailx-icon-button mailx-close" id="mail-close" type="button" aria-label="Close Mail"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+</header>
+<nav class="mailx-mobile-tabs" aria-label="Mail folders">
+<button type="button" data-mail-folder="inbox" aria-pressed="true">Inbox</button>
+<button type="button" data-mail-folder="unread" aria-pressed="false">Unread</button>
+<button type="button" data-mail-folder="starred" aria-pressed="false">Starred</button>
+<button type="button" data-mail-folder="sent" aria-pressed="false">Sent</button>
+<button type="button" data-mail-folder="outbox" aria-pressed="false">Outbox</button>
+<button type="button" data-mail-folder="drafts" aria-pressed="false">Drafts</button>
+<button type="button" data-mail-folder="trash" aria-pressed="false">Trash</button>
+</nav>
+<div class="mailx-main">
+<nav class="mailx-nav" aria-label="Mail folders">
+<button type="button" class="mailx-filter" data-mail-folder="inbox" aria-label="Inbox" title="Inbox" aria-pressed="true"><svg aria-hidden="true"><use href="#i-inbox"/></svg></button>
+<button type="button" class="mailx-filter" data-mail-folder="unread" aria-label="Unread" title="Unread" aria-pressed="false"><svg aria-hidden="true"><use href="#i-mail"/></svg></button>
+<button type="button" class="mailx-filter" data-mail-folder="starred" aria-label="Starred" title="Starred" aria-pressed="false"><svg aria-hidden="true"><use href="#i-star"/></svg></button>
+<span class="mailx-rail-divider" aria-hidden="true"></span>
+<button type="button" class="mailx-filter" data-mail-folder="sent" aria-label="Sent" title="Sent" aria-pressed="false"><svg aria-hidden="true"><use href="#i-send"/></svg></button>
+<button type="button" class="mailx-filter" data-mail-folder="outbox" aria-label="Outbox" title="Outbox" aria-pressed="false"><svg aria-hidden="true"><use href="#i-send"/></svg></button>
+<button type="button" class="mailx-filter" data-mail-folder="drafts" aria-label="Drafts" title="Drafts" aria-pressed="false"><svg aria-hidden="true"><use href="#i-draft"/></svg></button>
+<button type="button" class="mailx-filter" data-mail-folder="trash" aria-label="Trash" title="Trash" aria-pressed="false"><svg aria-hidden="true"><use href="#i-trash"/></svg></button>
+<span class="mailx-rail-divider" aria-hidden="true"></span>
+<button type="button" class="mailx-filter" data-mail-folder="archived" aria-label="Archived" title="Archived" aria-pressed="false"><svg aria-hidden="true"><use href="#i-archive"/></svg></button>
+</nav>
+<section class="mailx-list-pane" aria-label="Message list">
+<header class="mailx-list-tools"><h3 id="mail-folder-heading">Inbox</h3><span class="mailx-count" data-mail-i18n="noMessages">0 messages</span></header>
+<div class="mailx-list"><div class="mailx-list-placeholder"><svg aria-hidden="true"><use href="#i-inbox"/></svg><strong data-mail-i18n="mailEmpty">Your mail will appear here after we connect the service.</strong><span data-mail-i18n="mailPreviewOnly">Sign in to load your campus mail.</span></div></div>
+</section>
+<div class="mailx-resizer" aria-hidden="true"></div>
+<section class="mailx-reader" aria-label="Message reader">
+<div class="mailx-reader-toolbar"><span data-mail-i18n="readerTitle">Message</span><span class="mailx-reader-toolbar-buttons"><button type="button" title="Reply" disabled>↶</button><button type="button" title="Archive" disabled><svg aria-hidden="true"><use href="#i-archive"/></svg></button><button type="button" title="Move to Trash" disabled><svg aria-hidden="true"><use href="#i-trash"/></svg></button></span></div>
+<div class="mailx-reader-empty"><span class="mailx-reader-empty-icon"><svg aria-hidden="true"><use href="#i-mail"/></svg></span><strong data-mail-i18n="readerEmpty">Select a message to read</strong><p data-mail-i18n="mailDesc">The personal site's mail interface will be connected after the UI is finalized.</p></div>
+</section>
+</div></div>
+</dialog>
+<p id="toast" class="sr-only" role="status" aria-live="polite"></p>
+</body>
+</html>

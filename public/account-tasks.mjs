@@ -25,13 +25,15 @@ export class AccountTasks {
   async refresh() {
     if (!this.current || this.state.loading || this.state.saving) return;
     const epoch = this.epoch, revision = this.revision;
-    this.state.loading = true; this.emit();
+    const before=JSON.stringify([this.state.items,this.state.ready,this.state.error]);
+    const foreground=!this.state.ready||!!this.state.error;
+    this.state.loading = true; if(foreground)this.emit();
     try {
       const result = await this.client.tasks();
       if (!this.valid(epoch) || revision !== this.revision) return;
       this.state.items = this.owner(result).tasks; this.state.ready = true; this.state.error = null;
     } catch (error) { if (this.valid(epoch, error) && revision === this.revision) this.fail(error, 'load'); }
-    finally { if (this.valid(epoch)) { this.state.loading = false; this.emit(); } }
+    finally { if (this.valid(epoch)) { this.state.loading = false; if(foreground||before!==JSON.stringify([this.state.items,this.state.ready,this.state.error]))this.emit(); } }
   }
   async write(action, apply) {
     if (!this.current || !this.state.ready || this.state.saving || this.client.current !== this.current) return false;

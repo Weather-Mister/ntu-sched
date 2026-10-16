@@ -8,7 +8,10 @@
     "directory": "./public",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/skeleton",
+      "/skeleton/",
+      "/skeleton/index.html"
     ]
   },
   "d1_databases": [

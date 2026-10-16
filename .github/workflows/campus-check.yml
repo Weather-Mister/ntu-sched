@@ -16,13 +16,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: node --check public/mail-sw.js
-      - run: node --check public/skeleton/notification-settings.mjs
-      - run: node --check public/skeleton/settings.mjs
-      - run: node --check public/skeleton/mail.mjs
-      - run: node --check src/mail-store.mjs
-      - run: node --check src/mail-translation.mjs
-      - run: node --check src/worker.mjs
+      - run: npm run check
       - name: Verify real public NTU course lookup and syllabus plans
         if: github.event_name == 'pull_request' && (github.head_ref == 'feat/automatic-course-syllabus' || github.head_ref == 'feat/cool-exam-fallback' || github.head_ref == 'feat/cool-primary-exams' || github.head_ref == 'fix/cool-exam-source-stop' || github.head_ref == 'feat/upcoming-exams')
         run: node scripts/check-ntu-syllabus.mjs

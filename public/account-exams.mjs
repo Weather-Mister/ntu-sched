@@ -1,3 +1,4 @@
+import {NTU_TERM_STARTS} from './academic-calendar.mjs';
 import {isNonExamEntry} from './exam-classification.mjs';
 
 // Exam plans belong to the student's encrypted server snapshot, not device storage.
@@ -87,7 +88,7 @@ export function officialCourseUrl(course) {
 // These are week *ranges* for ordering only, not individual exam dates.
 // Add other semesters only after verifying NTU's published academic calendar.
 // NTU 115-1 teaching week 1 begins Monday, 2026-09-07.
-const knownTermStarts={'115-1':'2026-09-07'};
+const knownTermStarts=NTU_TERM_STARTS;
 const validDate=value=>{
   if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
   const time=Date.parse(value+'T00:00:00Z');

@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const base=new URL('../public/skeleton/',import.meta.url);
-const html=readFileSync(new URL('index.html',base),'utf8');
+const html=readFileSync(new URL('../index.html',base),'utf8');
 const css=readFileSync(new URL('mobile-overflow.css',base),'utf8');
 
 test('viewport overflow guard loads after existing component styles',()=>{
   const files=['styles.css','desktop.css','mail-composer.css','settings.css','mobile-overflow.css'];
-  const locations=files.map(file=>html.indexOf(`href="./${file}"`));
+  const locations=files.map(file=>html.indexOf(`href="/skeleton/${file}"`));
   assert.ok(locations.every(index=>index>=0));
   assert.deepEqual([...locations].sort((a,b)=>a-b),locations);
 });

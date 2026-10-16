@@ -6,7 +6,7 @@ import {createCoolFeedScroll} from '../public/skeleton/cool-feed-scroll.mjs';
 
 const base=new URL('../public/skeleton/',import.meta.url);
 const css=readFileSync(new URL('styles.css',base),'utf8');
-const html=readFileSync(new URL('index.html',base),'utf8');
+const html=readFileSync(new URL('../index.html',base),'utf8');
 const app=readFileSync(new URL('app.mjs',base),'utf8');
 
 function setup(){
