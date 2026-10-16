@@ -334,12 +334,12 @@ export default {
       }
       if (path === '/api/cool/calendar' && request.method === 'GET') {
         const current = await session(request, env);
-        return json(await savedCoolCalendar(env, current.student_id));
+        return json({studentNumber:current.student_number,...await savedCoolCalendar(env, current.student_id)});
       }
       if (path === '/api/cool/calendar/sync' && request.method === 'POST') {
         const current = await session(request, env, true), body = await readJson(request);
         if (Object.keys(body).some(key => !['password', 'force'].includes(key)) || body.force !== undefined && typeof body.force !== 'boolean' || body.password !== undefined && (typeof body.password !== 'string' || !body.password || body.password.length > 1024 || /[\r\n\0]/.test(body.password))) throw new ApiError(400, 'invalid_request', 'Use your saved COOL connection, or enter your myNTU password.');
-        try { return json(await syncCoolCalendar(env, current, body.password, body.force === true)); }
+        try { return json({studentNumber:current.student_number,...await syncCoolCalendar(env, current, body.password, body.force === true)}); }
         finally { body.password = ''; }
       }
       if (path === '/api/auth/logout' && request.method === 'POST') {

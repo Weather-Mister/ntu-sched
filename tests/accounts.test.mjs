@@ -1,5 +1,6 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import worker from '../src/worker.mjs';
@@ -625,4 +626,39 @@ test('personal event accents match case-insensitive names, independent of event 
   const color=scheduleAccent(row('Study Group'));
   for(const title of ['study group','STUDY GROUP','  Study Group  ','Study   Group'])assert.equal(scheduleAccent(row(title)),color);
   const first=row('Study Group'),later=row('study group');later[0]=4;later[1]='14:00';later[7].frequency='weekly';assert.equal(scheduleAccent(first),scheduleAccent(later));
+});
+
+// Contract regression: the UI checks snapshot ownership before rendering it.
+test('COOL calendar read and sync responses identify the authenticated student even before connecting',async()=>{
+  const e=env(),a=await login(e),b=await login(e,'r23456789');
+  for(const auth of [a,b]){
+    const empty=await request(e,'cool/calendar',{cookie:auth.cookie});
+    assert.equal(empty.status,200);assert.equal(empty.headers.get('Cache-Control'),'no-store, private');
+    const body=await empty.json();assert.equal(body.studentNumber,auth.body.studentNumber);assert.equal(body.calendar,null);
+    const synced=await syncCool(e,auth);assert.equal(synced.status,200);
+    assert.equal((await synced.json()).studentNumber,auth.body.studentNumber);
+    const saved=await(await request(e,'cool/calendar',{cookie:auth.cookie})).json();
+    assert.equal(saved.studentNumber,auth.body.studentNumber);assert.match(saved.calendar.assignments[0].title,new RegExp(auth.body.studentNumber));
+  }
+});
+test('actual authenticated calendar responses keep the dashboard signed in, while another student still triggers the account guard',async()=>{
+  const e=env(),auth=await login(e);
+  const source=readFileSync(new URL('../public/skeleton/app.mjs',import.meta.url),'utf8');
+  const code=source.slice(source.indexOf('async function readLiveSnapshots('),source.indexOf('// New accounts use'));
+  let expired=0,rendered=0;
+  const context={
+    liveMode:true,liveAccount:auth.body,liveEpoch:1,liveDetailsRevision:0,lessonSaving:false,language:'en',
+    liveCourseOverrides:{},liveTimetable:null,liveExamPlans:{},liveSectionOptions:{},liveTimetableOk:false,liveTimetableInfo:'',liveCalendar:null,liveCalendarOk:false,liveCoolInfo:'',
+    taskStore:{refresh:async()=>{}},eventUI:{refresh(){}},foregroundRefresh:{record(){}},
+    account:{timetable:async()=> (await request(e,'timetable',{cookie:auth.cookie})).json(),coolCalendar:async()=> (await request(e,'cool/calendar',{cookie:auth.cookie})).json()},
+    sessionExpired(){expired++;},renderLiveAccount(){rendered++;},checkLiveSources(){},liveNotice:error=>error.message
+  };
+  vm.createContext(context);vm.runInContext(code,context);
+  await vm.runInContext('readLiveSnapshots()',context);assert.equal(expired,0,'an unconnected calendar must not bounce a valid login');
+  const synced=await syncCool(e,auth);assert.equal(synced.status,200);
+  await vm.runInContext('readLiveSnapshots()',context);assert.equal(expired,0,'restoring a connected calendar must keep the session');
+  assert.equal(rendered,2);assert.ok(context.liveCalendar);assert.equal((await request(e,'auth/me',{cookie:auth.cookie})).status,200);
+  const other=await login(e,'r23456789');
+  context.account.coolCalendar=async()=> (await request(e,'cool/calendar',{cookie:other.cookie})).json();
+  await vm.runInContext('readLiveSnapshots()',context);assert.equal(expired,1,'a real account switch must still be rejected');assert.equal(rendered,2);
 });
