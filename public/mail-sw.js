@@ -8,7 +8,7 @@ self.addEventListener('push',event=>event.waitUntil((async()=>{
   // healthy push endpoint just because the background session has expired.
  }catch{/* An offline device may still display the generic, private alert. */}
  const test=value.kind==='test';
- const subject=typeof value.subject==='string'?value.subject.slice(0,140).replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g,' ').trim():'';
+ const subject=typeof value.subject==='string'?value.subject.slice(0,140).replace(/[\u0000-\u001f\u007f-\u009f]/g,' ').trim():'';
  const extra=Number.isSafeInteger(value.additional)&&value.additional>0?value.additional:0;
  const body=subject?subject+(extra?' +'+extra+(value.limited?'+':''):''):
   (typeof value.body==='string'?value.body:'You have new mail in Campus Mail.');
