@@ -53,20 +53,62 @@ export function officialCourseUrl(course) {
   return /^\d{3}-[123]$/.test(course?.term||'')&&/^\d{4,6}$/.test(course?.serial||'')
     ?`https://course.ntu.edu.tw/en/courses/${course.term}/${course.serial}`:null;
 }
+// These are week *ranges* for ordering only, not individual exam dates.
+// Add other semesters only after verifying NTU's published academic calendar.
+// NTU 115-1 teaching week 1 begins Monday, 2026-09-07.
+const knownTermStarts={'115-1':'2026-09-07'};
+const validDate=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
+  const time=Date.parse(value+'T00:00:00Z');
+  return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===value?value:null;
+};
+const iso=time=>new Date(time).toISOString().slice(0,10);
+const dayTime=date=>Date.parse(date+'T00:00:00Z');
+const addDays=(date,n)=>iso(dayTime(date)+n*86400000);
+const monday=date=>{
+  const day=new Date(dayTime(date)).getUTCDay();
+  return addDays(date,-((day+6)%7));
+};
+const weekNumber=value=>Number.isInteger(value)&&value>=1&&value<=30?value:null;
+function weekOne(course) {
+  // Prefer real dated rows belonging to this course; none is shown as an exam day.
+  for(const row of course.schedule||[]){
+    const week=weekNumber(row.week);
+    if(!week)continue;
+    for(const raw of row.dates||[]){
+      const date=validDate(raw);
+      if(date)return addDays(monday(date),-(week-1)*7);
+    }
+  }
+  for(const exam of course.exams||[]){
+    const week=weekNumber(exam.week);
+    const date=['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
+    if(week&&date)return addDays(monday(date),-(week-1)*7);
+  }
+  return knownTermStarts[course.term]||null;
+}
 export function examFeed(entries,today) {
-  const dated=[],unconfirmed=[];
+  const upcoming=[],past=[];
   for(const [courseId,entry]of entries){
     const course=entry.result?.course,url=officialCourseUrl(course);
     if(!url)continue;
+    const firstWeek=weekOne(course);
     for(const exam of course.exams||[]){
       if(exam.certainty==='cancelled')continue;
-      const date=/^\d{4}-\d{2}-\d{2}$/.test(exam.date||'')&&['explicit','scheduled-week'].includes(exam.certainty)?exam.date:null;
-      if(date&&date<today)continue;
-      const item={courseId,course,exam,url,date,stale:!!entry.error};
-      (date?dated:unconfirmed).push(item);
+      // An ambiguous or week-only source cannot acquire an exact date in our UI.
+      const date=['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
+      const week=weekNumber(exam.week);
+      const weekStart=week&&firstWeek?addDays(firstWeek,(week-1)*7):null;
+      const weekEnd=weekStart?addDays(weekStart,6):null;
+      const ended=date?date<today:!!(weekEnd&&weekEnd<today);
+      // An ongoing week is positioned at today; its exact exam day is still unknown.
+      const sortDate=date||(weekStart?(weekStart<today?today:weekStart):'9999-12-31');
+      const item={courseId,course,exam,url,date,week,stale:!!entry.error,sortDate};
+      (ended?past:upcoming).push(item);
     }
   }
-  dated.sort((a,b)=>a.date.localeCompare(b.date)||a.course.title.localeCompare(b.course.title));
-  unconfirmed.sort((a,b)=>(a.exam.week??99)-(b.exam.week??99)||a.course.title.localeCompare(b.course.title));
-  return {dated,unconfirmed};
+  const byName=(a,b)=>String(a.course.title||'').localeCompare(String(b.course.title||''))||String(a.exam.kind||'').localeCompare(String(b.exam.kind||''));
+  upcoming.sort((a,b)=>a.sortDate.localeCompare(b.sortDate)||byName(a,b));
+  past.sort((a,b)=>b.sortDate.localeCompare(a.sortDate)||byName(a,b));
+  return {upcoming,past};
 }
