@@ -55,5 +55,7 @@ test('live sign-in invokes first-time setup after loading saved snapshots, not o
   assert.match(js,/if\(initializeMissing && epoch===liveEpoch && liveMode\)/);
   assert.match(js,/syncInitialSources\(account,needed/);
   assert.match(js,/initialSyncBusy\|\|lessonSaving/);
-  assert.match(html,/id="initial-sync-notice"[^>]*role="status"/);
+  // First-time account connections still run, but no floating sync banner is rendered.
+  assert.doesNotMatch(html,/id="initial-sync-notice"/);
+  assert.doesNotMatch(js,/\$\('initial-sync-notice'\)/);
 });

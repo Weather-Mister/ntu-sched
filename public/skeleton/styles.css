@@ -467,7 +467,8 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(24px,3vw,31px);line-height:1.05;lette
   }
 }
 /* Leave room for a card's hover shadow within the scrolling task panel. */
-.task-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.task-actions:has(button:not([hidden])){margin-bottom:5px}.todo-check:disabled,.todo-remove:disabled{opacity:.55;cursor:wait}
+.task-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.task-actions:not(:has(>button:not([hidden]))){display:none}.task-actions:has(button:not([hidden])){margin-bottom:5px}.todo-check:disabled,.todo-remove:disabled{opacity:.55;cursor:wait}
 .tasks-column .todo-list {padding-top:3px;padding-bottom:5px}
 .calendar-picker:focus-within {outline:3px solid #829bd1;outline-offset:2px}
 @media (prefers-reduced-motion:reduce) {
@@ -561,7 +562,7 @@ body[data-theme=dark] .cool-list .cool-item.done .cool-due{
 @media(prefers-reduced-motion:reduce){
   .cool-list .cool-done-button{transition:none!important;transform:none!important}
 }
-.event-dialog{width:min(520px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;border-radius:21px}.event-form{padding:25px}.event-form h2{margin:0 35px 18px 0}.event-form label,.event-form legend{display:block;font-size:12px;font-weight:750;margin:11px 0 5px}.event-form input:not([type=checkbox]),.event-form select,.event-form textarea{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:14px;padding:8px 10px;box-sizing:border-box}.event-form input:focus,.event-form select:focus,.event-form textarea:focus{outline:2px solid var(--accent);outline-offset:2px}.event-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.event-form fieldset{border:0;margin:12px 0;padding:0}.event-form legend{margin:0 0 7px}.event-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.event-days label{margin:0;position:relative;text-align:center;cursor:pointer}.event-days input{position:absolute;opacity:0;width:1px;height:1px}.event-days span{display:block;padding:10px 1px;border:1px solid var(--line);border-radius:9px;background:var(--panel);font-size:11px}.event-days input:checked+span{background:var(--accent);color:#fff;border-color:var(--accent)}.event-days input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}.event-form details{margin-top:14px;font-size:12px}.event-form textarea{margin-top:8px;resize:vertical}.event-footer{display:flex;align-items:center;gap:8px;margin-top:18px;flex-wrap:wrap}.event-footer>span{flex:1}.event-footer .button{min-height:39px}.event-error{font-size:12px;color:#b0453f;margin:12px 0 0;line-height:1.5}.event-kind{font-size:9px;font-weight:800;color:var(--course-color);letter-spacing:.04em}.lesson.custom-event .lesson-card{background:color-mix(in srgb,var(--card) 95%,var(--course-color))}.personal-event-status{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:7px 0}.personal-event-status p:empty{display:none}.personal-event-status .preview-footnote{margin:0}.schedule-column>.section-head>.section-action{flex-wrap:wrap;justify-content:flex-end}.event-form .preview-footnote{line-height:1.5}@media(max-width:400px){.event-form{padding:20px 16px}.event-footer{gap:6px}.event-footer .button{font-size:11px;padding:8px 10px}.event-fields{gap:8px}.event-days span{font-size:10px}}
+.event-dialog{width:min(520px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;border-radius:21px}.event-form{padding:25px}.event-form h2{margin:0 35px 18px 0}.event-form label,.event-form legend{display:block;font-size:12px;font-weight:750;margin:11px 0 5px}.event-form input:not([type=checkbox]),.event-form select,.event-form textarea{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:14px;padding:8px 10px;box-sizing:border-box}.event-form input:focus,.event-form select:focus,.event-form textarea:focus{outline:2px solid var(--accent);outline-offset:2px}.event-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.event-form fieldset{border:0;margin:12px 0;padding:0}.event-form legend{margin:0 0 7px}.event-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.event-days label{margin:0;position:relative;text-align:center;cursor:pointer}.event-days input{position:absolute;opacity:0;width:1px;height:1px}.event-days span{display:block;padding:10px 1px;border:1px solid var(--line);border-radius:9px;background:var(--panel);font-size:11px}.event-days input:checked+span{background:var(--accent);color:#fff;border-color:var(--accent)}.event-days input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}.event-form details{margin-top:14px;font-size:12px}.event-form textarea{margin-top:8px;resize:vertical}.event-footer{display:flex;align-items:center;gap:8px;margin-top:18px;flex-wrap:wrap}.event-footer>span{flex:1}.event-footer .button{min-height:39px}.event-error{font-size:12px;color:#b0453f;margin:12px 0 0;line-height:1.5}.event-kind{font-size:9px;font-weight:800;color:var(--course-color);letter-spacing:.04em}.lesson.custom-event .lesson-card{background:color-mix(in srgb,var(--card) 95%,var(--course-color))}.personal-event-status{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:7px 0}.personal-event-status:not(:has(>:not([hidden]))){display:none}.personal-event-status p:empty{display:none}.personal-event-status .preview-footnote{margin:0}.schedule-column>.section-head>.section-action{flex-wrap:wrap;justify-content:flex-end}.event-form .preview-footnote{line-height:1.5}@media(max-width:400px){.event-form{padding:20px 16px}.event-footer{gap:6px}.event-footer .button{font-size:11px;padding:8px 10px}.event-fields{gap:8px}.event-days span{font-size:10px}}
 
 
 /* Campus Mail: message cards styled like the personal inbox, without inheriting its theme. */
@@ -705,17 +706,6 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 .login-preview-inner>p{color:var(--muted);font-size:10px;line-height:1.5;margin:10px 0 0}
 @media(prefers-reduced-motion:reduce){.login-spinner{animation:none}}
 
-/* Brief, unobtrusive progress for a student's first COOL/timetable connection. */
-.initial-sync-notice{
-  position:fixed;inset:auto 14px calc(16px + env(safe-area-inset-bottom)) auto;
-  z-index:35;max-width:min(420px,calc(100vw - 28px));
-  padding:11px 14px;border:1px solid var(--line);border-radius:12px;
-  background:var(--card);color:var(--text);box-shadow:var(--shadow);
-  font-size:12px;line-height:1.45;
-}
-@media(max-width:790px){
-  .initial-sync-notice{inset-inline:14px;max-width:none;text-align:center}
-}
 
 /* Campus Mail: primary action on the left, utilities against the far-right close. */
 .mailx-dialog .mailx-header-tools{
