@@ -116,10 +116,11 @@ function weekOne(course) {
   }
   return knownTermStarts[course.term]||null;
 }
-// The source key refers to an imported exam and never mutates the NTU source.
-// Include a repeated-identical-entry index so even duplicate rows stay distinct.
-export function examSourceKey(courseId,exam,ordinal=0){
-  return 'import:'+JSON.stringify([courseId,exam.kind||'',exam.description||'',exam.week??null,exam.date||null,ordinal]);
+// Match an imported exam by course offering, type and within-type position.
+// Date/description/week are deliberately excluded so an official rescheduling
+// does not erase the student's personal override.
+export function examSourceKey(courseId,exam,ordinal=0,serial=''){
+  return 'import:'+JSON.stringify([courseId,serial,exam.kind||'',ordinal]);
 }
 export function examFeed(entries,today,personal=[]){
   const upcoming=[],past=[],overrides=new Map();
@@ -139,9 +140,9 @@ export function examFeed(entries,today,personal=[]){
     const firstWeek=weekOne(course),seen=new Map();
     for(const exam of course.exams||[]){
       if(exam.certainty==='cancelled')continue;
-      const fingerprint=JSON.stringify([exam.kind||'',exam.description||'',exam.week??null,exam.date||null]);
-      const ordinal=seen.get(fingerprint)||0;seen.set(fingerprint,ordinal+1);
-      const sourceKey=examSourceKey(courseId,exam,ordinal),override=overrides.get(sourceKey);
+      const kindKey=exam.kind||'';
+      const ordinal=seen.get(kindKey)||0;seen.set(kindKey,ordinal+1);
+      const sourceKey=examSourceKey(courseId,exam,ordinal,course.serial),override=overrides.get(sourceKey);
       // Never infer a precise date for an automatic source. Only an explicit
       // manual override or a sourced exact date may populate the calendar day.
       const date=override?override.date:['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
