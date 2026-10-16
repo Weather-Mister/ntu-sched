@@ -420,3 +420,42 @@ test('push diagnostics reveal safe Apple-style provider rejection reasons',async
   assert.match(body.error.message,/HTTP 403 · BadJwtToken/);
  }finally{globalThis.fetch=oldFetch;e.sqlite.close();}
 });
+
+test('Cloudflare-compatible push fetch uses manual redirects and never follows redirects',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ const previousFetch=globalThis.fetch;
+ let requestOptions=null;
+ globalThis.fetch=async(url,init)=>{
+  if(new URL(url).hostname==='fcm.googleapis.com'){
+   requestOptions=init;
+   return new Response(null,{status:307,headers:{Location:'https://unsafe.example/steal'}});
+  }
+  return previousFetch(url,init);
+ };
+ try{
+  const response=await request(e,a,'push/test','POST',{id:device.id});
+  assert.equal(response.status,502);
+  const body=await response.json();
+  assert.equal(body.error.code,'push_transport_unexpected_redirect');
+  assert.match(body.error.message,/transport|push provider/i);
+  assert.equal(requestOptions.redirect,'manual');
+  assert.equal(requestOptions.method,'POST');
+  assert.equal(calls.filter(c=>new URL(c.url).hostname==='unsafe.example').length,0);
+ }finally{globalThis.fetch=previousFetch;e.sqlite.close();}
+});
+test('successful provider response uses manual redirect in the push delivery path',async()=>{
+ const e=env(),a=await identity(e),{value}=await subscription();
+ const device=await(await request(e,a,'push','POST',value)).json();
+ const previousFetch=globalThis.fetch;
+ let mode=null;
+ globalThis.fetch=async(url,init)=>{
+  if(new URL(url).hostname==='fcm.googleapis.com')mode=init.redirect;
+  return previousFetch(url,init);
+ };
+ try{
+  const response=await request(e,a,'push/test','POST',{id:device.id});
+  assert.equal(response.status,200,await response.clone().text());
+  assert.equal(mode,'manual');
+ }finally{globalThis.fetch=previousFetch;e.sqlite.close();}
+});
