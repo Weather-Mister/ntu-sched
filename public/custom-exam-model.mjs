@@ -16,7 +16,9 @@ export function normalizeCustomExam(value){
   if(date!==null&&!dateValid(date))throw Error('Invalid exam date');
   if(week!==null&&(!Number.isInteger(week)||week<1||week>30))throw Error('Invalid exam week');
   if(typeof hidden!=='boolean'||hidden&&sourceKey===null)throw Error('Only imported exams can be hidden');
-  if(!date&&!week&&!hidden)throw Error('Provide an exact date or a course week');
+  // A sourced entry may originally have no date or week. It can still be hidden
+  // and later re-shown without inventing either field.
+  if(!date&&!week&&sourceKey===null)throw Error('Provide an exact date or a course week');
   if(sourceKey!==null&&(typeof sourceKey!=='string'||sourceKey.length>700||sourceKey.length<4||/[\x00-\x1f\x7f]/.test(sourceKey)))throw Error('Invalid exam source key');
   return {title:title.trim(),className:className.trim(),kind,date,week,notes,sourceKey,hidden};
 }
