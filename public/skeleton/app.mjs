@@ -402,7 +402,7 @@ function renderLiveDeadlines(expanded=new Set()){
   if(coolView==='announcements'){
     const state=announcementStore;
     $('cool-refresh').disabled=state.busy||state.loading;
-    $('cool-preview-note').textContent=state.error?liveNotice(state.error):state.busy||state.loading?(language==='zh'?'正在更新公告…':'Refreshing announcements…'):t('realAnnouncementsNote')+(state.items?.syncedAt?' · '+new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}).format(new Date(state.items.syncedAt)):'');
+    $('cool-preview-note').textContent=state.error?liveNotice(state.error):t('realAnnouncementsNote')+(state.items?.syncedAt?' · '+new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}).format(new Date(state.items.syncedAt)):'');
     if(!state.items?.items?.length){list.append(node('div','empty-card',state.items?(language==='zh'?'最近 90 天沒有課程公告。':'No course announcements in the last 90 days.'):state.error?liveNotice(state.error):(language==='zh'?'正在載入公告…':'Loading announcements…')));return;}
     const fmt=new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     for(const item of state.items.items){
@@ -543,10 +543,10 @@ function renderTasks(){
   const state=taskStore.state,busy=liveMode&&(!state.ready||state.saving);
   $('task-input').disabled=busy;$('task-form').querySelector('button[type="submit"]').disabled=busy;
   const errorKey=state.error?.code==='tasks_full'?'tasksFull':['task_changed','task_not_found'].includes(state.error?.code)?'tasksConflict':state.error?.phase==='load'?'tasksLoadFailed':'tasksSaveFailed';
-  const taskStatus=!liveMode?t('tasksOnly'):state.error?t(errorKey):state.saving?t('tasksSaving'):state.loading?t('tasksLoading'):'';
+  // Background saves and polls stay silent. Display only failures that need action.
+  const taskStatus=!liveMode?t('tasksOnly'):state.error?t(errorKey):'';
   $('tasks-status').textContent=taskStatus;$('tasks-status').hidden=!taskStatus;
   $('tasks-retry').textContent=t('tasksRetry');$('tasks-retry').hidden=!liveMode||!state.error;$('tasks-retry').disabled=state.loading||state.saving;
-  $('tasks-undo').textContent=t('tasksUndo');$('tasks-undo').hidden=!liveMode||!state.undo;$('tasks-undo').disabled=busy;
   if(!tasks.length){list.append(node('div','empty-card',liveMode&&!state.ready?t(state.error?'tasksLoadFailed':'tasksLoading'):t('noTasks')));return;}
   for(const task of tasks){
     const row=node('div','todo-row card'),check=node('button','todo-check',task.done?'✓':''),label=node('span','todo-label',task.text),remove=node('button','todo-remove','×');
@@ -842,10 +842,7 @@ async function readLiveSnapshots({initializeMissing=false}={}){
 async function initializeLiveSources(needed,epoch,detailsRevision){
   if(initialSyncBusy||epoch!==liveEpoch||!liveMode)return;
   initialSyncBusy=true;
-  const notice=$('initial-sync-notice');
   const active=()=>epoch===liveEpoch&&liveMode&&account.current?.studentNumber===liveAccount?.studentNumber;
-  const errors=[];
-  notice.hidden=false;notice.textContent=language==='zh'?'正在同步課表和 COOL…':'Connecting your timetable and COOL…';
   updateLiveStatus();
   try{
     await syncInitialSources(account,needed,(kind,state,payload)=>{
@@ -873,7 +870,6 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
         renderLiveAccount();
       }else if(state==='failed'){
         if(payload?.status===401){sessionExpired();return;}
-        errors.push(kind);
         if(kind==='timetable')liveTimetableInfo=liveNotice(payload);
         else liveCoolInfo=liveNotice(payload);
       }
@@ -882,15 +878,13 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
   }finally{
     if(active()){
       initialSyncBusy=false;
-      notice.hidden=errors.length===0;
-      if(errors.length)notice.textContent=language==='zh'?'部分資料無法同步。可在設定中重試。':'Some data could not sync. Retry from Settings.';
       updateLiveStatus();
     }
   }
 }
 function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
-  liveMode=true;liveEpoch++;initialSyncBusy=false;$('initial-sync-notice').hidden=true;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
+  liveMode=true;liveEpoch++;initialSyncBusy=false;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';coolScroll.reset();
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);examStore.bind(current);examEditor.bind(current);
   selectedDate=taipeiToday();opened=null;activePanel='account';setTimetableView('day');
@@ -1000,7 +994,6 @@ $('task-form').addEventListener('submit',async e=>{
   tasks.unshift({id:++counter,text:content,done:false});$('task-input').value='';renderTasks();
 });
 $('tasks-retry').addEventListener('click',()=>{if(liveMode)void taskStore.refresh();});
-$('tasks-undo').addEventListener('click',()=>{if(liveMode)void taskStore.undo();});
 $('open-settings').addEventListener('click',()=>{showPanel('account');settingsUI.open();$('settings-dialog').showModal();});
 $('settings-close-desktop').addEventListener('click',()=>$('settings-dialog').close());
 $('settings-close-mobile').addEventListener('click',()=>$('settings-dialog').close());
