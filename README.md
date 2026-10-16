@@ -38,6 +38,10 @@ The announcement snapshot and COOL-only provider cookies are encrypted in the ex
 
 ## Run checks
 
+**Exam syllabus lab:** Open `/exams-lab` (Cloudflare also accepts `/exams-lab.html`) and choose an imported lesson. `/api/exams/resolve` searches the public NTU catalog in the timetable's semester, compares exact names/codes and all meeting periods, and fetches the matching syllabus. Imported offering IDs or a recent account-owned COOL course link provide stronger evidence; multiple sections still require a teacher/section choice. Shared COOL links cannot disambiguate multiple sections. A unique timetable match is explicitly labelled as an inference, and a manual selection remains labelled student-selected. Advanced lookup retains the restricted official URL preview.
+
+The preview includes the full weekly plan and exam entries. Week-only plans stay week-only, dated schedule rows remain tentative, evaluation percentages are excluded, and final projects do not become final exams. No grade page is fetched and no exam date or course selection is persisted. The endpoint derives ownership from the existing session, limits lookups per student, never forwards authorization to the public catalog, rejects redirects and oversized responses, and uses no shared student-data cache. Hidden tabs clear their results and account changes invalidate in-flight responses. The lab currently previews results; it does not add exams to the calendar.
+
 Use Node 24 or later:
 
 ```sh

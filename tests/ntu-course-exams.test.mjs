@@ -58,3 +58,31 @@ test('network fetch never follows provider redirects or accepts oversized conten
  try {await assert.rejects(readNtuCourseExams(source),e=>e.code==='exam_source_unavailable');assert.equal(attempts,1)}
  finally {globalThis.fetch=previous;}
 });
+
+test('English NTU layout extracts section and week-only exams without inventing dates',()=>{
+ const english='<html><body><h2>Statics</h2><p>Course Number</p><p>ME1005</p><p>Course Identifier</p><p>502 21130</p><div>Class 01</div><table>'+[
+  ['Week 5','','Quiz I'],['Week 8','','Midterm exam'],['Week 12','','Quiz II'],['Week 16','','Final exam'],['Week 17','','Final project presentation']
+ ].map(c=>'<tr>'+c.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</table></body></html>';
+ const result=parseNtuCourseExams(english,'https://course.ntu.edu.tw/en/courses/115-1/52528');
+ assert.equal(result.courseCode,'ME1005');assert.equal(result.section,'01');assert.equal(result.courseIdentifier,'502 21130');
+ assert.equal(result.schedule.length,5);assert.deepEqual(result.exams.map(e=>[e.kind,e.week,e.date,e.certainty]),[
+  ['quiz',5,null,'week-only'],['midterm',8,null,'week-only'],['quiz',12,null,'week-only'],['final',16,null,'week-only']]);
+});
+
+test('separate date columns, duplicated mobile dates, ambiguous dates and cancellations stay conservative',()=>{
+ const rows=[['11/3 Week 9','11/3','Midterm exam'],['Week 10','11/10','Quiz 11/11 or 11/12'],['Week 11','','No final exam'],['Week 12','','Finals week']];
+ const result=parseNtuCourseExams(html.replace(/<h3>課程進度[\s\S]*/, '<table>'+rows.map(c=>'<tr>'+c.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</table></body></html>'),source);
+ assert.deepEqual(result.exams.map(e=>[e.date,e.certainty]),[['2026-11-03','scheduled-week'],[null,'ambiguous'],[null,'cancelled'],[null,'exam-period']]);
+ assert(!result.exams[0].description.includes('11/3'));
+});
+
+test('an absent syllabus section cannot independently verify an imported section',()=>{
+ const info=parseNtuCourseExams(html,source);
+ assert.equal(matchImportedCourse({term:'115-1'},{code:'CSIE5734',section:'02'},info).status,'code-only');
+});
+
+test('bounded public fetch rejects oversized data and never sends credentials',async()=>{
+ const previous=globalThis.fetch;
+ globalThis.fetch=async(_url,options)=>{assert.equal(options.credentials,'omit');assert.equal(options.redirect,'manual');assert.equal(options.headers.Cookie,undefined);return new Response('x'.repeat(1024*1024+1),{headers:{'Content-Type':'text/html'}});};
+ try{await assert.rejects(readNtuCourseExams(source),{code:'exam_source_unavailable'});}finally{globalThis.fetch=previous;}
+});

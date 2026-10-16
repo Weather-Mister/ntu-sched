@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readNtuCourseExams} from '../src/ntu-course-exams.mjs';
+import {searchNtuCourses} from '../src/ntu-course-catalog.mjs';
+const statics=await readNtuCourseExams('https://course.ntu.edu.tw/en/courses/115-1/52528');
+assert.equal(statics.courseCode,'ME1005');assert.equal(statics.section,'01');assert.equal(statics.schedule.length,16);
+assert.deepEqual(statics.exams.map(e=>[e.kind,e.week,e.date]),[['quiz',5,null],['midterm',8,null],['quiz',12,null],['final',16,null]]);
+const candidates=await searchNtuCourses('115-1',{code:'ME1005'});
+assert(candidates.some(c=>c.serial==='52528'&&c.section==='01'&&c.coolId==='66746'));
+const software=await readNtuCourseExams('https://course.ntu.edu.tw/courses/115-1/23006');
+assert.equal(software.courseCode,'CSIE5734');assert(software.exams.some(e=>e.kind==='midterm'&&e.date==='2026-11-03'));
+console.log('Public NTU search, English week-only plan and Chinese dated syllabus verified.');

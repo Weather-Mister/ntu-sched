@@ -62,7 +62,7 @@ export async function readAnnouncements(jar) {
         items.set(courseId + ':' + entry.id, { id: courseId + ':' + entry.id, courseId, course: names.get(courseId), title: String(entry.title || 'Announcement').slice(0,1000), body: body.slice(0,12000), bodyTruncated: body.length > 12000, postedAt: new Date(postedAt).toISOString(), author: String(entry.author?.display_name || entry.user_name || '').slice(0,200), url: `${COOL}/courses/${courseId}/discussion_topics/${entry.id}` });
       }
     }
-    return { items: [...items.values()].sort((a,b) => Date.parse(b.postedAt)-Date.parse(a.postedAt)), syncedAt: now, coursesChecked: names.size, lookbackDays: 90 };
+    return { items: [...items.values()].sort((a,b) => Date.parse(b.postedAt)-Date.parse(a.postedAt)), courses:[...names].map(([id,name])=>({id,name})), syncedAt: now, coursesChecked: names.size, lookbackDays: 90 };
   } catch (error) { if (error instanceof ApiError) throw error; throw unavailable(); }
   finally { clearTimeout(timeout); }
 }
