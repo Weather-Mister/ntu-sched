@@ -2,6 +2,7 @@ import { ApiError, digest, encryptAuthorization, decryptAuthorization } from './
 import { Roundcube, roundcubeEnvironment, roundcubeFormInputs, roundcubeSendResult } from './mail-roundcube.mjs';
 import { mailReference, mailText, mailListText, messageFromPage, sanitizeMail, rootHeaders, validateSend, buildMime } from './mail-content.mjs';
 import { pushConfiguration,sendPush } from './mail-push.mjs';
+import {newMailSummary,notificationBody} from './mail-notification.mjs';
 const clock=()=>Date.now();
 const MAIL_SESSION_TTL_MS=3*60*1000;
 const MAIL_LEASE_WAIT_MS=7000;
@@ -202,15 +203,18 @@ async function checkOneMailNotification(env,owner){
   // Identical detection and per-device deduplication for both cron and manual checks.
   // Never expose message titles, senders or bodies in test responses.
   const result=await s.list('INBOX',1);
-  const latest=result.rows.reduce((n,r)=>Math.max(n,Number(r.uid)),0);
+  const latest=result.rows.reduce((n,r)=>Math.max(n,Number(r.uid)||0),0);
   const previous=state.baseline?JSON.parse(state.baseline):null;
   const isNew=!!previous&&latest>previous.uid;
   let delivered=0,expired=0;
   if(isNew){
+   const summary=await newMailSummary(s,result,previous.uid);
    const config=await pushConfiguration(env);
    const devices=await env.DB.prepare('SELECT * FROM mail_push WHERE student_id=? AND notified_uid<?').bind(owner.student_id,latest).all();
    let failed=false;
-   const payload={title:'New NTU mail',body:'You have new mail in Campus Mail.',tag:'ntu-mail-'+owner.student_number,studentNumber:owner.student_number,url:'/skeleton/?mail=1'};
+   const payload={kind:'mail',subject:summary.subject,additional:summary.additional,limited:summary.limited,
+    title:'New NTU mail',body:notificationBody(summary.subject,summary.additional,summary.limited),
+    tag:'ntu-mail-'+owner.student_number,studentNumber:owner.student_number,url:'/skeleton/?mail=1'};
    for(const device of devices.results){
     try{
      const sub=await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'mail_push',device.encrypted_subscription);

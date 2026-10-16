@@ -537,3 +537,37 @@ test('manual checks share cron notification history and never resend an already 
  assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
  e.sqlite.close();
 });
+
+
+test('real new-mail polling encrypts newest subject and additional message count for push',async()=>{
+ const e=env(),a=await identity(e),{value,key}=await subscription();
+ await request(e,a,'push','POST',value);
+ virtualMessages=40;
+ await refreshMailNotifications(e);
+ assert.equal(JSON.parse(e.sqlite.prepare('SELECT baseline FROM mail_state').get().baseline).uid,40);
+ e.sqlite.prepare('UPDATE mail_state SET next_check=0').run();
+ virtualMessages=43;
+ await refreshMailNotifications(e);
+ const pushCall=calls.find(c=>new URL(c.url).hostname==='fcm.googleapis.com');
+ assert.ok(pushCall,'expected one new mail push');
+ const wire=new Uint8Array(pushCall.init.body),salt=wire.subarray(0,16),sender=wire.subarray(21,86);
+ const decode=v=>Uint8Array.from(atob(v.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));
+ const info=new Uint8Array(14+decode(value.keys.p256dh).length+sender.length);
+ info.set(new TextEncoder().encode('WebPush: info\0'));
+ info.set(decode(value.keys.p256dh),14);
+ info.set(sender,14+decode(value.keys.p256dh).length);
+ const remote=await crypto.subtle.importKey('raw',sender,{name:'ECDH',namedCurve:'P-256'},false,[]);
+ const shared=await crypto.subtle.deriveBits({name:'ECDH',public:remote},key.privateKey,256);
+ const derive=async(k,salt,context,len)=>crypto.subtle.deriveBits({name:'HKDF',hash:'SHA-256',salt,info:context},await crypto.subtle.importKey('raw',k,'HKDF',false,['deriveBits']),len*8);
+ const ikm=await derive(shared,decode(value.keys.auth),info,32);
+ const cek=await derive(ikm,salt,new TextEncoder().encode('Content-Encoding: aes128gcm\0'),16);
+ const nonce=await derive(ikm,salt,new TextEncoder().encode('Content-Encoding: nonce\0'),12);
+ const plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce},await crypto.subtle.importKey('raw',cek,'AES-GCM',false,['decrypt']),wire.subarray(86)));
+ const payload=JSON.parse(new TextDecoder().decode(plain.subarray(0,-1)));
+ assert.equal(payload.kind,'mail');
+ assert.equal(payload.subject,'Message 43');
+ assert.equal(payload.additional,2);
+ assert.equal(payload.body,'Message 43 +2');
+ assert.equal(calls.filter(c=>new URL(c.url).hostname==='fcm.googleapis.com').length,1);
+ e.sqlite.close();
+});

@@ -8,7 +8,14 @@ self.addEventListener('push',event=>event.waitUntil((async()=>{
   // healthy push endpoint just because the background session has expired.
  }catch{/* An offline device may still display the generic, private alert. */}
  const test=value.kind==='test';
- await self.registration.showNotification(test?'Campus Week test':'New NTU mail',{body:test?'Test push received successfully.':'You have new mail in Campus Mail.',tag:test?'campus-mail-test':'campus-mail',icon:'/mail-icon-512.png',data:{url:'/skeleton/?mail=1'}});
+ const subject=typeof value.subject==='string'?value.subject.slice(0,140).replace(/[\u0000-\u001f\u007f-\u009f]/g,' ').trim():'';
+ const extra=Number.isSafeInteger(value.additional)&&value.additional>0?value.additional:0;
+ const body=subject?subject+(extra?' +'+extra+(value.limited?'+':''):''):
+  (typeof value.body==='string'?value.body:'You have new mail in Campus Mail.');
+ await self.registration.showNotification(test?'Campus Week test':'New NTU mail',{
+  body:test?'Test push received successfully.':body,
+  tag:test?'campus-mail-test':'campus-mail',icon:'/mail-icon-512.png',data:{url:'/skeleton/?mail=1'}
+ });
 })()));
 self.addEventListener('notificationclick',event=>{
  event.notification.close();event.waitUntil((async()=>{const tabs=await self.clients.matchAll({type:'window',includeUncontrolled:true}),tab=tabs.find(t=>new URL(t.url).pathname.startsWith('/skeleton/'));if(tab){await tab.focus();tab.postMessage({type:'open-mail'});}else await self.clients.openWindow('/skeleton/?mail=1');})());
