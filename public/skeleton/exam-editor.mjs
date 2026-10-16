@@ -29,13 +29,10 @@ export function createExamEditor({account,onChange,onExpired,getLanguage,getToda
     const name=item?.title||item?.custom&&r?.title||({quiz:bilingual('Quiz','小考'),midterm:bilingual('Midterm','期中考'),final:bilingual('Final exam','期末考'),other:bilingual('Exam','考試')}[item?.exam?.kind]||'');
     form.reset();
     $('exam-editor-name').value=r?.title||name;
-    $('exam-editor-class').replaceChildren();
+    const suggestions=$('exam-editor-classes');suggestions.replaceChildren();
     const classes=[...new Set((getClasses()||[]).map(c=>c?.name).filter(Boolean))];
-    $('exam-editor-class').append(new Option(bilingual('No class','不指定課程'),''));
-    for(const c of classes)$('exam-editor-class').append(new Option(c,c));
-    const currentClass=r?r.className:item?.course?.title||'';
-    if(currentClass&&!classes.includes(currentClass))$('exam-editor-class').append(new Option(currentClass,currentClass));
-    $('exam-editor-class').value=currentClass;
+    for(const c of classes){const option=document.createElement('option');option.value=c;suggestions.append(option);}
+    $('exam-editor-class').value=r?r.className:item?.course?.title||'';
     $('exam-editor-kind').value=r?.kind||item?.exam?.kind||'other';
     $('exam-editor-date').value=r?.date||item?.date||(!item?getToday():'');
     $('exam-editor-week').value=r?.week??item?.week??'';
