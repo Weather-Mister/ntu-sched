@@ -5,12 +5,12 @@
 @import url('./garden-mail.css');
 
 /* Appearance choices remain usable in every skin. */
-.settings-theme-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.settings-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 .theme-window-garden{--mini-bg:#edf3df;--mini-card:#fffef7;--mini-line:#cbdab9;--mini-muted:#c2d5b1;--mini-banner:#477e59}
 .theme-window-garden .theme-mini-banner{position:relative;background:linear-gradient(110deg,#dcebd2,#f9e9d2)}
 .theme-window-garden .theme-mini-banner::after{content:"";position:absolute;right:5%;bottom:0;width:28px;height:28px;background:url('./garden-flower.svg') center/contain no-repeat}
 .theme-window-garden .theme-window-chrome{background:#e2ebd5}
-@media(max-width:600px){.settings-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-theme-grid .theme-window{aspect-ratio:1.85}.settings-theme-grid .theme-card-caption strong{font-size:11px}}
+@media(max-width:600px){.settings-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.settings-theme-grid .theme-window{aspect-ratio:1.85}.settings-theme-grid .theme-card-caption strong{font-size:11px}}
 
 body[data-theme="garden"]{
  color-scheme:light;--bg:#e9efdb;--card:#fffefa;--panel:#f2f6e8;--text:#253e31;--muted:#748476;--line:#dde8cf;--accent:#477e59;--accent-soft:#e5f1d9;--banner:#edf4df;--shadow:0 3px 1px #cad9c923;

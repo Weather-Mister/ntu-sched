@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
 import worker from '../src/worker.mjs';
-import {digest,randomToken} from '../src/security.mjs';
+import {digest,randomToken,encryptAuthorization} from '../src/security.mjs';
 import {readHanziWidget} from '../src/student-preferences.mjs';
 import {lessonStatistics} from '../public/skeleton/settings-model.mjs';
 const APP='https://campus.example';
@@ -70,5 +70,17 @@ test('Garden appearance round-trips through existing encrypted preferences and s
  assert.equal(saved.status,200);
  assert.equal((await(await request(env,a,'preferences')).json()).preferences.theme,'garden');
  assert.equal((await(await request(env,b,'preferences')).json()).preferences.theme,'light');
+ env.sqlite.close();
+});
+
+
+test('removed System preference loads safely as Daylight without losing other preferences',async()=>{
+ const env=setup(),a=await identity(env);
+ await request(env,a,'preferences');
+ const encrypted=await encryptAuthorization(env.NTU_CREDENTIAL_KEY,a.student_id,'preferences',{theme:'system',hanziEnabled:true,hanziUsername:'legacy_user'});
+ env.sqlite.prepare('INSERT INTO student_preferences VALUES(?,?,?,?)').run(a.student_id,encrypted,7,Date.now());
+ const result=await(await request(env,a,'preferences')).json();
+ assert.equal(result.preferences.theme,'light');assert.equal(result.preferences.hanziUsername,'legacy_user');assert.equal(result.preferences.hanziEnabled,true);assert.equal(result.version,7);
+ assert.equal((await request(env,a,'preferences','PATCH',{version:7,theme:'system',hanziEnabled:false,hanziUsername:''})).status,400);
  env.sqlite.close();
 });

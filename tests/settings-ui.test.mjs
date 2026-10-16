@@ -56,3 +56,10 @@ test('Garden switches the shared interface without replacing controls or leaving
  settings.update({student,liveMode:false,language:'zh',timetable:null});
  assert.equal(document.querySelector('[data-theme-choice="garden"] strong').textContent,'花園');
 }));
+
+
+test('Appearance offers exactly Daylight, Dark and Garden',async()=>fixture(async({document,settings,student})=>{
+ settings.update({student,liveMode:false,language:'en',timetable:null});
+ assert.deepEqual([...document.querySelectorAll('[data-theme-choice]')].map(e=>e.dataset.themeChoice),['light','dark','garden']);
+ assert.deepEqual([...document.querySelector('#theme-select').options].map(e=>e.value),['light','dark','garden']);
+}));

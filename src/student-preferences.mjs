@@ -1,11 +1,11 @@
 import {ApiError,encryptAuthorization,decryptAuthorization} from './security.mjs';
-import {THEMES,preferenceDefaults} from '../public/skeleton/settings-model.mjs';
+import {THEMES,preferenceDefaults,normalizePreferences} from '../public/skeleton/settings-model.mjs';
 export const PREFERENCES_SCHEMA='CREATE TABLE IF NOT EXISTS student_preferences (student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, encrypted_preferences TEXT NOT NULL, version INTEGER NOT NULL, updated_at INTEGER NOT NULL)';
 const ready=new WeakMap();
 async function schema(env){if(!ready.has(env.DB))ready.set(env.DB,env.DB.prepare(PREFERENCES_SCHEMA).run().catch(e=>{ready.delete(env.DB);throw e;}));await ready.get(env.DB);}
 export async function readPreferences(env,owner){
  await schema(env);const row=await env.DB.prepare('SELECT * FROM student_preferences WHERE student_id=?').bind(owner.student_id).first();
- return {preferences:row?await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'preferences',row.encrypted_preferences):preferenceDefaults(),version:row?.version||0};
+ return {preferences:row?normalizePreferences(await decryptAuthorization(env.NTU_CREDENTIAL_KEY,owner.student_id,'preferences',row.encrypted_preferences)):preferenceDefaults(),version:row?.version||0};
 }
 export async function savePreferences(env,owner,input){
  await schema(env);if(!input||Object.keys(input).some(k=>!['version','theme','hanziEnabled','hanziUsername'].includes(k))||!Number.isSafeInteger(input.version)||input.version<0||!THEMES.includes(input.theme)||typeof input.hanziEnabled!=='boolean'||typeof input.hanziUsername!=='string'||input.hanziUsername!==''&&!/^[a-z0-9_]{2,32}$/.test(input.hanziUsername)||input.hanziEnabled&&!input.hanziUsername)throw new ApiError(400,'invalid_preferences','Check the selected theme and Hanzi Steps username.');
