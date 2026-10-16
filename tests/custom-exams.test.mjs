@@ -71,13 +71,17 @@ test('manual and overridden NTU exams interleave chronologically; original survi
  const imported={kind:'midterm',description:'Midterm exam',week:8,date:null,certainty:'week-only'};
  const course={term:'115-1',serial:'52528',title:'Statics',exams:[imported]};
  const entries=new Map([['a',{result:{course}}]]);
- const sourceKey=examSourceKey('a',imported);
+ const sourceKey=examSourceKey('a',imported,0,'52528');
  const override={...values({title:'Statics exam - new date',date:'2026-11-18',week:11,sourceKey}),id:crypto.randomUUID(),version:1};
  const manual={...values({title:'Psych Quiz',date:'2026-10-29',week:null,sourceKey:null}),id:crypto.randomUUID(),version:1};
  const fed=examFeed(entries,'2026-10-16',[override,manual]);
  assert.deepEqual(fed.upcoming.map(x=>x.title),['Psych Quiz','Statics exam - new date']);
  assert.equal(fed.upcoming[1].date,'2026-11-18');
  assert.equal(fed.upcoming[1].manualRecord.id,override.id);
+ const rescheduled={...imported,week:9,date:'2026-11-06',description:'Updated NTU exam date',certainty:'explicit'};
+ const afterProviderChange=examFeed(new Map([['a',{result:{course:{...course,exams:[rescheduled]}}}]]),'2026-10-16',[override,manual]);
+ assert.equal(afterProviderChange.upcoming.find(x=>!x.custom).date,'2026-11-18','personal date survives an upstream revision');
+
  const restored=examFeed(entries,'2026-10-16',[manual]);
  assert.equal(restored.upcoming.find(x=>!x.custom).date,null);
  assert.equal(restored.upcoming.find(x=>!x.custom).week,8);
