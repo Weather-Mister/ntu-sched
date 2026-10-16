@@ -180,7 +180,7 @@
 <label for="exam-editor-name" id="exam-editor-title-label">Exam name</label>
 <input id="exam-editor-name" type="text" maxlength="140" autocomplete="off" required>
 <label for="exam-editor-class" id="exam-editor-className-label">Class (optional)</label>
-<select id="exam-editor-class"><option value="">No class</option></select>
+<input id="exam-editor-class" type="text" list="exam-editor-classes" maxlength="160" autocomplete="off" placeholder="e.g. Statics"><datalist id="exam-editor-classes"></datalist>
 <label for="exam-editor-kind" id="exam-editor-type-label">Type</label>
 <select id="exam-editor-kind"><option value="quiz">Quiz</option><option value="midterm">Midterm</option><option value="final">Final</option><option value="other">Other</option></select>
 <div class="exam-editor-fields">
