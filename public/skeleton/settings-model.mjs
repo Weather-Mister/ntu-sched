@@ -1,4 +1,4 @@
-export const THEMES=['light','dark','system'];
+export const THEMES=['light','dark','system','garden'];
 export function lessonStatistics(rows=[]){
  const courses=new Set(),meetings=new Set(),dailyMinutes=Array(7).fill(0);let sessions=0,minutes=0;
  const time=value=>{const match=/^(\d{2}):(\d{2})$/.exec(String(value));if(!match)return NaN;const h=Number(match[1]),m=Number(match[2]);return h<=24&&m<60&&(h<24||m===0)?h*60+m:NaN;};

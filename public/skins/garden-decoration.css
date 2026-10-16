@@ -1,0 +1,58 @@
+body[data-theme="garden"] .hero-art .hill-back{fill:#dcebd2}
+body[data-theme="garden"] .hero-art .hill-front{fill:#c0d9b6}
+body[data-theme="garden"] .hero-art .leaf{fill:#71a373}
+body[data-theme="garden"] .hero-art .leaf-alt{fill:#91b883}
+body[data-theme="garden"] .hero-art .petal-pink{fill:#e8a2b1}
+body[data-theme="garden"] .hero-art .petal-white{fill:#fffaf2}
+body[data-theme="garden"] .hero-art .petal-yellow{fill:#f5cb62}
+body[data-theme="garden"] .hero-art .flower-center{fill:#d69b3b}
+body[data-theme="garden"] .hero-art .stem{stroke:#5c9066;stroke-width:3;stroke-linecap:round;fill:none}
+body[data-theme="garden"] .hero-art .sun{fill:#f9deb0}
+body[data-theme="garden"] .hero-bee{position:absolute;width:61px;height:44px;filter:drop-shadow(0 5px 3px #627b3328);animation:bee-hover 4s ease-in-out infinite}
+body[data-theme="garden"] .hero-bee.bee-a{top:7px;left:30%;transform:rotate(-8deg)}
+body[data-theme="garden"] .hero-bee.bee-b{top:57px;right:9%;width:43px;height:32px;animation-delay:-1.8s}
+body[data-theme="garden"] .bee-body{position:absolute;left:21%;top:37%;width:61%;height:49%;background:repeating-linear-gradient(90deg,#f9c957 0 28%,#2c4236 28% 40%,#f9c957 40% 66%,#2c4236 66% 78%,#f9c957 78%);border-radius:48% 52% 50% 45%;border:1.5px solid #294032;transform:rotate(-6deg)}
+body[data-theme="garden"] .bee-body:after{content:"";position:absolute;right:-8px;top:10px;border-left:9px solid #3a4839;border-top:4px solid transparent;border-bottom:4px solid transparent}
+body[data-theme="garden"] .bee-head{position:absolute;width:31%;height:45%;background:#2c4236;border-radius:50%;left:4%;top:36%}
+body[data-theme="garden"] .bee-head:before,body[data-theme="garden"] .bee-head:after{content:"";position:absolute;background:#fffaf1;width:3px;height:4px;border-radius:50%;top:36%;left:28%}
+body[data-theme="garden"] .bee-head:after{left:55%}
+body[data-theme="garden"] .bee-wing{position:absolute;top:1%;left:36%;width:29%;height:50%;border:1.5px solid #9ab9aa;background:#ffffffc7;border-radius:70% 70% 55% 55%;transform:rotate(-27deg);transform-origin:bottom center;animation:wing-flap .20s ease-in-out infinite alternate}
+body[data-theme="garden"] .bee-wing.right{left:52%;transform:rotate(22deg);animation-delay:-.1s}
+body[data-theme="garden"] .bee-antenna{position:absolute;left:18%;top:17%;width:10px;height:11px;border:1.5px solid #2c4236;border-bottom:0;border-right:0;border-radius:90% 0 0 0;transform:rotate(20deg)}
+body[data-theme="garden"] .bee-trail{stroke:#c7b179;stroke-width:2;stroke-dasharray:2 9;fill:none;stroke-linecap:round;opacity:.65}
+@keyframes bee-hover{0%,100%{translate:0 0}50%{translate:0 -8px}}
+@keyframes wing-flap{from{rotate:0deg;scale:1 .9}to{rotate:12deg;scale:1 .6}}
+.garden-flight-layer{position:absolute;inset:0;z-index:9;pointer-events:none;overflow:hidden;}
+.garden-flyer{position:absolute;top:0;left:0;width:58px;height:45px;pointer-events:none;will-change:transform;}
+.garden-flyer .hero-bee{position:absolute;inset:0;width:58px;height:45px;pointer-events:none;}
+.garden-flyer.is-reversed .hero-bee{transform:scaleX(-1);}
+.garden-pollen{
+  position:absolute;display:block;width:var(--pollen-size,4px);height:var(--pollen-size,4px);
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 35% 30%,#fff5ab 0 24%,#ecc257 60%,#c59632 100%);
+  box-shadow:0 0 5px #efcd70a0;
+  animation:garden-pollen-fall 1550ms ease-out forwards;
+}
+@keyframes garden-pollen-fall{
+  0%{opacity:.95;transform:translate3d(0,0,0) scale(1);}
+  65%{opacity:.62;}
+  100%{opacity:0;transform:translate3d(var(--pollen-x,24px),var(--pollen-y,36px),0) scale(.3);}
+}
+@media(prefers-reduced-motion:reduce){
+  .garden-flight-layer{display:none!important;}
+}
+
+/* Visible without dominating the timetable: slightly larger passing bees. */
+.garden-flyer{width:70px;height:52px;}
+.garden-flyer .hero-bee{width:70px;height:52px;filter:drop-shadow(0 3px 4px #35543a66);}
+
+/* Bee depth variations for randomized garden flights. */
+.garden-flyer.is-distant .hero-bee{
+  opacity:.77;
+  filter:drop-shadow(0 2px 2px #35543a36);
+}
+.garden-flyer.is-near .hero-bee{
+  opacity:1;
+  filter:drop-shadow(0 4px 5px #35543a66);
+}
+

@@ -37,3 +37,22 @@ test('settings labels stay concise in Traditional Chinese',async()=>fixture(asyn
  assert.deepEqual(['settings-appearance-title','settings-stats-title','settings-install-title','settings-extras-title'].map(id=>document.getElementById(id).textContent),['外觀','每週課表','安裝 Campus Week','Hanzi Steps 小工具']);
  assert.equal(document.querySelector('[data-theme-choice="dark"] strong').textContent,'深色');
 }));
+
+test('Garden switches the shared interface without replacing controls or leaving decorations behind',async()=>fixture(async({document,settings,student,requests})=>{
+ settings.update({student,liveMode:false,language:'en',timetable:null});
+ const controls=['schedule-list','task-form','cool-list','mail-dialog'].map(id=>document.getElementById(id));
+ for(let i=0;i<8;i++){
+  document.querySelector('[data-theme-choice="garden"]').click();
+  assert.equal(document.body.dataset.theme,'garden');
+  assert.equal(document.querySelectorAll('.garden-scenery').length,1);
+  assert.equal(document.querySelectorAll('.garden-mail-decoration').length,1);
+  assert.equal(document.querySelector('.garden-scenery').getAttribute('aria-hidden'),'true');
+  for(const control of controls)assert.equal(document.getElementById(control.id),control);
+  document.querySelector('[data-theme-choice="light"]').click();
+  assert.equal(document.body.dataset.theme,'light');
+  assert.equal(document.querySelectorAll('.garden-scenery,.garden-mail-decoration,.garden-flight-layer').length,0);
+ }
+ assert.equal(requests.length,0);
+ settings.update({student,liveMode:false,language:'zh',timetable:null});
+ assert.equal(document.querySelector('[data-theme-choice="garden"] strong').textContent,'花園');
+}));

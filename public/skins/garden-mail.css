@@ -1,0 +1,46 @@
+/* Begüm's Garden mail. Shared reader/composer behavior; Garden palette only. */
+body[data-theme="garden"] .garden-mail-shortcut{display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;flex-shrink:0;color:var(--forest);background:#f0f5e6;border:1px solid #ccdbc1}
+body[data-theme="garden"] .garden-mail-shortcut .icon{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7}
+body[data-theme="garden"] .garden-mail-shortcut:hover{background:#e3edda}
+body[data-theme="garden"] .mailx-dialog{--mail-ink:#274f3b;--mail-muted:#748476;--mail-accent:#679d73;font-family:var(--sans);color:#253e31;background:#f6f8ee;border:1px solid #b9cba9;border-radius:24px;box-shadow:0 24px 72px #274f3b33}
+body[data-theme="garden"] .mailx-dialog::backdrop{background:#1f47354d;backdrop-filter:blur(4px)}
+body[data-theme="garden"] .mailx-dialog .mailx-topbar{background:linear-gradient(115deg,#fffef7,#edf3e3);border-color:#dde8cf}
+body[data-theme="garden"] .mailx-dialog .mailx-title{font-family:var(--serif);font-weight:600;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-brand-icon{background:#274f3b;border-radius:12px}
+body[data-theme="garden"] .mailx-dialog .mailx-topbar>.mailx-search{background:#f1f5e9;border-color:#d9e3cd;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-search:focus{border-color:#8aae94;box-shadow:0 0 0 3px #679d731c}
+body[data-theme="garden"] .mailx-dialog .mailx-topbar .mailx-compose-main{background:#274f3b;border-radius:12px}
+body[data-theme="garden"] .mailx-dialog .mailx-topbar .mailx-compose-main:hover{background:#1f4735}
+body[data-theme="garden"] .mailx-dialog .mailx-account-switch{background:#ecd8dc;color:#8b5b6b}
+body[data-theme="garden"] .mailx-dialog .mailx-main,body[data-theme="garden"] .mailx-dialog .mailx-mobile-tabs{background:#f6f8ee}
+body[data-theme="garden"] .mailx-dialog .mailx-nav{border-color:#dde8cf}
+body[data-theme="garden"] .mailx-dialog .mailx-filter:hover{background:#eaf0df;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-filter.is-active,body[data-theme="garden"] .mailx-dialog .mailx-mobile-tab.is-active{background:#dce9d2;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-rail-count,body[data-theme="garden"] .mailx-dialog .mailx-unread-dot{background:#679d73}
+body[data-theme="garden"] .mailx-dialog .mailx-list-pane,body[data-theme="garden"] .mailx-dialog .mailx-reader,body[data-theme="garden"] .mailx-dialog .mailx-reader-toolbar{background:#fffef7;border-color:#dde8cf}
+body[data-theme="garden"] .mailx-dialog .mailx-message-wrap{border-color:#e8eddc}
+body[data-theme="garden"] .mailx-dialog .mailx-message-wrap .mailx-message{background:#fffef7}
+body[data-theme="garden"] .mailx-dialog .mailx-message-wrap .mailx-message:hover{background:#f3f7e9}
+body[data-theme="garden"] .mailx-dialog .mailx-message-wrap .mailx-message.is-selected{background:#eaf2e1;box-shadow:inset 3px 0 #679d73}
+body[data-theme="garden"] .mailx-dialog .mailx-avatar{background:#e4edd9;color:#52745a}
+body[data-theme="garden"] .mailx-dialog .mailx-avatar.tone-1{background:#dfeadc;color:#4f7155}
+body[data-theme="garden"] .mailx-dialog .mailx-avatar.tone-2{background:#f1dfe5;color:#956679}
+body[data-theme="garden"] .mailx-dialog .mailx-avatar.tone-3{background:#f6e9c7;color:#937338}
+body[data-theme="garden"] .mailx-dialog .mailx-avatar.tone-4{background:#e1e9f2;color:#597784}
+body[data-theme="garden"] .mailx-dialog .mailx-reader-subject{font-family:var(--serif);font-weight:550;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-toolbar-reply,body[data-theme="garden"] .mailx-dialog .mailx-send{background:#274f3b;border-color:#274f3b;color:#fff}
+body[data-theme="garden"] .mailx-dialog .mailx-toolbar-forward{background:#f3e4e8;border-color:#e9d6de;color:#8b5b6b}
+body[data-theme="garden"] .mailx-dialog .mailx-chip.high{background:#f7ebcb;color:#8b6c39}
+body[data-theme="garden"] .mailx-dialog .mailx-row-actions{background:#fffef7;border-color:#dde8cf}
+body[data-theme="garden"] .mailx-dialog .mailx-action:hover{background:#eaf2e1;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-compose,body[data-theme="garden"] .mailx-dialog .mailx-sheet{font-family:var(--sans);background:#fffef7;border-color:#ccdbc1;box-shadow:0 12px 40px #274f3b24}
+body[data-theme="garden"] .mailx-dialog .mailx-compose-head,body[data-theme="garden"] .mailx-dialog .mailx-sheet-head{background:#f0f5e6;border-color:#dde8cf;color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-compose-title,body[data-theme="garden"] .mailx-dialog .mailx-sheet-title{font-family:var(--serif);color:#274f3b}
+body[data-theme="garden"] .mailx-dialog .mailx-compose-fields,body[data-theme="garden"] .mailx-dialog .mailx-field-row,body[data-theme="garden"] .mailx-dialog .mailx-compose-foot{border-color:#dde8cf}
+body[data-theme="garden"] .mailx-dialog .mailx-ai-wrap{background:#f4ecec;border-color:#ead8de}
+body[data-theme="garden"] .mailx-dialog .mailx-ai-label{color:#956679}
+body[data-theme="garden"] .mailx-dialog .mailx-ai-generate{background:#274f3b;color:#fff}
+body[data-theme="garden"] .mailx-dialog .mailx-ai-chip{background:#fff9f6;border-color:#ead8de;color:#8b5b6b}
+body[data-theme="garden"] .mailx-dialog .mailx-format-toolbar{background:#f7f8ef;border-color:#e1e8d4}
+body[data-theme="garden"] .mailx-dialog .mailx-email-body{color:#253e31;background:#fffef7}
+body[data-theme="garden"] .mailx-dialog .mailx-schedule{background:#f7ebcb;color:#8b6c39;border-color:#ecd9a7}

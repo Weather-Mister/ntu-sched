@@ -63,3 +63,12 @@ test('notification settings includes a new-mail check that uses real mail pollin
  assert.match(ui,/outcome==='new_mail'/);
  assert.match(ui,/\$\('settings-notify-inbox'\)\.addEventListener/);
 });
+
+test('Garden appearance round-trips through existing encrypted preferences and stays account-scoped',async()=>{
+ const env=setup(),a=await identity(env),b=await identity(env,'r23456789');
+ const saved=await request(env,a,'preferences','PATCH',{version:0,theme:'garden',hanziEnabled:false,hanziUsername:''});
+ assert.equal(saved.status,200);
+ assert.equal((await(await request(env,a,'preferences')).json()).preferences.theme,'garden');
+ assert.equal((await(await request(env,b,'preferences')).json()).preferences.theme,'light');
+ env.sqlite.close();
+});
