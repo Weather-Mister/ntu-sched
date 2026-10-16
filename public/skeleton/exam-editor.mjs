@@ -33,13 +33,13 @@ export function createExamEditor({account,onChange,onExpired,getLanguage,getToda
     const classes=[...new Set((getClasses()||[]).map(c=>c?.name).filter(Boolean))];
     $('exam-editor-class').append(new Option(bilingual('No class','不指定課程'),''));
     for(const c of classes)$('exam-editor-class').append(new Option(c,c));
-    const currentClass=r?.className||item?.course?.title||'';
+    const currentClass=r?r.className:item?.course?.title||'';
     if(currentClass&&!classes.includes(currentClass))$('exam-editor-class').append(new Option(currentClass,currentClass));
     $('exam-editor-class').value=currentClass;
     $('exam-editor-kind').value=r?.kind||item?.exam?.kind||'other';
     $('exam-editor-date').value=r?.date||item?.date||(!item?getToday():'');
     $('exam-editor-week').value=r?.week??item?.week??'';
-    $('exam-editor-notes').value=r?.notes||(!item?'':item?.exam?.description||'');
+    $('exam-editor-notes').value=r?r.notes:(!item?'':item?.exam?.description||'');
     $('exam-editor-remove').hidden=!r||!!item?.sourceKey;
     $('exam-editor-reset').hidden=!item?.sourceKey||!r;
     notice('');locale();dialog.showModal();$('exam-editor-name').focus();
