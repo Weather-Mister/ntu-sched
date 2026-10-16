@@ -106,7 +106,7 @@ export async function changeCourseDetails(env,studentId,courseId,body) {
 }
 // The exam plan is data, not a credential; keep it encrypted with the student's
 // existing timetable record to avoid a second store or unowned client cache.
-export async function saveStudentExamPlan(env,studentId,courseId,term,selection,result){
+export async function saveStudentExamPlan(env,studentId,courseId,term,selection,result,sections=null){
   const data=JSON.stringify(result);
   if(data.length>200000)throw new ApiError(502,'exam_plan_too_large','The course exam plan could not be saved.');
   return updateRecord(env,studentId,async value=>{
@@ -119,7 +119,7 @@ export async function saveStudentExamPlan(env,studentId,courseId,term,selection,
     const plans={...(value.examPlans||{}),[courseId]:{term,selection,result,savedAt:Date.now()}};
     // Avoid accumulating obsolete terms or removed classes.
     for(const id of Object.keys(plans))if(plans[id]?.term!==term||!matching.includes(id))delete plans[id];
-    return {...value,examPlans:plans};
+    return {...value,examPlans:plans,...(sections?{sectionOptions:{...(value.sectionOptions||{}),[courseId]:{term,...sections,savedAt:Date.now()}}}:{})};
   });
 }
 
