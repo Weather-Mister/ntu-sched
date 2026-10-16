@@ -121,6 +121,9 @@ test('exam plans and section catalogs persist per student and only refresh on fo
    return new Response('<html><body><h2>Statics</h2><p>Course Number</p><p>ME1005</p><p>Class '+(serial==='21570'?'02':'01')+'</p><table><tr><td>Week '+(serial==='21570'?'9':'8')+'</td><td></td><td>Midterm exam</td></tr></table></body></html>',{headers:{'Content-Type':'text/html'}});
  };
  try{
+  // A timetable without an offering serial must choose a real section first.
+  const chosen=await change({version:0,language:'en',offeringSerial:'52528'});
+  assert.equal(chosen.status,200,await chosen.clone().text());
   const initial=await post(a,'plan');assert.equal(initial.status,200,await initial.clone().text());
   const body=await initial.json();assert.equal(body.course.exams[0].week,8);
   const requestCount=requests.length;assert(requestCount>=2);
@@ -135,12 +138,12 @@ test('exam plans and section catalogs persist per student and only refresh on fo
   const options=await post(a,'options');assert.equal(options.status,200);
   assert.equal((await options.json()).candidates.length,2);
   assert.equal(requests.length,requestCount,'no NTU requests after saving plan and sections');
-  const rename=await change({version:0,language:'en',name:'Statics Lab'});
+  const rename=await change({version:1,language:'en',name:'Statics Lab'});
   assert.equal(rename.status,200);snapshot=await savedTimetable(f.env,a.id);
   assert(snapshot.examPlans[a.courseId]);
   const refresh=await post(a,'plan',{courseId:a.courseId,force:true});
   assert.equal(refresh.status,200,await refresh.clone().text());assert(requests.length>requestCount);
-  const edit=await change({version:1,language:'en',offeringSerial:'21570'});
+  const edit=await change({version:2,language:'en',offeringSerial:'21570'});
   assert.equal(edit.status,200,await edit.clone().text());
   snapshot=await savedTimetable(f.env,a.id);
   assert.equal(snapshot.examPlans[a.courseId],undefined,'only changed section exam plan is invalidated');
