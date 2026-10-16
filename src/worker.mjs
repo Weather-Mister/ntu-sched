@@ -1,6 +1,6 @@
 import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson } from './security.mjs';
 import { verifyNtuMail } from './ntu-mail.mjs';
-import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails, saveStudentExamPlan } from './timetable-store.mjs';
+import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails, saveStudentExamPlan, saveStudentSectionOptions } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
@@ -231,6 +231,11 @@ export default {
           const cached=saved.examPlans?.[courseId];
           if(cached?.result)return json({studentNumber:current.student_number,...cached.result,savedAt:cached.savedAt});
         }
+        if(optionsOnly){
+          const cached=saved.sectionOptions?.[courseId];
+          if(cached)return json({studentNumber:current.student_number,selected:cached.selected,
+            matching:cached.matching,candidates:cached.candidates,savedAt:cached.savedAt});
+        }
         const bucket=Math.floor(Date.now()/600000);
         const counter=await env.DB.prepare('INSERT INTO login_limits(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=attempts+1 RETURNING attempts')
           .bind('exam-resolve:'+current.student_id+':'+bucket,(bucket+1)*600).first();
@@ -252,13 +257,14 @@ export default {
             throw new ApiError(502,'exam_catalog_changed','The syllabus and catalog metadata disagree. No dates were imported.');
         }
         const {coolId:unused,...selected}=resolution.selected||{};
-        const result={matching:resolution.matching,course,selected:resolution.selected?selected:null,
+        const sections={selected:resolution.selected?selected:null,matching:resolution.matching,
           candidates:resolution.candidates.map(({coolId,...c})=>c)};
+        const result={...sections,course};
         if(path==='/api/exams/plan'){
-          // The immutable snapshot belongs only to this student/course/semester/section.
-          // CAS protects a section change that completes while upstream reads are in flight.
-          await saveStudentExamPlan(env,current.student_id,courseId,timetable.term,selection,result);
-        }
+          // Atomically save the exam plan and its section choices. Neither requires
+          // an upstream query again once the student's encrypted snapshot exists.
+          await saveStudentExamPlan(env,current.student_id,courseId,timetable.term,selection,result,sections);
+        }else if(optionsOnly)await saveStudentSectionOptions(env,current.student_id,courseId,timetable.term,sections);
         return json({studentNumber:current.student_number,...result});
       }
       if (path === '/api/exams/preview' && request.method === 'GET') {
