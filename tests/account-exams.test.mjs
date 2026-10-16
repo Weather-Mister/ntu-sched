@@ -104,3 +104,32 @@ test('exam footer names only unavailable classes, distinguishing failures, empty
  assert.deepEqual(examUnavailableCourses(courses,entries,{busy:true}).map(x=>x.courseId),['b','c','d','e','f']);
  assert.deepEqual(examUnavailableCourses([courses[0]],entries),[]);
 });
+
+test('previously cached non-exam weeks and cancellations never reach upcoming or past lists',()=>{
+ const course={term:'115-1',serial:'52528',title:'Introduction to Mechanical Engineering',
+  exams:[
+   {kind:'midterm',description:'Midterm week no exam',week:8,date:null,certainty:'week-only'},
+   {kind:'midterm',description:'Midterm week',week:9,date:null,certainty:'week-only'},
+   {kind:'midterm',description:'期中考週',week:10,date:null,certainty:'exam-period'},
+   {kind:'final',description:'No final exams',week:16,date:null,certainty:'week-only'},
+   {kind:'quiz',description:'Quiz on Nov 18',week:11,date:'2026-11-18',certainty:'explicit'}
+  ]};
+ const feed=examFeed(new Map([['intro',{result:{course}}]]),'2026-10-16');
+ assert.deepEqual(feed.upcoming.map(item=>item.exam.kind),['quiz']);
+ assert.equal(feed.past.length,0);
+});
+test('personal hiding of a generic PE syllabus midterm persists independently from actual exam entries',()=>{
+ const pe={kind:'midterm',description:'期中考',week:8,date:null,certainty:'week-only'};
+ const course={term:'115-1',serial:'97045',title:'Health Related Physical Fitness',exams:[pe]};
+ const entries=new Map([['pe',{result:{course}}]]);
+ const key='import:'+JSON.stringify(['pe','97045','midterm',0]);
+ const hidden={title:'PE midterm',className:course.title,kind:'midterm',date:null,week:8,notes:'Teacher confirmed none',sourceKey:key,hidden:true,id:'personal',version:1};
+ const normal=examFeed(entries,'2026-10-16');
+ assert.equal(normal.upcoming.length,1);
+ const filtered=examFeed(entries,'2026-10-16',[hidden]);
+ assert.equal(filtered.upcoming.length,0);
+ assert.equal(filtered.hidden.length,1);
+ assert.equal(filtered.hidden[0].manualRecord.id,'personal');
+ assert.equal(examFeed(entries,'2026-10-16',[{...hidden,hidden:false}]).upcoming.length,1);
+ assert.equal(examFeed(entries,'2026-10-16',[]).upcoming.length,1,'removing personal override restores the original source');
+});
