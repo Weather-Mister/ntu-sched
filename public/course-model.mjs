@@ -69,7 +69,7 @@ export function createCourseAccentMatcher(rows = [], sessions = []) {
       while ((from = label.indexOf(name, from + 1)) !== -1) {
         const before = from ? label[from - 1] : '';
         const after = label[from + name.length] || '';
-        const boundary = char => !char || /[\s[\](){}:;|/,_\-]/u.test(char);
+        const boundary = char => !char || !/[\p{L}\p{N}]/u.test(char);
         if (!boundary(before) || !boundary(after)) continue;
         if (name.length > longest) { longest = name.length; strongest.clear(); }
         if (name.length === longest) for (const id of identities) strongest.add(id);
