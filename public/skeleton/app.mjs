@@ -42,7 +42,7 @@ const profiles = {
 };
 const dict={
   en:{
-    upcomingExams:'Upcoming exams',chooseSection:'Choose your course section',section:'Section',automaticSection:'Automatic matching',
+    upcomingExams:'Upcoming exams',chooseSection:'Choose your class',section:'Class',automaticSection:'Automatic matching',
     loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Sign in',loginIntro:'Use your NTU student number and Mail password.',checkingSession:'Checking your session…',tryPreview:'Try a sample timetable',previewLabel:'Sample student',engineeringProfile:'Engineering student',socialProfile:'Social sciences student',enterPreview:'Open sample timetable',loginSafety:'Sample data only. No NTU account is required.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK PREVIEW',mySchedule:'My Schedule',
     chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',reloadSite:'Reload site',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Preview tasks stay in memory and disappear on reload.',
     lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Preview edits last until you leave this preview.',
@@ -60,7 +60,7 @@ const dict={
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
-    upcomingExams:'近期考試',chooseSection:'選擇你的課程班次',section:'班次',automaticSection:'自動比對',
+    upcomingExams:'近期考試',chooseSection:'選擇你的課程班別',section:'班別',automaticSection:'自動比對',
     loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'登入',loginIntro:'使用臺大學號和電子郵件密碼登入。',checkingSession:'正在檢查登入狀態…',tryPreview:'試用範例課表',previewLabel:'範例學生',engineeringProfile:'工程學院學生',socialProfile:'社會科學院學生',enterPreview:'開啟範例課表',loginSafety:'僅使用範例資料，不需要臺大帳號。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK 預覽',mySchedule:'我的課表',
     chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',reloadSite:'重新載入網站',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'預覽任務僅暫存於記憶體，重新整理後會消失。',
     lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'預覽編輯僅保留至離開此預覽。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'此預覽使用每週重複課表。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
@@ -357,6 +357,7 @@ function renderDeadlinesContent(){
   const list=$('cool-list'),expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));list.replaceChildren();if(!student)return;
   if(liveMode){renderLiveDeadlines(expanded);return;}
   if(coolView==='exams'){renderExams();return;}
+  $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
   $('cool-list').setAttribute('aria-labelledby',coolView==='assignments'?'cool-assignments-tab':'cool-announcements-tab');
   $('cool-heading').textContent=coolView==='assignments'?t('upcomingDates'):t('announcements');
@@ -384,6 +385,7 @@ function renderDeadlinesContent(){
 }
 function renderLiveDeadlines(expanded=new Set()){
   if(coolView==='exams'){renderExams();return;}
+  $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');
   const list=$('cool-list');
   document.querySelectorAll('[data-cool-view]').forEach(button=>
     button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
@@ -447,7 +449,8 @@ function renderExams(){
   document.querySelectorAll('[data-cool-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.coolView===coolView)));
   list.setAttribute('aria-labelledby','cool-exams-tab');$('cool-heading').textContent=t('upcomingExams');
   $('cool-refresh').disabled=liveMode&&examStore.busy;
-  $('cool-preview-note').textContent=language==='zh'?'優先使用 COOL 課程計畫，無考試資訊時才查詢臺大課程網。僅有週次時不顯示日期。':'COOL first; NTU course syllabus as fallback. A week number is never shown as an exact date.';
+  const footer=$('cool-preview-note');
+  footer.hidden=true;footer.classList.remove('exam-warning');footer.replaceChildren();
   if(!liveMode){list.append(node('div','empty-card',language==='zh'?'登入以載入你的課程考試。':'Sign in to load exams for your classes.'));return;}
   if(!examStore.courses.length){list.append(node('div','empty-card',t('liveNoTimetable')));return;}
   if(examStore.busy)list.append(node('p','exam-group-title',language==='zh'?'正在檢查課程考試…':'Checking course exam plans…'));
@@ -464,23 +467,14 @@ function renderExams(){
     copy.append(node('strong','',title+' · '+kind),node('small','',exam.description||kind));
     const details=[sectionLabel(course),course.source==='ntu-cool'?'NTU COOL':(language==='zh'?'臺大課程網':'NTU course syllabus')].filter(Boolean);
     copy.append(node('small','exam-source',details.join(' · ')));
-    if(examStore.entries.get(courseId)?.result?.matching?.status==='matched-timetable')copy.append(node('small','exam-confidence',language==='zh'?'依上課時間比對班次':'Section matched by timetable'));
+    if(examStore.entries.get(courseId)?.result?.matching?.status==='matched-timetable')copy.append(node('small','exam-confidence',language==='zh'?'依上課時間比對班別':'Class matched by timetable'));
     const confidence=date?(exam.certainty==='explicit'?(language==='zh'?'來源明載日期':'Date stated in source'):(language==='zh'?'課程週表日期':'Date in course schedule')):week?(language==='zh'?'僅提供週次':'Week only · no exact date'):(language==='zh'?'未提供日期':'No date provided');
     copy.append(node('small','exam-confidence',confidence+(stale?(language==='zh'?' · 更新失敗，顯示上次結果':' · Refresh failed; last result shown'):'')));
     main.setAttribute('aria-label',(language==='zh'?'在臺大課程網開啟：':'Open NTU course page: ')+title+' · '+kind);
     main.append(stamp,copy);card.append(main);parent.append(card);
   }
   if(feed.upcoming.length){list.append(node('h4','exam-group-title',language==='zh'?'近期考試':'Upcoming exams'));feed.upcoming.forEach(item=>addExam(item));}
-  if(!feed.upcoming.length&&!examStore.busy)list.append(node('div','empty-card',language==='zh'?'目前未找到近期考試，請查看下方各課程狀態。':'No upcoming exams found. Check each course status below.'));
-  const statuses=node('details','exam-course-status');statuses.append(node('summary','',language==='zh'?'各課程狀態 / 選擇班次':'Course status / choose sections'));
-  for(const source of examStore.courses){
-    const c=student.courses.find(c=>c[8]===source.courseId),entry=examStore.entries.get(source.courseId),result=entry?.result;
-    const row=node('div','exam-status-row'),button=node('button','exam-course-button',c?.[language==='zh'?4:3]||source.title);
-    button.type='button';button.addEventListener('click',()=>{if(c)showLesson(c,offset(monday(selectedDate),c[0]));});
-    const status=entry?.error?liveNotice(entry.error):!entry?(language==='zh'?'尚未檢查':'Not checked yet'):!result?.course?(language==='zh'?'請選擇班次或確認課程資料':'Choose a section or check course information'):!result.course.exams?.length?(language==='zh'?'來源未列出考試':'No exam entries in available sources'):sectionLabel(result.course);
-    row.append(button,node('small','',status));statuses.append(row);
-  }
-  list.append(statuses);
+  if(!feed.upcoming.length&&!examStore.busy)list.append(node('div','empty-card',language==='zh'?'目前沒有可顯示的近期考試。':'No upcoming exams to display.'));
   const history=node('details','exam-past');
   history.open=pastExamsOpen;
   history.addEventListener('toggle',()=>{pastExamsOpen=history.open;});
@@ -489,6 +483,47 @@ function renderExams(){
   if(feed.past.length)feed.past.forEach(item=>addExam(item,pastList));
   else pastList.append(node('p','exam-past-empty',language==='zh'?'沒有已結束的考試。':'No past exams.'));
   history.append(pastList);list.append(history);
+
+  // Replace the ordinary exams footer with a concise, account-specific warning.
+  // Pending requests are not failures; an empty syllabus is distinguished from a fetch error.
+  const missing=[];
+  for(const course of examStore.courses){
+    const entry=examStore.entries.get(course.courseId);
+    if(!entry&&examStore.busy)continue;
+    const result=entry?.result,plan=result?.course;
+    if(plan?.exams?.length&&!entry.error)continue;
+    let reason;
+    if(entry?.error){
+      reason=plan?.exams?.length
+        ?(language==='zh'?'更新失敗，仍顯示已儲存的考試':'Refresh failed; saved exams still shown')
+        :(language==='zh'?'無法載入考試資料':'Could not load exam information');
+    }else if(!entry){
+      reason=language==='zh'?'尚未載入':'Not loaded yet';
+    }else if(!plan){
+      reason=result?.matching?.status==='choose-section'
+        ?(language==='zh'?'請在課程詳情中選擇班別':'Choose your class in Class details')
+        :(language==='zh'?'找不到對應的課程班別':'Could not match a class');
+    }else{
+      reason=language==='zh'?'來源未列出考試':'No exams listed in available sources';
+    }
+    const c=student.courses.find(row=>row[8]===course.courseId);
+    missing.push({name:c?.[language==='zh'?4:3]||course.title||course.courseId,reason,c});
+  }
+  if(missing.length){
+    footer.hidden=false;footer.classList.add('exam-warning');
+    footer.append(node('strong','exam-warning-heading',language==='zh'?'部分課程考試資料無法取得':'Exam information unavailable for some classes'));
+    const listItems=node('ul','exam-warning-items');
+    for(const item of missing){
+      const li=node('li','exam-warning-item');
+      if(item.c){
+        const button=node('button','exam-warning-class',item.name);
+        button.type='button';button.addEventListener('click',()=>showLesson(item.c,offset(monday(selectedDate),item.c[0])));
+        li.append(button);
+      }else li.append(node('strong','exam-warning-class',item.name));
+      li.append(node('span','exam-warning-reason',item.reason));listItems.append(li);
+    }
+    footer.append(listItems);
+  }
 }
 function renderTasks(){
   updateSyncDots();
@@ -555,7 +590,7 @@ function showLesson(c,key){
   $('lesson-section-input').replaceChildren(choice);
   if(lessonDraft.initial.serial){const saved=node('option','',sectionLabel(liveCourseOverrides[c[8]].examOffering));saved.value=lessonDraft.initial.serial;$('lesson-section-input').append(saved);}
   $('lesson-section-input').value=lessonDraft.initial.serial;
-  $('lesson-section-status').textContent=liveMode?(language==='zh'?'正在載入臺大課程班次…':'Loading NTU course sections…'):(language==='zh'?'登入後可選擇真實課程班次。':'Sign in to choose a real course section.');
+  $('lesson-section-status').textContent=liveMode?(language==='zh'?'正在載入臺大課程班別…':'Loading NTU classes…'):(language==='zh'?'登入後可選擇實際修課的班別。':'Sign in to choose your class.');
   $('lesson-name-input').value=lessonDraft.initial.name;$('lesson-room-input').value=lessonDraft.initial.room;
   $('lesson-description-input').value=lessonDraft.initial.description;$('lesson-edit-message').hidden=true;
   lessonSaving=false;lessonControls();populateLesson(c,key);$('lesson-dialog').showModal();
@@ -573,10 +608,10 @@ function displayLessonSections(draft,result){
     const option=node('option','',sectionLabel(offering)+' · '+offering.serial);option.value=offering.serial;$('lesson-section-input').append(option);
   }
   if(draft.initial.serial&&!result.candidates?.some(c=>c.serial===draft.initial.serial)){
-    const missing=node('option','',language==='zh'?'已儲存班次已無法使用 · 請重新選擇':'Saved section unavailable · choose again');missing.value=draft.initial.serial;$('lesson-section-input').append(missing);
+    const missing=node('option','',language==='zh'?'已儲存班別已無法使用 · 請重新選擇':'Saved class unavailable · choose again');missing.value=draft.initial.serial;$('lesson-section-input').append(missing);
   }
   $('lesson-section-input').value=draft.initial.serial;draft.sectionsReady=true;lessonControls();
-  $('lesson-section-status').textContent=result.candidates?.length?(language==='zh'?'選擇你實際修課的班次，儲存後更新考試。':'Choose your enrolled section. Save changes to update its exam plan.'):(language==='zh'?'本學期未找到符合的公開課程。':'No matching public course was found for this semester.');
+  $('lesson-section-status').textContent=result.candidates?.length?(language==='zh'?'選擇你實際修課的班別，儲存後更新考試。':'Choose your class. Save changes to update its exam plan.'):(language==='zh'?'本學期未找到符合的公開課程。':'No matching public course was found for this semester.');
 }
 async function loadLessonSections(draft,epoch){
   try{
@@ -588,7 +623,7 @@ async function loadLessonSections(draft,epoch){
   }catch(error){
     if(lessonDraft!==draft||epoch!==liveEpoch)return;
     if(error.status===401){sessionExpired();return;}
-    $('lesson-section-status').textContent=language==='zh'?'無法載入班次，請關閉後重開再試。其他欄位仍可編輯。':'Could not load sections. Reopen this class to retry; other details can still be edited.';
+    $('lesson-section-status').textContent=language==='zh'?'無法載入班別，請關閉後重開再試。其他欄位仍可編輯。':'Could not load classes. Reopen this lesson to retry; other details can still be edited.';
   }
 }
 async function saveLessonDetails(reset=false){
