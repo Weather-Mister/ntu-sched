@@ -147,7 +147,7 @@ export function examFeed(entries,today,personal=[]){
       // manual override or a sourced exact date may populate the calendar day.
       const date=override?override.date:['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
       const week=override?.week??(override?null:weekNumber(exam.week));
-      const combined=override?{...exam,kind:override.kind,description:override.notes||override.title,date,week,certainty:'manual-override'}:exam;
+      const combined=override?{...exam,kind:override.kind,description:override.notes||'',date,week,certainty:'manual-override'}:exam;
       const weekStart=week&&firstWeek?addDays(firstWeek,(week-1)*7):null;
       add({courseId,course,exam:combined,url,date,week,stale:!!entry.error,sourceKey,
         manualRecord:override||null,custom:false,title:override?.title||null},weekStart);
@@ -158,7 +158,7 @@ export function examFeed(entries,today,personal=[]){
     const week=weekNumber(saved.week);
     const first=knownTermStarts[defaultTerm]||null;
     const weekStart=week&&first?addDays(first,(week-1)*7):null;
-    add({courseId:null,course:{title:saved.className||saved.title,source:'manual'},exam:{kind:saved.kind,description:saved.notes||saved.title,certainty:'manual',week,date:saved.date},
+    add({courseId:null,course:{title:saved.className||saved.title,source:'manual'},exam:{kind:saved.kind,description:saved.notes||'',certainty:'manual',week,date:saved.date},
       url:null,date:saved.date,week,stale:false,sourceKey:null,manualRecord:saved,custom:true,title:saved.title},weekStart);
   }
   const byName=(a,b)=>String(a.title||a.course.title||'').localeCompare(String(b.title||b.course.title||''))||String(a.exam.kind||'').localeCompare(String(b.exam.kind||''));
