@@ -402,7 +402,7 @@ function renderLiveDeadlines(expanded=new Set()){
   if(coolView==='announcements'){
     const state=announcementStore;
     $('cool-refresh').disabled=state.busy||state.loading;
-    $('cool-preview-note').textContent=state.error?liveNotice(state.error):t('realAnnouncementsNote')+(state.items?.syncedAt?' · '+new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}).format(new Date(state.items.syncedAt)):'');
+    $('cool-preview-note').textContent=state.error&&!state.items?liveNotice(state.error):t('realAnnouncementsNote')+(state.items?.syncedAt?' · '+new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}).format(new Date(state.items.syncedAt)):'');
     if(!state.items?.items?.length){list.append(node('div','empty-card',state.items?(language==='zh'?'最近 90 天沒有課程公告。':'No course announcements in the last 90 days.'):state.error?liveNotice(state.error):(language==='zh'?'正在載入公告…':'Loading announcements…')));return;}
     const fmt=new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     for(const item of state.items.items){
@@ -544,9 +544,13 @@ function renderTasks(){
   $('task-input').disabled=busy;$('task-form').querySelector('button[type="submit"]').disabled=busy;
   const errorKey=state.error?.code==='tasks_full'?'tasksFull':['task_changed','task_not_found'].includes(state.error?.code)?'tasksConflict':state.error?.phase==='load'?'tasksLoadFailed':'tasksSaveFailed';
   // Background saves and polls stay silent. Display only failures that need action.
-  const taskStatus=!liveMode?t('tasksOnly'):state.error?t(errorKey):'';
+  // Do not show a random connectivity warning when a background poll fails
+  // but the student's saved tasks are already loaded. Save failures and
+  // initial-load failures still remain actionable with Refresh tasks.
+  const taskErrorVisible=liveMode&&!!state.error&&(state.error.phase!=='load'||!state.ready);
+  const taskStatus=!liveMode?t('tasksOnly'):taskErrorVisible?t(errorKey):'';
   $('tasks-status').textContent=taskStatus;$('tasks-status').hidden=!taskStatus;
-  $('tasks-retry').textContent=t('tasksRetry');$('tasks-retry').hidden=!liveMode||!state.error;$('tasks-retry').disabled=state.loading||state.saving;
+  $('tasks-retry').textContent=t('tasksRetry');$('tasks-retry').hidden=!taskErrorVisible;$('tasks-retry').disabled=state.loading||state.saving;
   if(!tasks.length){list.append(node('div','empty-card',liveMode&&!state.ready?t(state.error?'tasksLoadFailed':'tasksLoading'):t('noTasks')));return;}
   for(const task of tasks){
     const row=node('div','todo-row card'),check=node('button','todo-check',task.done?'✓':''),label=node('span','todo-label',task.text),remove=node('button','todo-remove','×');
