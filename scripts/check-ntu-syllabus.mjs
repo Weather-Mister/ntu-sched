@@ -8,4 +8,7 @@ const candidates=await searchNtuCourses('115-1',{code:'ME1005'});
 assert(candidates.some(c=>c.serial==='52528'&&c.section==='01'&&c.coolId==='66746'));
 const software=await readNtuCourseExams('https://course.ntu.edu.tw/courses/115-1/23006');
 assert.equal(software.courseCode,'CSIE5734');assert(software.exams.some(e=>e.kind==='midterm'&&e.date==='2026-11-03'));
+const math=await readNtuCourseExams('https://course.ntu.edu.tw/en/courses/115-1/29671');
+for(const date of ['2026-10-14','2026-11-18','2026-12-21'])assert(math.exams.some(e=>e.date===date&&e.certainty==='scheduled-week'));
+assert(!math.exams.some(e=>/preparation|review/i.test(e.description)));
 console.log('Public NTU search, English week-only plan and Chinese dated syllabus verified.');
