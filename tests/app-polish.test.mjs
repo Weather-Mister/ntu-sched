@@ -97,3 +97,12 @@ test('academic weeks use NTU semester starts, Monday navigation, and vacation fa
  assert.equal(academicWeek('2026-10-16','unknown'),null);
  assert.equal(academicWeek('2026-02-30'),null);
 });
+
+test('sample month labels retain numeric Traditional Chinese months and generic translations cannot reset the semester caption',()=>{
+ const source=read('public/skeleton/app.mjs');
+ const code=source.slice(source.indexOf('function shortMonth('),source.indexOf('function lessonTime('));
+ const context={language:'zh',dateFor:date=>new Date(date+'T00:00:00Z')};
+ vm.createContext(context);vm.runInContext(code,context);assert.equal(vm.runInContext("shortMonth('2026-10-16')",context),'10月');
+ context.language='en';assert.equal(vm.runInContext("shortMonth('2026-10-16')",context),'Oct');
+ const {document}=parseHTML(read('public/index.html'));assert.equal(document.querySelector('.week-caption .eyebrow').hasAttribute('data-i18n'),false);
+});

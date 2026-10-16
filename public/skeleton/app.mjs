@@ -47,7 +47,7 @@ const profiles = {
 };
 const dict={
   en:{
-    upcomingExams:'Upcoming exams',chooseSection:'Choose your class',section:'Class',automaticSection:'Automatic matching',
+    exams:'Exams',upcomingExams:'Upcoming exams',chooseSection:'Choose your class',section:'Class',automaticSection:'Automatic matching',
     loginEyebrow:'NTU · CAMPUS WEEK',loginTitle:'Sign in',loginIntro:'Use your NTU student number and Mail password.',checkingSession:'Checking your session…',tryPreview:'Try a sample timetable',previewLabel:'Sample student',engineeringProfile:'Engineering student',socialProfile:'Social sciences student',enterPreview:'Open sample timetable',loginSafety:'Sample data only. No NTU account is required.',disclaimer:'Independent student project · Not an official NTU service',headerEyebrow:'NTU · CAMPUS WEEK',mySchedule:'My Schedule',
     teachingWeek:'SEMESTER',flexibleWeek:'Flexible week',chooseDate:'Choose date',today:'Today',week:'Week',coursesLabel:'NTU + COURSES',upcomingDates:'Upcoming dates',refresh:'Refresh',reloadSite:'Reload site',previousWeek:'Previous week',nextWeek:'Next week',closeSettings:'Close settings',closeDetails:'Close class details',openMail:'Open Campus Mail',sampleDeadlines:'Illustrative events and deadlines; not connected to COOL.',toDo:'TO DO',manualTasks:'Manual tasks',newTask:'New task',add:'Add',tasksOnly:'Sample tasks stay in memory and disappear on reload.',
     lessonDescription:'Description',lessonReset:'Restore original details',lessonCancel:'Cancel',lessonSave:'Save changes',lessonSaving:'Saving…',lessonSaved:'Changes saved.',lessonSaveFailed:'Could not save these details. Your edits are still here; please try again.',lessonChanged:'These details changed on another device. Reopen this lesson to load the latest details.',lessonNameEn:'Name (English)',lessonNameZh:'Name (Chinese)',lessonHelpEn:'Applies to every meeting of this class. The name changes only in English.',lessonHelpZh:'Applies to every meeting of this class. The name changes only in Chinese.',lessonPreview:'Sample edits last until you leave the sample timetable.',
@@ -65,7 +65,7 @@ const dict={
     days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
   },
   zh:{
-    upcomingExams:'近期考試',chooseSection:'選擇你的課程班別',section:'班別',automaticSection:'自動比對',
+    exams:'考試',upcomingExams:'近期考試',chooseSection:'選擇你的課程班別',section:'班別',automaticSection:'自動比對',
     loginEyebrow:'臺大 · CAMPUS WEEK',loginTitle:'登入',loginIntro:'使用臺大學號和電子郵件密碼登入。',checkingSession:'正在檢查登入狀態…',tryPreview:'試用範例課表',previewLabel:'範例學生',engineeringProfile:'工程學院學生',socialProfile:'社會科學院學生',enterPreview:'開啟範例課表',loginSafety:'僅使用範例資料，不需要臺大帳號。',disclaimer:'獨立學生專案 · 非臺灣大學官方服務',headerEyebrow:'臺大 · CAMPUS WEEK',mySchedule:'我的課表',
     teachingWeek:'學期',flexibleWeek:'彈性週',chooseDate:'選擇日期',today:'今天',week:'本週',coursesLabel:'臺大 + 課程',upcomingDates:'近期日期',refresh:'重新整理',reloadSite:'重新載入網站',previousWeek:'上一週',nextWeek:'下一週',closeSettings:'關閉設定',closeDetails:'關閉課程詳情',openMail:'開啟 Campus Mail',sampleDeadlines:'以上為虛構事件與期限，尚未連結 NTU COOL。',toDo:'待辦事項',manualTasks:'手動任務',newTask:'新增任務',add:'新增',tasksOnly:'範例任務僅暫存於記憶體，重新整理後會消失。',
     lessonDescription:'說明',lessonReset:'還原原始資料',lessonCancel:'取消',lessonSave:'儲存變更',lessonSaving:'儲存中…',lessonSaved:'已儲存變更。',lessonSaveFailed:'無法儲存，已保留你的編輯內容，請再試一次。',lessonChanged:'其他裝置已變更此課程，請重新開啟以載入最新資料。',lessonNameEn:'課程名稱（英文）',lessonNameZh:'課程名稱（中文）',lessonHelpEn:'套用至此課程的所有課堂，名稱僅變更英文版本。',lessonHelpZh:'套用至此課程的所有課堂，名稱僅變更中文版本。',lessonPreview:'範例編輯僅保留至離開範例課表。',classDetails:'課程詳情',time:'時間',location:'地點',courseCode:'課號',status:'狀態',repeatsWeekly:'課表以每週重複方式顯示。',preferences:'偏好設定',settings:'設定',account:'帳號',appearance:'外觀',language:'語言',timetable:'課表',widgets:'小工具',privacy:'隱私與安全',about:'關於',
@@ -122,6 +122,7 @@ function monday(key){return offset(key,-weekday(key));}
 function taipeiToday(){const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return p.year+'-'+p.month+'-'+p.day;}
 function pretty(key,short=false){return new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'UTC',month:short?'short':'long',day:'numeric',year:short?undefined:'numeric'}).format(dateFor(key));}
 function longDate(key){return t('days')[weekday(key)]+', '+pretty(key);}
+function shortMonth(key){return new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'UTC',month:'short'}).format(dateFor(key));}
 function lessonTime(key,time){return Date.parse(key+'T'+time+':00+08:00');}
 function howLong(ms){const n=Math.max(0,Math.ceil(ms/60000));const h=Math.floor(n/60);return (h?h+'h ':'')+(n%60?n%60+'m':h?'':'0m');}
 function lessonState(c,key){const now=Date.now();return now>=lessonTime(key,c[2])?t('completed'):now>=lessonTime(key,c[1])?t('live'):t('upcoming');}
@@ -399,7 +400,7 @@ function renderDeadlinesContent(){
     const profile=student.id===profiles.engineering.id?'engineering':'social';
     for(const entry of announcements[profile]){
       const card=node('article','cool-item announcement-card card'),date=node('span','cool-date'),copy=node('span','cool-copy');
-      const key=offset(taipeiToday(),-entry[4]);date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
+      const key=offset(taipeiToday(),-entry[4]);date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',shortMonth(key)));
       copy.append(node('strong','',entry[language==='zh'?1:0]),node('small','',entry[language==='zh'?3:2]));
       card.append(date,copy);list.append(card);
     }
@@ -408,7 +409,7 @@ function renderDeadlinesContent(){
   for(const [index,item] of student.deadlines.entries()){
     const key=offset(taipeiToday(),item[0]),card=node('article','cool-item card'),
       main=node('div','cool-main'),date=node('span','cool-date'),copy=node('span','cool-copy');
-    date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
+    date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',shortMonth(key)));
     copy.append(node('strong','',item[language==='zh'?2:1]),node('small','',item[language==='zh'?4:3]));
     main.append(date,copy,node('span','cool-due',language==='zh'?item[0]+' 天後':'In '+item[0]+' days'));
     card.append(main);
