@@ -10,7 +10,7 @@ import { mailReference } from './mail-content.mjs';
 import { translateMail } from './mail-translation.mjs';
 import {reviseDraft} from './mail-compose-ai.mjs';
 import {saveComposeDraft,listComposeDrafts,deleteComposeDraft,uploadComposePart,removeComposeFile,queueComposeMail,listComposeJobs,changeComposeJob,processDueComposeJobs} from './mail-composer-store.mjs';
-import { pushConfiguration, subscribe } from './mail-push.mjs';
+import { pushConfiguration, subscribe, testPushDelivery } from './mail-push.mjs';
 import { savedAnnouncements, syncAnnouncements } from './cool-announcements.mjs';
 import {readPreferences,savePreferences,readHanziWidget} from './student-preferences.mjs';
 import { readNtuCourseExams, syllabusUrl, matchImportedCourse } from './ntu-course-exams.mjs';
@@ -160,6 +160,7 @@ export default {
           return json({...owner,publicKey:(await pushConfiguration(env)).publicKey,devices:devices.results,state:state||null});
         }
         if(path==='/api/mail/push'&&request.method==='POST')return json({...owner,...await subscribe(env,current,await readJson(request))});
+        if(path==='/api/mail/push/test'&&request.method==='POST')return json({...owner,...await testPushDelivery(env,current,(await readJson(request)).id)});
         if(path==='/api/mail/push'&&request.method==='DELETE'){
           const body=await readJson(request);if(typeof body.id!=='string')throw new ApiError(400,'invalid_push','Choose a notification device.');
           await env.DB.prepare('DELETE FROM mail_push WHERE student_id=? AND id=?').bind(current.student_id,body.id).run();return json({...owner,enabled:false});
