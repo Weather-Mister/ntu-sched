@@ -133,4 +133,7 @@ test('iOS event sheet constrains native picker boxes and disallows horizontal sc
   assert.match(mobile,/\.event-dialog \.event-fields input,[\s\S]*?min-inline-size:0;[\s\S]*?max-inline-size:100%;/);
   assert.match(mobile,/input\[type="date"\]::-webkit-date-and-time-value/);
   assert.match(mobile,/input\[type="time"\]::-webkit-datetime-edit/);
+  // iOS WebKit bug 301648: padding on native date/time hosts overflows 100%.
+  assert.match(mobile,/\\.event-dialog \\.event-form input\\[type="date"\\],[\\s\\S]*?\\.event-dialog \\.event-form input\\[type="time"\\],[\\s\\S]*?padding:0;/);
+  assert.match(mobile,/\\.exam-editor-dialog \\.exam-editor-form input\\[type="date"\\]/);
 });
