@@ -121,6 +121,16 @@ test('phone exam tabs and date inputs cannot overlap, with Add exam inline',()=>
   assert.match(examStyles,/\.exam-list-heading\{display:flex;align-items:center;justify-content:space-between/);
   assert.match(examStyles,/@media\(max-width:600px\)\{\s*\.exam-editor-fields\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(examStyles,/\.exam-editor-fields input\{display:block;width:100%;max-width:100%;min-width:0;/);
-  assert.match(mobileOverflow,/@media \(max-width:600px\) \{[\s\S]*?\.event-dialog \.event-fields \{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(mobileOverflow,/@media \\(max-width:790px\\) \\{[\\s\\S]*?\\.event-dialog \\.event-fields \\{[\\s\\S]*?display:block;/);
   assert.match(mobileOverflow,/\.event-dialog \.event-fields input,[\s\S]*?\.event-dialog #event-until \{[\s\S]*?box-sizing:border-box;/);
+});
+
+test('iOS event sheet constrains native picker boxes and disallows horizontal scrolling',()=>{
+  const mobile=readFileSync(new URL('mobile-overflow.css',skeleton),'utf8');
+  assert.match(mobile,/\.event-dialog \{[\s\S]*?inline-size:min\(520px,calc\(100vw - 24px\)\);[\s\S]*?overflow-x:hidden;/);
+  assert.match(mobile,/\.event-dialog \.event-form \{[\s\S]*?inline-size:100%;[\s\S]*?overflow-x:clip;/);
+  assert.match(mobile,/\.event-dialog \.event-fields>div \{[\s\S]*?inline-size:100%;[\s\S]*?overflow-x:clip;/);
+  assert.match(mobile,/\.event-dialog \.event-fields input,[\s\S]*?min-inline-size:0;[\s\S]*?max-inline-size:100%;/);
+  assert.match(mobile,/input\[type="date"\]::-webkit-date-and-time-value/);
+  assert.match(mobile,/input\[type="time"\]::-webkit-datetime-edit/);
 });
