@@ -16,6 +16,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: node --check public/mail-sw.js
       - run: node --check public/skeleton/mail.mjs
       - run: node --check src/mail-store.mjs
       - run: node --check src/mail-translation.mjs
