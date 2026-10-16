@@ -24,23 +24,44 @@
 .exam-past .exam-card{opacity:.78}
 .exam-past .exam-card:hover,.exam-past .exam-card:focus-within{opacity:1}
 
-/* When a class has no usable exam plan, the usual feed footnote becomes
-   a compact warning. Use semantic color values consistent on mobile/dark. */
+
+/* Footer summary: nearly the original one-line footnote height until expanded. */
 .cool-column .preview-footnote.exam-warning{
-  display:flex;flex-direction:column;gap:7px;
-  padding:11px 12px;margin:11px 0 0;
-  border:1px solid #e3aea8;border-radius:11px;
-  background:color-mix(in srgb,#f7d7d3 55%,var(--card));
-  color:color-mix(in srgb,#8c3835 80%,var(--text));
-  font-size:11px;line-height:1.45;overflow-wrap:anywhere;
+  display:block;min-width:0;padding:5px 8px;margin:9px 0 0;
+  border:1px solid color-mix(in srgb,#b96b65 40%,var(--line));
+  border-radius:7px;background:color-mix(in srgb,#d96d67 11%,var(--card));
+  color:color-mix(in srgb,#c2534c 65%,var(--text));
+  font-size:10px;line-height:1.3;overflow-wrap:anywhere;
 }
 .cool-column .preview-footnote.exam-warning[hidden]{display:none}
-.exam-warning-heading{font-size:11px;font-weight:800;line-height:1.4}
-.exam-warning-items{list-style:none;display:flex;flex-direction:column;gap:5px;margin:0;padding:0}
-.exam-warning-item{display:flex;gap:3px 7px;flex-wrap:wrap;align-items:baseline;min-width:0}
+.exam-warning-disclosure>summary{cursor:pointer;font-weight:700;line-height:1.3;white-space:normal}
+.exam-warning-disclosure .exam-warning-items{list-style:none;display:flex;flex-direction:column;gap:4px;margin:7px 0 3px;padding:6px 0 0;border-top:1px solid currentColor}
+.exam-warning-item{display:flex;gap:2px 6px;flex-wrap:wrap;align-items:baseline;min-width:0}
 .exam-warning-class{display:inline;max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:750;text-align:left;overflow-wrap:anywhere}
-button.exam-warning-class{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer}
-button.exam-warning-class:hover{text-decoration-thickness:2px}
-button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:2px}
-.exam-warning-reason{font-weight:450;opacity:.93}
-.exam-warning-reason::before{content:"— " }
+button.exam-warning-class{text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.exam-warning-reason{opacity:.9}
+.exam-warning-reason::before{content:"— "}
+
+.exam-add-button{align-self:flex-start;min-height:28px;padding:5px 10px;font-size:11px;margin:0 0 1px}
+.exam-card{position:relative}
+.exam-card .cool-main{padding-right:46px}
+.exam-card .exam-edit-button{position:absolute;right:8px;top:9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:4px 6px;cursor:pointer}
+.exam-card .exam-edit-button:hover{color:var(--text);border-color:var(--accent)}
+.exam-card .exam-edit-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.exam-editor-dialog{width:min(450px,calc(100vw - 24px))}
+.exam-editor-form{display:flex;flex-direction:column;gap:7px;max-height:min(90dvh,760px);overflow-y:auto}
+.exam-editor-form h2{margin:0 0 5px;font-size:22px}
+.exam-editor-form label{display:block;font-size:12px;font-weight:700}
+.exam-editor-form input,.exam-editor-form select,.exam-editor-form textarea{
+ width:100%;min-width:0;min-height:38px;box-sizing:border-box;background:var(--panel);color:var(--text);
+ border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;padding:7px 9px;
+}
+.exam-editor-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:9px}
+.exam-editor-fields>div{min-width:0}
+.exam-editor-form .preview-footnote{margin:0 0 2px;line-height:1.4}
+.exam-editor-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}
+.exam-editor-actions>span{flex:1 1 auto}
+.exam-editor-actions .button{min-height:33px;font-size:12px}
+@media(max-width:390px){.exam-editor-fields{grid-template-columns:1fr}.exam-editor-actions{gap:5px}}
