@@ -11,11 +11,11 @@ function snapshot(row) {
 }
 export async function savedAnnouncements(env, studentId) { return snapshot(await connection(env, studentId)); }
 const unavailable = () => new ApiError(502, 'cool_announcements_unavailable', 'COOL announcements could not be refreshed. Your saved announcements are still available.');
-function sessionCookies(jar) {
+export function sessionCookies(jar) {
   return [...jar.entries].filter(([, c]) => c.domain === 'cool.ntu.edu.tw')
     .map(([key, c]) => [key, { ...c, expires: Number.isFinite(c.expires) ? c.expires : null }]);
 }
-function restoreCookies(saved) {
+export function restoreCookies(saved) {
   const jar = new CookieJar();
   for (const [key, c] of saved || []) if (c.domain === 'cool.ntu.edu.tw') jar.entries.set(key, {...c, expires: c.expires ?? Infinity});
   return jar;

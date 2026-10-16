@@ -42,6 +42,8 @@ The announcement snapshot and COOL-only provider cookies are encrypted in the ex
 
 The preview includes the full weekly plan and exam entries. Week-only plans stay week-only, dated schedule rows remain tentative, evaluation percentages are excluded, and final projects do not become final exams. No grade page is fetched and no exam date or course selection is persisted. The endpoint derives ownership from the existing session, limits lookups per student, never forwards authorization to the public catalog, rejects redirects and oversized responses, and uses no shared student-data cache. Hidden tabs clear their results and account changes invalidate in-flight responses. The lab currently previews results; it does not add exams to the calendar.
 
+When a matched public syllabus contains no exam entries, the lab automatically tries `POST /api/exams/cool-preview` with the existing account session and CSRF nonce. The server resolves the same offering through the public catalog, verifies that its linked COOL ID is in this student's active course list, then reads only its syllabus body and module/item titles. It does not request scores, grades, submissions, linked files or individual content pages. COOL results have a separate source link; `Week 10 / Midterm 2` remains week-only and module unlock times never become exam dates. The existing encrypted COOL session may be reused/refreshed once through retained NTU authorization under the shared login limit; only provider cookies are retained, not syllabus content. A failed/revoked connection leaves the public result visible and asks for reconnection instead of repeatedly logging in.
+
 Use Node 24 or later:
 
 ```sh

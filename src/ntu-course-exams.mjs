@@ -58,6 +58,28 @@ export function parseNtuCourseExams(html, source) {
     [...doc.querySelectorAll('li,p,div,span')].map(e=>/^Class\s+([A-Za-z0-9]{1,4})$/i.exec(norm(spacedText(e)))?.[1]).find(Boolean)||'';
   const serial = offeringNumber(url);
   if (!courseCode) throw new ApiError(502, 'exam_source_layout', 'NTU syllabus metadata was not readable. No exam dates were added.');
+  return {sourceUrl:url,term,serial,courseCode:asCode(courseCode),courseIdentifier:norm(courseIdentifier),section:classSection,title,
+    ...parseCoursePlan(doc,term,url),retrievedAt:Date.now()};
+}
+
+export function parseExamEntry(description,term,sourceUrl,{week=null,scheduleDates=[]}={}) {
+    description=norm(description);
+    if(!mention.test(description))return null;
+    const specific = dateIn(description, term);
+    const examMention=mention.exec(description),inlineDate=/(?:20\d{2}[-/])?\d{1,2}\s*(?:\/|月|-)\s*\d{1,2}(?:日)?/.exec(description);
+    const between=inlineDate&&examMention ? (inlineDate.index>examMention.index
+      ? description.slice(examMention.index+examMention[0].length,inlineDate.index)
+      : description.slice(inlineDate.index+inlineDate[0].length,examMention.index)) : null;
+    const linkedDate=between!==null&&/^[\s:：,，()（）\-\dIVX]*(?:(?:on|scheduled for|at|date|日期|於)\s*)?$/iu.test(between);
+    const isPeriod = period.test(description) && !/(?:\bexam\b|考試|測驗|小考)/iu.test(description.replace(period, ''));
+    const cancelled=/\b(?:no|cancelled|canceled)\s+(?:midterm|final|exam|quiz)|\b(?:exam|quiz)\s+(?:cancelled|canceled)|不考|取消|無期[中末]考/iu.test(description);
+    const certainty=cancelled?'cancelled':isPeriod?'exam-period':specific.length===1&&linkedDate?'explicit':specific.length>1?'ambiguous':scheduleDates.length===1?'scheduled-week':week?'week-only':'ambiguous';
+    return {kind:kind(description),description:description.slice(0,300),date:certainty==='explicit'?specific[0]:certainty==='scheduled-week'?scheduleDates[0]:null,
+      week,certainty,scheduleDates:scheduleDates.slice(0,5),sourceUrl};
+}
+
+export function parseCoursePlan(doc,term,url) {
+  for(const e of doc.querySelectorAll('script,style,noscript,template,iframe,object'))e.remove();
   const exams = [], schedule = [], unique = new Set();
   for (const tr of doc.querySelectorAll('table tr')) {
     const cells = [...tr.children].filter(e => /^(TD|TH)$/i.test(e.tagName));
@@ -73,27 +95,15 @@ export function parseNtuCourseExams(html, source) {
     const description=norm(cells.slice(separateDate?2:1).map(spacedText).join(' '));
     const scheduled=dateIn(dateCell,term);
     if(description&&schedule.length<200)schedule.push({week,dates:scheduled,description:description.slice(0,1200)});
-    if (!mention.test(description)) continue;
-    const specific = dateIn(description, term);
-    const examMention=mention.exec(description),inlineDate=/(?:20\d{2}[-/])?\d{1,2}\s*(?:\/|月|-)\s*\d{1,2}(?:日)?/.exec(description);
-    const between=inlineDate&&examMention ? (inlineDate.index>examMention.index
-      ? description.slice(examMention.index+examMention[0].length,inlineDate.index)
-      : description.slice(inlineDate.index+inlineDate[0].length,examMention.index)) : null;
-    // A homework deadline elsewhere in the same row is not an explicit exam date.
-    const linkedDate=between!==null&&/^[\s:：,，()（）\-\dIVX]*(?:(?:on|scheduled for|at|date|日期|於)\s*)?$/iu.test(between);
-    const isPeriod = period.test(description) && !/(?:\bexam\b|考試|測驗|小考)/iu.test(description.replace(period, ''));
-    const cancelled=/\b(?:no|cancelled|canceled)\s+(?:midterm|final|exam|quiz)|\b(?:exam|quiz)\s+(?:cancelled|canceled)|不考|取消|無期[中末]考/iu.test(description);
-    const certainty = cancelled ? 'cancelled' : isPeriod ? 'exam-period' : specific.length === 1&&linkedDate ? 'explicit' : specific.length > 1 ? 'ambiguous' : scheduled.length === 1 ? 'scheduled-week' : week ? 'week-only' : 'ambiguous';
-    const date = certainty === 'explicit' ? specific[0] : certainty === 'scheduled-week' ? scheduled[0] : null;
-    const key = [kind(description), date, week, description].join('|');
+    const entry=parseExamEntry(description,term,url,{week,scheduleDates:scheduled});
+    if(!entry)continue;
+    const key = [entry.kind, entry.date, week, entry.description].join('|');
     if (unique.has(key)) continue;
     unique.add(key);
-    exams.push({ kind: kind(description), description: description.slice(0,300),
-      date, week, certainty, scheduleDates: scheduled.slice(0,5), sourceUrl: url });
+    exams.push(entry);
     if (exams.length >= 100) break;
   }
-  return { sourceUrl:url, term, serial, courseCode:asCode(courseCode), courseIdentifier: norm(courseIdentifier),
-    section: classSection, title, schedule, exams, retrievedAt: Date.now() };
+  return {schedule,exams};
 }
 
 export function matchImportedCourse(timetable, selected, info) {
