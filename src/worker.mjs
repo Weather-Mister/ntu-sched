@@ -4,6 +4,7 @@ import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetail
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
+import {listCustomExams,createCustomExam,changeCustomExam} from './custom-exams.mjs';
 import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications } from './mail-store.mjs';
 import { mailReference } from './mail-content.mjs';
 import { translateMail } from './mail-translation.mjs';
@@ -173,6 +174,15 @@ export default {
         const id=/^\/api\/events\/([^/]+)$/.exec(path)?.[1];
         if(id&&['PATCH','DELETE'].includes(request.method))return json({...owner,event:await changeEvent(env,current.student_id,id,await readJson(request),request.method==='DELETE')});
         throw new ApiError(404,'not_found','This event action is not available.');
+      }
+      if (path === '/api/custom-exams' || path.startsWith('/api/custom-exams/')) {
+        const current=await session(request,env,request.method!=='GET'),owner={studentNumber:current.student_number};
+        if(new URL(request.url).search)throw new ApiError(400,'invalid_custom_exam','Custom exam requests do not accept query parameters.');
+        if(path==='/api/custom-exams'&&request.method==='GET')return json({...owner,exams:await listCustomExams(env,current.student_id)});
+        if(path==='/api/custom-exams'&&request.method==='POST')return json({...owner,exam:await createCustomExam(env,current.student_id,await readJson(request,4000))},201);
+        const id=/^\/api\/custom-exams\/([^/]+)$/.exec(path)?.[1];
+        if(id&&['PATCH','DELETE'].includes(request.method))return json({...owner,exam:await changeCustomExam(env,current.student_id,id,await readJson(request,4000),request.method==='DELETE')});
+        throw new ApiError(404,'not_found','This custom exam action is not available.');
       }
       if (path === '/api/tasks' || path.startsWith('/api/tasks/')) {
         const current = await session(request, env, request.method !== 'GET');

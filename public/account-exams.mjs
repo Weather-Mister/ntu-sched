@@ -116,27 +116,52 @@ function weekOne(course) {
   }
   return knownTermStarts[course.term]||null;
 }
-export function examFeed(entries,today) {
-  const upcoming=[],past=[];
+// Match an imported exam by course offering, type and within-type position.
+// Date/description/week are deliberately excluded so an official rescheduling
+// does not erase the student's personal override.
+export function examSourceKey(courseId,exam,ordinal=0,serial=''){
+  return 'import:'+JSON.stringify([courseId,serial,exam.kind||'',ordinal]);
+}
+export function examFeed(entries,today,personal=[]){
+  const upcoming=[],past=[],overrides=new Map();
+  for(const exam of personal)if(exam.sourceKey&&!exam.deleted)overrides.set(exam.sourceKey,exam);
+  let defaultTerm=null;
+  const add=(item,weekStart)=>{
+    const date=item.date||null,week=item.week;
+    const weekEnd=weekStart?addDays(weekStart,6):null;
+    const ended=date?date<today:!!(weekEnd&&weekEnd<today);
+    const sortDate=date||(weekStart?(ended?weekStart:weekStart<today?today:weekStart):'9999-12-31');
+    (ended?past:upcoming).push({...item,sortDate});
+  };
   for(const [courseId,entry]of entries){
     const course=entry.result?.course,url=officialCourseUrl(course);
     if(!url)continue;
-    const firstWeek=weekOne(course);
+    defaultTerm??=course.term;
+    const firstWeek=weekOne(course),seen=new Map();
     for(const exam of course.exams||[]){
       if(exam.certainty==='cancelled')continue;
-      // An ambiguous or week-only source cannot acquire an exact date in our UI.
-      const date=['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
-      const week=weekNumber(exam.week);
+      const kindKey=exam.kind||'';
+      const ordinal=seen.get(kindKey)||0;seen.set(kindKey,ordinal+1);
+      const sourceKey=examSourceKey(courseId,exam,ordinal,course.serial),override=overrides.get(sourceKey);
+      // Never infer a precise date for an automatic source. Only an explicit
+      // manual override or a sourced exact date may populate the calendar day.
+      const date=override?override.date:['explicit','scheduled-week'].includes(exam.certainty)?validDate(exam.date):null;
+      const week=override?.week??(override?null:weekNumber(exam.week));
+      const combined=override?{...exam,kind:override.kind,description:override.notes||'',date,week,certainty:'manual-override'}:exam;
       const weekStart=week&&firstWeek?addDays(firstWeek,(week-1)*7):null;
-      const weekEnd=weekStart?addDays(weekStart,6):null;
-      const ended=date?date<today:!!(weekEnd&&weekEnd<today);
-      // An ongoing week is positioned at today; its exact exam day is still unknown.
-      const sortDate=date||(weekStart?(ended?weekStart:weekStart<today?today:weekStart):'9999-12-31');
-      const item={courseId,course,exam,url,date,week,stale:!!entry.error,sortDate};
-      (ended?past:upcoming).push(item);
+      add({courseId,course,exam:combined,url,date,week,stale:!!entry.error,sourceKey,
+        manualRecord:override||null,custom:false,title:override?.title||null},weekStart);
     }
   }
-  const byName=(a,b)=>String(a.course.title||'').localeCompare(String(b.course.title||''))||String(a.exam.kind||'').localeCompare(String(b.exam.kind||''));
+  for(const saved of personal){
+    if(saved.sourceKey||saved.deleted)continue;
+    const week=weekNumber(saved.week);
+    const first=knownTermStarts[defaultTerm]||null;
+    const weekStart=week&&first?addDays(first,(week-1)*7):null;
+    add({courseId:null,course:{title:saved.className||saved.title,source:'manual'},exam:{kind:saved.kind,description:saved.notes||'',certainty:'manual',week,date:saved.date},
+      url:null,date:saved.date,week,stale:false,sourceKey:null,manualRecord:saved,custom:true,title:saved.title},weekStart);
+  }
+  const byName=(a,b)=>String(a.title||a.course.title||'').localeCompare(String(b.title||b.course.title||''))||String(a.exam.kind||'').localeCompare(String(b.exam.kind||''));
   upcoming.sort((a,b)=>a.sortDate.localeCompare(b.sortDate)||byName(a,b));
   past.sort((a,b)=>b.sortDate.localeCompare(a.sortDate)||byName(a,b));
   return {upcoming,past};
