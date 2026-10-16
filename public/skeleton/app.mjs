@@ -2,7 +2,7 @@
 import { account, mapTimetable, mapCalendar, studentFromAccount, englishNameMissing } from './live-source.mjs';
 import { AccountAnnouncements } from '/account-announcements.mjs';
 import { AccountExams, examFeed, examUnavailableCourses } from '/account-exams.mjs';
-import { applyCourseOverrides, scheduleAccent, createCourseAccentMatcher } from '/course-model.mjs';
+import { applyCourseOverrides, scheduleAccent } from '/course-model.mjs';
 import { formatPeriods } from '/ntu-periods.mjs';
 import { AccountTasks } from '/account-tasks.mjs';
 import { eventsOn, nextEventDates } from '/event-model.mjs';
@@ -108,8 +108,6 @@ const examEditor=createExamEditor({account,
 });
 function scheduleOn(key){return[...student.courses.filter(c=>c[0]===weekday(key)),...eventsOn(eventUI.events(),key)].sort((a,b)=>a[1].localeCompare(b[1]));}
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}
-function colorCourseCard(card, resolveAccent, course){const accent=resolveAccent(course);if(accent!==null)card.dataset.color=String(accent);}
-function feedColors(){return createCourseAccentMatcher(student?.courses||[],liveMode?liveTimetable?.sessions||[]:[]);}
 function iso(date){return date.toISOString().slice(0,10);}
 function dateFor(key){if(!/^\d{4}-\d{2}-\d{2}$/.test(key))throw Error('Invalid date');const d=new Date(key+'T00:00:00Z');if(!Number.isFinite(+d)||iso(d)!==key)throw Error('Invalid date');return d;}
 function offset(key,days){return iso(new Date(dateFor(key).getTime()+days*DAY));}
@@ -364,9 +362,8 @@ function renderDeadlines(){
 function renderDeadlinesContent(){
   updateSyncDots();
   const list=$('cool-list'),expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));list.replaceChildren();if(!student)return;
-  const resolveAccent=feedColors();
-  if(liveMode){renderLiveDeadlines(expanded,resolveAccent);return;}
-  if(coolView==='exams'){renderExams(resolveAccent);return;}
+  if(liveMode){renderLiveDeadlines(expanded);return;}
+  if(coolView==='exams'){renderExams();return;}
   $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');$('cool-preview-note').removeAttribute('role');
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.coolView===coolView)));
   $('cool-list').setAttribute('aria-labelledby',coolView==='assignments'?'cool-assignments-tab':'cool-announcements-tab');
@@ -376,7 +373,6 @@ function renderDeadlinesContent(){
     const profile=student.id===profiles.engineering.id?'engineering':'social';
     for(const entry of announcements[profile]){
       const card=node('article','cool-item announcement-card card'),date=node('span','cool-date'),copy=node('span','cool-copy');
-       colorCourseCard(card,resolveAccent,{course:entry[language==='zh'?3:2]});
       const key=offset(taipeiToday(),-entry[4]);date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
       copy.append(node('strong','',entry[language==='zh'?1:0]),node('small','',entry[language==='zh'?3:2]));
       card.append(date,copy);list.append(card);
@@ -386,7 +382,6 @@ function renderDeadlinesContent(){
   for(const [index,item] of student.deadlines.entries()){
     const key=offset(taipeiToday(),item[0]),card=node('article','cool-item card'),
       main=node('div','cool-main'),date=node('span','cool-date'),copy=node('span','cool-copy');
-    colorCourseCard(card,resolveAccent,{course:item[language==='zh'?4:3]});
     date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',pretty(key,true).replace(/[0-9]/g,'').trim()));
     copy.append(node('strong','',item[language==='zh'?2:1]),node('small','',item[language==='zh'?4:3]));
     main.append(date,copy,node('span','cool-due',language==='zh'?item[0]+' 天後':'In '+item[0]+' days'));
@@ -395,8 +390,8 @@ function renderDeadlinesContent(){
     list.append(card);
   }
 }
-function renderLiveDeadlines(expanded=new Set(),resolveAccent=feedColors()){
-  if(coolView==='exams'){renderExams(resolveAccent);return;}
+function renderLiveDeadlines(expanded=new Set()){
+  if(coolView==='exams'){renderExams();return;}
   $('cool-preview-note').hidden=false;$('cool-preview-note').classList.remove('exam-warning');$('cool-preview-note').removeAttribute('role');
   const list=$('cool-list');
   document.querySelectorAll('[data-cool-view]').forEach(button=>
@@ -412,7 +407,6 @@ function renderLiveDeadlines(expanded=new Set(),resolveAccent=feedColors()){
     const fmt=new Intl.DateTimeFormat(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     for(const item of state.items.items){
       const card=node('article','cool-item announcement-card card'),copy=node('div','cool-copy');
-       colorCourseCard(card,resolveAccent,{courseId:item.courseId,course:item.course});
       const link=node('a','announcement-title',item.title);
       try{const url=new URL(item.url);if(url.origin!=='https://cool.ntu.edu.tw'||url.protocol!=='https:'||url.username||url.password)continue;link.href=url.href;}catch{continue;}
       link.target='_blank';link.rel='noopener noreferrer';
@@ -436,7 +430,6 @@ function renderLiveDeadlines(expanded=new Set(),resolveAccent=feedColors()){
     const card=node('article','cool-item card'),
       main=node(item.url?'a':'div','cool-main'),
       date=node('span','cool-date'),copy=node('span','cool-copy');
-    colorCourseCard(card,resolveAccent,item);
     const when=new Date(item.dueAt);
     date.append(node('strong','',String(when.toLocaleDateString('en-US',{timeZone:'Asia/Taipei',day:'numeric'}))),
       node('small','',when.toLocaleDateString(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short'})));
@@ -458,7 +451,7 @@ function courseOffering(c){
   return liveCourseOverrides[c[8]]?.examOffering||examStore.entries.get(c[8])?.result?.selected||liveTimetable?.sessions.find(s=>s.courseId===c[8]&&s.section);
 }
 function sectionLabel(offering){return offering?(t('section')+' '+(offering.section||'—')+(offering.teacher?' · '+offering.teacher:'')):'';}
-function renderExams(resolveAccent=feedColors()){
+function renderExams(){
   const list=$('cool-list');
   document.querySelectorAll('[data-cool-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.coolView===coolView)));
   list.setAttribute('aria-labelledby','cool-exams-tab');$('cool-heading').textContent=t('upcomingExams');
@@ -477,7 +470,6 @@ function renderExams(resolveAccent=feedColors()){
   function addExam(item,parent=list){
     const {courseId,course,exam,url,date,week,stale}=item,c=student.courses.find(c=>c[8]===courseId);
     const card=node('article','cool-item exam-card card'),main=node(url?'a':'div','cool-main'),stamp=node('span','cool-date exam-stamp'),copy=node('span','cool-copy');
-     colorCourseCard(card,resolveAccent,{courseId,course,className:item.manualRecord?.className});
     if(url){main.href=url;main.target='_blank';main.rel='noopener noreferrer';}
     if(week)stamp.append(node('span','exam-week-label',language==='zh'?'週次':'Week'),node('strong','exam-week-number',String(week)));
     if(date)stamp.append(node('span','exam-month',dateFor(date).toLocaleDateString(language==='zh'?'zh-TW':'en-US',{timeZone:'UTC',month:'short'})),node('strong','exam-day',String(dateFor(date).getUTCDate())));

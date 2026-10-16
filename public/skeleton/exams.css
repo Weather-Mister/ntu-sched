@@ -97,17 +97,3 @@ button.exam-warning-class:focus-visible{outline:2px solid currentColor;outline-o
   .exam-editor-fields>div,.exam-editor-fields input{min-width:0;max-width:100%}
 }
 @media(max-width:390px){.exam-editor-actions{gap:5px}}
-
-
-/* Same stable lesson accent used in the day/week timetable. Keep course
-   identity neutral when a COOL entry cannot be matched unambiguously. */
-.cool-list .cool-item[data-color]{
-  position:relative;
-  background:color-mix(in srgb,var(--course-color) 5%,var(--card));
-}
-.cool-list .cool-item[data-color]::before{
-  content:"";position:absolute;left:0;top:7px;bottom:7px;
-  width:5px;border-radius:0 4px 4px 0;background:var(--course-color);
-  pointer-events:none;
-}
-.cool-list .cool-item[data-color] .cool-date{color:var(--course-color)}
