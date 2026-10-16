@@ -1,13 +1,13 @@
 import {createComposer} from './mail-composer.mjs';
 const $=id=>document.getElementById(id);
-const words={en:{mail:'Campus Mail',inbox:'Inbox',unread:'Unread',starred:'Starred',sent:'Sent',outbox:'Outbox',drafts:'Drafts',trash:'Trash',archived:'Archived',compose:'＋ Compose',search:'Search this folder',refresh:'Refresh',enable:'Enable notifications',disable:'Disable notifications',mobileEnable:'Alerts off',mobileDisable:'Alerts on',officialMail:'Official NTU Mail ↗',mobileOfficialMail:'NTU Mail ↗',loading:'Loading…',empty:'No messages found.',choose:'Select a message to read',login:'Sign in with your real NTU account to use mail.',back:'← Inbox',reply:'Reply',archive:'Archive',remove:'Move to Trash',images:'Load external images',translate:'Translate',english:'English',original:'Original',translationLabel:'ENGLISH TRANSLATION',translationFailed:'Translation failed: ',geminiPrivacy:'Translate this email with Gemini (email content is sent to Google)',to:'To',subject:'Subject',message:'Message',send:'Send',cancel:'Close editor',sending:'Sending…',delivered:'Message sent.',uncertain:'Delivery is unconfirmed. Check Sent before trying again.',check:'Check delivery',older:'Older',newer:'Newer',loadMore:'Load 50 more',loadingMore:'Loading more…',markAllRead:'Mark all read',markRead:'Mark read',markUnread:'Mark unread',star:'Star',unstar:'Remove star',of:'of',setup:'On iPhone, use Share → Add to Home Screen, open the installed app, then enable notifications.',enabled:'Notifications enabled on this device. New-mail checks run about every five minutes.',denied:'Notifications are blocked. Allow them in your browser or phone settings.',failed:'This message was not sent. Your text is still here.',install:'Add Campus Week to your Home Screen to enable alerts.'},zh:{mail:'Campus Mail',inbox:'收件匣',unread:'未讀',starred:'星號',sent:'寄件備份',outbox:'寄件匣',drafts:'草稿',trash:'垃圾桶',archived:'封存',compose:'＋ 撰寫',search:'搜尋此資料夾',refresh:'重新整理',enable:'啟用通知',disable:'關閉通知',mobileEnable:'通知關閉',mobileDisable:'通知開啟',officialMail:'臺大官方信箱 ↗',mobileOfficialMail:'臺大信箱 ↗',loading:'載入中…',empty:'沒有郵件。',choose:'選擇郵件以閱讀',login:'請使用真實臺大帳號登入以使用信箱。',back:'← 收件匣',reply:'回覆',archive:'封存',remove:'移至垃圾桶',images:'載入外部圖片',translate:'翻譯',english:'英文',original:'原文',translationLabel:'英文翻譯',translationFailed:'翻譯失敗：',geminiPrivacy:'使用 Gemini 翻譯郵件（郵件內容會傳送給 Google）',to:'收件人',subject:'主旨',message:'內文',send:'寄出',cancel:'關閉編輯器',sending:'寄送中…',delivered:'已寄出郵件。',uncertain:'尚未確認寄送結果。再次寄送前請檢查寄件備份。',check:'確認寄送結果',older:'較舊',newer:'較新',loadMore:'再載入 50 封',loadingMore:'正在載入…',markAllRead:'全部標記為已讀',markRead:'標記已讀',markUnread:'標記未讀',star:'加上星號',unstar:'取消星號',of:'／',setup:'iPhone 請點選分享 → 加入主畫面，開啟安裝後的 App，再啟用通知。',enabled:'此裝置已啟用通知。約每五分鐘檢查新郵件。',denied:'通知已被封鎖。請至瀏覽器或手機設定允許通知。',failed:'郵件未寄出，編輯器保留了您的內文。',install:'將 Campus Week 加入主畫面以啟用通知。'}};
+const words={en:{mail:'Campus Mail',inbox:'Inbox',unread:'Unread',starred:'Starred',sent:'Sent',outbox:'Outbox',drafts:'Drafts',trash:'Trash',archived:'Archived',compose:'＋ Compose',search:'Search this folder',refresh:'Refresh',enable:'Enable notifications',disable:'Disable notifications',mobileEnable:'Alerts off',mobileDisable:'Alerts on',officialMail:'Official NTU Mail ↗',mobileOfficialMail:'NTU Mail ↗',loading:'Loading…',empty:'No messages found.',choose:'Select a message to read',login:'Sign in with your real NTU account to use mail.',back:'← Inbox',reply:'Reply',archive:'Archive',remove:'Move to Trash',images:'Load external images',translate:'Translate',english:'English',original:'Original',translationLabel:'ENGLISH TRANSLATION',translationFailed:'Translation failed: ',geminiPrivacy:'Translate this email with Gemini (email content is sent to Google)',to:'To',subject:'Subject',message:'Message',send:'Send',cancel:'Close editor',sending:'Sending…',delivered:'Message sent.',uncertain:'Delivery is unconfirmed. Check Sent before trying again.',check:'Check delivery',older:'Older',newer:'Newer',loadMore:'Load 50 more',loadingMore:'Loading more…',markAllRead:'Mark all read',markRead:'Mark read',markUnread:'Mark unread',star:'Star',unstar:'Remove star',of:'of',setup:'On iPhone, use Share → Add to Home Screen, open the installed app, then enable notifications.',enabled:'Notifications enabled on this device. New-mail checks run about every five minutes.',denied:'Notifications are blocked. Allow them in your browser or phone settings.',failed:'This message was not sent. Your text is still here.',install:'Add Campus Week to your Home Screen to enable alerts.',pushPreparing:'Preparing notification setup…',pushRetry:'Notification setup failed. Tap Enable notifications to retry.',pushReady:'Notifications are ready to enable. Tap Enable notifications once more.'},zh:{mail:'Campus Mail',inbox:'收件匣',unread:'未讀',starred:'星號',sent:'寄件備份',outbox:'寄件匣',drafts:'草稿',trash:'垃圾桶',archived:'封存',compose:'＋ 撰寫',search:'搜尋此資料夾',refresh:'重新整理',enable:'啟用通知',disable:'關閉通知',mobileEnable:'通知關閉',mobileDisable:'通知開啟',officialMail:'臺大官方信箱 ↗',mobileOfficialMail:'臺大信箱 ↗',loading:'載入中…',empty:'沒有郵件。',choose:'選擇郵件以閱讀',login:'請使用真實臺大帳號登入以使用信箱。',back:'← 收件匣',reply:'回覆',archive:'封存',remove:'移至垃圾桶',images:'載入外部圖片',translate:'翻譯',english:'英文',original:'原文',translationLabel:'英文翻譯',translationFailed:'翻譯失敗：',geminiPrivacy:'使用 Gemini 翻譯郵件（郵件內容會傳送給 Google）',to:'收件人',subject:'主旨',message:'內文',send:'寄出',cancel:'關閉編輯器',sending:'寄送中…',delivered:'已寄出郵件。',uncertain:'尚未確認寄送結果。再次寄送前請檢查寄件備份。',check:'確認寄送結果',older:'較舊',newer:'較新',loadMore:'再載入 50 封',loadingMore:'正在載入…',markAllRead:'全部標記為已讀',markRead:'標記已讀',markUnread:'標記未讀',star:'加上星號',unstar:'取消星號',of:'／',setup:'iPhone 請點選分享 → 加入主畫面，開啟安裝後的 App，再啟用通知。',enabled:'此裝置已啟用通知。約每五分鐘檢查新郵件。',denied:'通知已被封鎖。請至瀏覽器或手機設定允許通知。',failed:'郵件未寄出，編輯器保留了您的內文。',install:'將 Campus Week 加入主畫面以啟用通知。',pushPreparing:'正在準備通知設定…',pushRetry:'通知設定失敗。請再次點選啟用通知以重試。',pushReady:'通知已準備就緒，請再次點選啟用通知。'}};
 function node(tag,attrs={},text){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else e.setAttribute(k,v);}if(text!==undefined)e.textContent=text;return e;}
 export function createMailUI({account,isLive,language}){
  const dialog=$('mail-dialog'),list=dialog.querySelector('.mailx-list'),reader=dialog.querySelector('.mailx-reader'),
   count=dialog.querySelector('.mailx-count'),composeButton=dialog.querySelector('.mailx-compose-main'),
   refreshButton=dialog.querySelector('.mailx-refresh-button'),listTools=dialog.querySelector('.mailx-list-tools');
  let owner=null,epoch=0,folder='inbox',query='',busy=false,queuedLoad=null,sequence=0,reading=0,
-  current=null,pushId=null,registration=null,lastLoad=0,messages=[],nextCursor=null,totalCount=0,mutating=false,
+  current=null,pushId=null,registration=null,pushKey=null,pushSubscription=null,pushReady=false,pushLoading=false,lastLoad=0,messages=[],nextCursor=null,totalCount=0,mutating=false,
    translationCache=new Map(),translationShown=new Set(),translationRequests=new Map();
  const w=()=>words[language()==='zh'?'zh':'en'];
  const status=node('p',{class:'mail-status',role:'status','aria-live':'polite'}),
@@ -137,7 +137,7 @@ export function createMailUI({account,isLive,language}){
  function bind(value){
   const next=value?.studentNumber||null;if(next===owner)return;
   epoch++;sequence++;reading++;owner=next;busy=false;queuedLoad=null;folder='inbox';query='';
-  messages=[];nextCursor=null;totalCount=0;search.value='';composer.bind(next);pushId=null;
+  messages=[];nextCursor=null;totalCount=0;search.value='';composer.bind(next);pushId=null;pushKey=null;pushSubscription=null;pushReady=false;pushLoading=false;
    translationCache.clear();translationShown.clear();translationRequests.clear();
   list.replaceChildren();emptyReader();tell('');locale();renderList();
   if(!next){dialog.close();void navigator.serviceWorker?.getRegistration('/').then(async r=>{await(await r?.pushManager.getSubscription())?.unsubscribe();}).catch(()=>{});}
@@ -286,15 +286,64 @@ export function createMailUI({account,isLive,language}){
   emptyReader();renderList();locale();void load(false);
  }
  function edit(reply){void composer.open(reply);}
- async function initPush(){if(!owner||!('serviceWorker'in navigator)||!('PushManager'in window))return;const generation=epoch;try{registration=await navigator.serviceWorker.register('/mail-sw.js',{scope:'/'});const data=await request('push');const sub=await registration.pushManager.getSubscription();if(generation!==epoch)return;if(sub){const existing=data.devices.find(d=>d.id);pushId=existing&&await crypto.subtle.digest('SHA-256',new TextEncoder().encode(sub.endpoint)).then(v=>btoa(String.fromCharCode(...new Uint8Array(v))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,''));if(!data.devices.some(d=>d.id===pushId))pushId=null;}locale();}catch{/* Mail reading remains available when push is unavailable. */}}
- async function togglePush(){if(!owner)return tell(w().login);if(!('serviceWorker'in navigator)||!('PushManager'in window))return tell(w().setup);if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.standalone&&!matchMedia('(display-mode: standalone)').matches)return tell(w().setup);
-  const generation=epoch;pushButton.disabled=true;try{
-   // Request permission directly from the click, before waiting on network work.
-   if(!pushId&&await Notification.requestPermission()!=='granted'){tell(w().denied);return;}
-   if(!registration)registration=await navigator.serviceWorker.register('/mail-sw.js',{scope:'/'});await navigator.serviceWorker.ready;
-   if(pushId){await request('push',{method:'DELETE',body:JSON.stringify({id:pushId})});await(await registration.pushManager.getSubscription())?.unsubscribe();pushId=null;tell('');}
-   else{const data=await request('push'),key=Uint8Array.from(atob(data.publicKey.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));const sub=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});const result=await request('push',{method:'POST',body:JSON.stringify(sub.toJSON())});if(generation!==epoch){await sub.unsubscribe();return;}pushId=result.id;tell(w().enabled);}locale();
-  }catch(error){if(generation===epoch)tell(error.message);}finally{pushButton.disabled=false;}}
+ // Preload the VAPID key and current subscription as soon as Mail opens.
+ // Safari/iOS requires subscribe() to be initiated by a user gesture: no
+ // account fetch, registration or other network work may precede it in the click.
+ async function initPush(){
+  if(!owner||!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))return;
+  if(pushLoading)return;
+  const generation=epoch;
+  pushLoading=true;pushButton.disabled=true;
+  try{
+   registration=await navigator.serviceWorker.register('/mail-sw.js',{scope:'/'});
+   const data=await request('push');
+   const sub=await registration.pushManager.getSubscription();
+   if(generation!==epoch)return;
+   const key=data.publicKey.replaceAll('-','+').replaceAll('_','/');
+   pushKey=Uint8Array.from(atob(key),c=>c.charCodeAt(0));
+   pushSubscription=sub;
+   let id=null;
+   if(sub){
+    const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(sub.endpoint));
+    id=btoa(String.fromCharCode(...new Uint8Array(hash))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+   }
+   if(generation!==epoch)return;
+   pushId=id&&data.devices.some(d=>d.id===id)?id:null;
+   pushReady=true;
+   if(data.state?.last_error)tell(data.state.last_error);
+  }catch(error){
+   if(generation===epoch){pushReady=false;tell(error?.message||w().pushRetry);}
+  }finally{
+   if(generation===epoch){pushLoading=false;pushButton.disabled=false;locale();}
+  }
+ }
+ async function togglePush(){
+  if(!owner)return tell(w().login);
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))return tell(w().setup);
+  if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.standalone&&!matchMedia('(display-mode: standalone)').matches)return tell(w().setup);
+  if(pushLoading)return;
+  if(!pushReady){tell(w().pushPreparing);await initPush();if(pushReady)tell(w().pushReady);return;}
+  const generation=epoch;
+  pushButton.disabled=true;
+  try{
+   if(pushId){
+    await request('push',{method:'DELETE',body:JSON.stringify({id:pushId})});
+    await pushSubscription?.unsubscribe();
+    pushSubscription=null;pushId=null;tell('');
+   }else{
+    if(Notification.permission!=='granted'&&await Notification.requestPermission()!=='granted'){tell(w().denied);return;}
+    // All asynchronous account and worker setup happened in initPush.
+    // Reuse the cached browser subscription if it already exists.
+    const sub=pushSubscription||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushKey});
+    pushSubscription=sub;
+    const result=await request('push',{method:'POST',body:JSON.stringify(sub.toJSON())});
+    if(generation!==epoch)return;
+    pushId=result.id;tell(w().enabled);
+   }
+   if(generation===epoch)locale();
+  }catch(error){if(generation===epoch)tell(error?.message||w().pushRetry);}
+  finally{if(generation===epoch)pushButton.disabled=false;}
+ }
  function open(){
   if(!dialog.open)dialog.showModal();locale();
   if(!owner){tell(w().login);return;}
