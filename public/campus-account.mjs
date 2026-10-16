@@ -38,7 +38,7 @@ export class CampusAccount {
   }
   async changeCourseDetails(id,details) { return this.request('timetable/courses/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(details)}); }
   async courseOptions(courseId) { return this.request('exams/options',{method:'POST',body:JSON.stringify({courseId})}); }
-  async courseExamPlan(courseId) { return this.request('exams/plan',{method:'POST',body:JSON.stringify({courseId})}); }
+  async courseExamPlan(courseId,force=false) { return this.request('exams/plan',{method:'POST',body:JSON.stringify({courseId,...(force?{force:true}:{})})}); }
   async coolCalendar() { return this.request('cool/calendar'); }
   async syncCoolCalendar(password, signal, force = false) {
     return this.request('cool/calendar/sync', { method: 'POST', signal, body: JSON.stringify(password === undefined ? { force } : { password, force }) });
