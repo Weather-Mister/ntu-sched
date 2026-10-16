@@ -15,6 +15,7 @@ import {readPreferences,savePreferences,readHanziWidget} from './student-prefere
 import { readNtuCourseExams, syllabusUrl, matchImportedCourse } from './ntu-course-exams.mjs';
 import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
 import {coolPlanForStudent} from './cool-course-plan.mjs';
+import {preferredExamPlan} from './exam-plan.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -203,8 +204,15 @@ export default {
         const plan=await coolPlanForStudent(env,current,resolution.selected);
         return json({studentNumber:current.student_number,plan});
       }
-      if (path === '/api/exams/resolve' && request.method === 'GET') {
-        const current=await session(request,env),search=new URL(request.url).searchParams;
+      if (path === '/api/exams/resolve' && request.method === 'GET' || path==='/api/exams/plan'&&request.method==='POST') {
+        const coolFirst=path==='/api/exams/plan',current=await session(request,env,coolFirst);
+        let search=new URL(request.url).searchParams;
+        if(coolFirst){
+          const body=await readJson(request,2000);
+          if(new URL(request.url).search||Object.keys(body).some(k=>!['courseId','serial'].includes(k))||typeof body.courseId!=='string'||body.serial!==undefined&&typeof body.serial!=='string')
+            throw new ApiError(400,'invalid_exam_lookup','Choose a course from your imported timetable.');
+          search=new URLSearchParams(body);
+        }
         if([...search.keys()].some(k=>!['courseId','serial'].includes(k)) || search.getAll('courseId').length!==1 ||
           !/^[A-Za-z0-9_-]{43}$/.test(search.get('courseId')||'') ||
           search.has('serial')&&(search.getAll('serial').length!==1||!/^\d{4,6}$/.test(search.get('serial'))))
@@ -229,8 +237,8 @@ export default {
         const resolution=resolveNtuCourse(timetable,rows,candidates,{serial:search.get('serial')||undefined,coolIds});
         let course=null;
         if(resolution.selected){
-          course=await readNtuCourseExams(resolution.selected.sourceUrl);
-          if(matchImportedCourse(timetable,{code:resolution.selected.courseCode,serial:resolution.selected.serial,section:resolution.selected.section},course).status!=='matched-identifiers')
+          course=coolFirst?await preferredExamPlan(env,current,timetable,resolution.selected):await readNtuCourseExams(resolution.selected.sourceUrl);
+          if(!coolFirst&&matchImportedCourse(timetable,{code:resolution.selected.courseCode,serial:resolution.selected.serial,section:resolution.selected.section},course).status!=='matched-identifiers')
             throw new ApiError(502,'exam_catalog_changed','The syllabus and catalog metadata disagree. No dates were imported.');
         }
         return json({studentNumber:current.student_number,matching:resolution.matching,course,
