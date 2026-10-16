@@ -41,6 +41,7 @@ test('custom exams validate dates, weeks, and personal overrides without inventi
 test('only sourced exams may be hidden, and a hidden item needs no invented date',()=>{
  const payload=values({date:null,week:null,sourceKey:'import:specific-key',hidden:true});
  assert.equal(normalizeCustomExam(payload).hidden,true);
+ assert.equal(normalizeCustomExam({...payload,hidden:false}).date,null,'restoring source without a known date is valid');
  assert.throws(()=>normalizeCustomExam(values({hidden:true})));
  assert.throws(()=>normalizeCustomExam(values({hidden:'true',sourceKey:'import:x'})));
 });
