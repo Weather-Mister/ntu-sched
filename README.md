@@ -175,10 +175,12 @@ on the content lists while preserving native scrolling and adding accessible
 keyboard/drag controls. The day sidebar stays fixed; NTU service keys sit below
 Manual Tasks. Theme switching removes all decorations, faders and observers.
 
-The console fills the desktop window and grows with busy days. Lessons use the
+The console fits the desktop viewport, including shorter laptop screens. Lessons use the
 personal site's compact time lane, raised beige cards, colored edge/dot and
-pressed hover response; the lesson list uses page scrolling without an inner
-scrollbar. Courses and Manual Tasks panels size to their content. The separate
+pressed hover response; lesson rows share the available height without an inner
+scrollbar. Busy days use compact title-only cards, with full details in the lesson
+editor. Mobile retains natural page scrolling. Manual Tasks uses thin, single-line
+entries with small completion keys. Courses and Manual Tasks panels size to their content. The separate
 Exams tab uses assignment-style rows and Finish keys while retaining its editor.
 Retro Mail occupies the same chassis with the personal client's folder keys,
 message list, CRT reader and dark composer. It reuses the shared Mail controllers,
