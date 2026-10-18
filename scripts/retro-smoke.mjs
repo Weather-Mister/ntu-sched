@@ -33,7 +33,7 @@ async function choose(page,theme){
  await page.locator('#settings-close-desktop').click();
 }
 try{
- for(const [width,height] of [[1440,900],[1920,1080],[1024,768],[859,900],[844,390],[790,900],[390,844],[320,740]]){
+ for(const [width,height] of [[1440,900],[1366,768],[1280,720],[1920,1080],[1024,768],[859,900],[844,390],[790,900],[390,844],[320,740]]){
   if(process.env.SMOKE_WIDTH&&width!==Number(process.env.SMOKE_WIDTH))continue;
   console.log('Checking '+width+'×'+height);
   const page=await browser.newPage({viewport:{width,height}});
@@ -50,10 +50,19 @@ try{
   assert.equal(await page.locator('.retro-slider[aria-controls="schedule-list"]').count(),0);
   assert.equal(await page.locator('#schedule-list').evaluate(e=>getComputedStyle(e).overflowY),'visible');
   if(width>=860)assert.ok(await page.locator('.week-section').evaluate(e=>e.querySelector('.day-button').getBoundingClientRect().width>e.getBoundingClientRect().width*.7),'Day keys fill the fixed sidebar');
+  if(width>=860)assert.ok(await page.locator('.app-shell').evaluate(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&document.documentElement.scrollHeight<=innerHeight+1;}),'Desktop console fits vertically');
+  assert.ok(await page.locator('.todo-row').first().evaluate(e=>e.getBoundingClientRect().height<=31),'Thin task rows');
   const topMail=page.locator('.side-column [data-open-mail]');assert.ok(await topMail.isVisible());
   assert.equal(await page.locator('.topbar [data-open-mail]').count(),0);
   await page.locator('.day-button').first().click();
   const firstName=await page.locator('#selected-day').textContent();assert.ok(firstName);
+  if(width>=860){
+   await page.locator('#schedule-list').evaluate(list=>{const first=list.querySelector('.lesson');for(let i=0;i<8;i++){const row=first.cloneNode(true);row.classList.add('fit-clone');list.append(row);}});
+   assert.ok(await page.locator('#schedule-list').evaluate(e=>e.scrollHeight<=e.clientHeight+2),'Busy schedule fits available height');
+   assert.ok(await page.locator('#schedule-list .lesson-name').evaluateAll(nodes=>nodes.every(e=>e.getBoundingClientRect().height>=10)),'Busy lesson titles remain visible');
+   assert.ok(await page.locator('.app-shell').evaluate(e=>e.getBoundingClientRect().bottom<=innerHeight),'Busy console fits viewport');
+   await page.locator('.fit-clone').evaluateAll(nodes=>nodes.forEach(e=>e.remove()));
+  }
   if(await page.locator('.lesson-card').count()){
    await page.locator('.lesson-card').first().click();await page.locator('#lesson-dialog[open]').waitFor();
    await checkOverflow(page,`${width} class editor`);await page.keyboard.press('Escape');
