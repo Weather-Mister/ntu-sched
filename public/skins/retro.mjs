@@ -1,6 +1,7 @@
 import {scopeState,scopeTrace,taipeiClock} from './retro-scope.mjs';
 import {decorateRetroDates} from './retro-dates.mjs';
 import {startRetroScrollbars} from './retro-scrollbars.mjs';
+import {startRetroMail} from './retro-mail.mjs';
 let cleanup, boundary=null, refresh, readBoundary;
 export function setRetroBoundaryReader(reader){readBoundary=reader;}
 export function updateRetroBoundary(next) {
@@ -69,7 +70,9 @@ export function applyRetroSkin(enabled) {
   reconcile();
   const stopDates=decorateRetroDates(document.getElementById('cool-list'));
   const stopScrollbars=startRetroScrollbars(app);
+  const stopMail=startRetroMail(app);
   cleanup=()=>{
+    stopMail();
     stopDates();stopScrollbars();
     refresh=undefined;window.cancelAnimationFrame?.(frame);clearInterval(timer);observer.disconnect();
     document.removeEventListener('visibilitychange',reconcile);reduced.removeEventListener?.('change',reconcile);desktop.removeEventListener?.('change',reconcile);

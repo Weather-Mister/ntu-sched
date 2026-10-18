@@ -175,11 +175,24 @@ on the content lists while preserving native scrolling and adding accessible
 keyboard/drag controls. The day sidebar stays fixed; NTU service keys sit below
 Manual Tasks. Theme switching removes all decorations, faders and observers.
 
+The console fills the desktop window and grows with busy days. Lessons use the
+personal site's compact time lane, raised beige cards, colored edge/dot and
+pressed hover response; the lesson list uses page scrolling without an inner
+scrollbar. Courses and Manual Tasks panels size to their content. The separate
+Exams tab uses assignment-style rows and Finish keys while retaining its editor.
+Retro Mail occupies the same chassis with the personal client's folder keys,
+message list, CRT reader and dark composer. It reuses the shared Mail controllers,
+sanitized iframe, drafts and account APIs. Leaving Retro restores the native Mail
+dialog and preserves an open Settings sheet above it.
+
 `node scripts/retro-smoke.mjs` runs local browser checks using Playwright and
 fictional preview data (install Playwright separately or pass its absolute
 `index.mjs` path). It defaults to installed Microsoft Edge; set `BROWSER_CHANNEL`
 to select another installed Chromium channel. Screenshots go to ignored
 `test-results/retro/`. No real email, provider login or push is performed.
+`node scripts/retro-content-smoke.mjs` accepts the same Playwright path and checks
+populated Mail, composer, theme restoration and exam layouts using fictional
+local fixtures; its fake provider rejects sending.
 
 The skeleton Settings dialog is one continuous page: student number/logout, three live theme previews (Daylight, After hours, device appearance), interface language, timetable statistics, illustrated iOS/Android installation guides and an optional Hanzi Steps companion. Miniature previews are local CSS; no remote pages or trackers load. Statistics derive from stable course IDs and valid weekly meetings; personal events and duplicate meetings are excluded. Hours measure the scheduled start-to-end duration, including breaks within an imported meeting.
 

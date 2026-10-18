@@ -347,7 +347,7 @@ export function createMailUI({account,isLive,language}){
   finally{if(generation===epoch)pushButton.disabled=false;}
  }
  function open(){
-  if(!dialog.open)dialog.showModal();locale();
+  if(!dialog.open){if(dialog.dataset.retroEmbedded==='true')dialog.show();else dialog.showModal();}locale();
   if(!owner){tell(w().login);return;}
   void load(false);void initPush();
  }

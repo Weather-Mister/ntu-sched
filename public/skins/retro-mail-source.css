@@ -1,0 +1,423 @@
+/* Personal console inline Mail styles, scoped and mapped to Campus Week nodes.
+   Source: ntu-mail-push/sites/eren/skeuo-demo.html. No source scripts or data imported. */
+
+
+
+
+
+
+
+body[data-theme="retro"] #mail-dialog.mailx-dialog{--mailx-list-w: 356px; width: min(1360px, -44px + 100vw); height: min(790px, 100dvh - 44px); max-width: none; max-height: none; padding: 14px; border: 1px solid rgb(117, 106, 86); border-radius: 13px 13px 18px 18px; background: linear-gradient(rgba(255, 255, 255, 0.32), transparent 9%), linear-gradient(rgb(216, 206, 181) 0px, rgb(216, 206, 181) 7%, rgb(201, 190, 164) 7%, rgb(201, 190, 164) 92%, rgb(177, 164, 138) 92%); color: rgb(41, 37, 30); box-shadow: rgba(255, 255, 255, 0.58) 0px 2px 0px inset, rgba(100, 88, 66, 0.25) 0px -4px 0px inset, rgb(138, 127, 105) 0px 9px 0px, rgb(109, 99, 81) 0px 15px 0px, rgba(24, 9, 2, 0.48) 24px 32px 7px, rgba(17, 6, 2, 0.36) 42px 50px 17px; overflow: hidden;}
+body[data-theme="retro"] #mail-dialog.mailx-dialog::backdrop{background: rgba(30, 12, 4, 0.34); backdrop-filter: none;}
+body[data-theme="retro"] #mail-dialog .mailx-shell{height: 100%; min-height: 0px; border: 1px solid rgb(135, 123, 101); border-radius: 7px; background: rgb(180, 169, 144); overflow: hidden; box-shadow: rgba(64, 49, 31, 0.2) 0px 4px 10px inset, rgba(255, 255, 255, 0.18) 0px -1px inset;}
+body[data-theme="retro"] #mail-dialog svg{stroke-width: 1.8;}
+body[data-theme="retro"] #mail-dialog .mailx-topbar{min-height: 58px; padding: 10px 12px; gap: 9px; border-bottom: 1px solid rgb(129, 117, 95); background: linear-gradient(rgba(255, 255, 255, 0.18), transparent 35%), rgb(199, 188, 162);}
+body[data-theme="retro"] #mail-dialog .mailx-brand{gap: 8px;}
+body[data-theme="retro"] #mail-dialog .mailx-brand-icon{width: 31px; height: 31px; border-radius: 4px; border: 1px solid rgb(117, 107, 88); background: rgb(169, 158, 134); color: rgb(71, 65, 53); box-shadow: rgba(255, 255, 255, 0.28) 0px 2px inset, rgb(124, 113, 93) 0px 2px 0px;}
+body[data-theme="retro"] #mail-dialog .mailx-title{font-size: 18px; color: rgb(40, 36, 29); font-weight: 800;}
+body[data-theme="retro"] #mail-dialog .mailx-topbar > .mailx-search{margin-left: 14px; max-width: 500px; height: 34px; border: 1px solid rgb(105, 95, 79); border-radius: 4px; background: rgb(129, 119, 99); color: rgb(238, 231, 215); font-size: 12px; box-shadow: rgba(35, 25, 15, 0.35) 0px 4px 7px inset, rgba(255, 255, 255, 0.16) 0px 1px;}
+body[data-theme="retro"] #mail-dialog .mailx-topbar > .mailx-search::placeholder{color: rgb(211, 202, 183);}
+body[data-theme="retro"] #mail-dialog .mailx-compose-main,
+body[data-theme="retro"] #mail-dialog .mailx-topbar .mailx-refresh-button,
+body[data-theme="retro"] #mail-dialog .mailx-topbar #mailxSettings,
+body[data-theme="retro"] #mail-dialog .mailx-topbar #mail-close,
+body[data-theme="retro"] #mail-dialog .mailx-action,
+body[data-theme="retro"] #mail-dialog .mailx-reply-button,
+body[data-theme="retro"] #mail-dialog .mailx-send,
+body[data-theme="retro"] #mail-dialog .mailx-schedule,
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate,
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip,
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar button,
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar select,
+body[data-theme="retro"] #mail-dialog .mailx-attachment-download,
+body[data-theme="retro"] #mail-dialog .mailx-sheet button{transform: translateY(-3px); transition: transform 60ms, box-shadow 60ms, filter 80ms; text-shadow: rgba(255, 255, 255, 0.3) 0px 1px; border: 1px solid rgb(139, 128, 106) !important; border-radius: 5px !important; color: rgb(44, 40, 33) !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.33), transparent 31%), linear-gradient(rgb(240, 232, 213), rgb(224, 214, 191) 62%, rgb(193, 180, 154)) !important; box-shadow: rgba(255, 255, 255, 0.62) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 4px 0px, rgba(42, 24, 11, 0.24) 5px 7px 6px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-main:active,
+body[data-theme="retro"] #mail-dialog .mailx-topbar .mailx-refresh-button:active,
+body[data-theme="retro"] #mail-dialog .mailx-topbar #mailxSettings:active,
+body[data-theme="retro"] #mail-dialog .mailx-topbar #mail-close:active,
+body[data-theme="retro"] #mail-dialog .mailx-action:active,
+body[data-theme="retro"] #mail-dialog .mailx-reply-button:active,
+body[data-theme="retro"] #mail-dialog .mailx-send:active,
+body[data-theme="retro"] #mail-dialog .mailx-schedule:active,
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate:active,
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip:active,
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar button:active{transform: translateY(1px); box-shadow: rgba(72, 61, 45, 0.22) 0px 2px 3px inset, rgb(129, 118, 97) 0px 1px 0px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-topbar .mailx-compose-main{min-height: 34px; padding: 0px 13px; font-size: 10px; font-weight: 800;}
+body[data-theme="retro"] #mail-dialog .mailx-topbar .mailx-refresh-button{margin-left: auto; width: 34px; min-height: 34px; font-size: 18px;}
+body[data-theme="retro"] #mail-dialog .mailx-topbar #mailxSettings,
+body[data-theme="retro"] #mail-dialog .mailx-topbar #mail-close{width: 32px; min-height: 34px;}
+body[data-theme="retro"] #mail-dialog .mailx-account-switch{width: 33px; height: 33px; flex: 0 0 33px; border-radius: 5px; background: rgb(157, 146, 123); color: rgb(237, 229, 212); border: 1px solid rgb(113, 102, 83); box-shadow: rgba(39, 28, 17, 0.22) 0px 2px 4px inset;}
+body[data-theme="retro"] #mail-dialog .mailx-main{grid-template-columns: 64px var(--mailx-list-w,356px) 9px minmax(0,1fr); padding: 9px; gap: 0px; background: rgb(170, 158, 132); min-height: 0px;}
+body[data-theme="retro"] #mail-dialog .mailx-nav{padding: 8px 8px 8px 0px; gap: 7px; background: transparent;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter{width: 42px; height: 42px; min-height: 42px; border: 1px solid rgb(137, 125, 103); border-radius: 6px; color: rgb(91, 84, 72); background: linear-gradient(rgb(232, 223, 203), rgb(214, 203, 179) 66%, rgb(186, 173, 147)); box-shadow: rgba(255, 255, 255, 0.5) 0px 2px inset, rgb(158, 146, 122) 0px 2px 0px, rgb(119, 109, 90) 0px 5px 0px, rgba(42, 24, 11, 0.2) 5px 7px 6px; transform: translateY(-3px);}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter[aria-pressed="true"]{color: rgb(241, 237, 227); border-color: rgb(53, 73, 102); background: linear-gradient(rgb(113, 131, 160), rgb(82, 104, 135) 68%, rgb(69, 91, 123)); transform: translateY(1px); box-shadow: rgba(29, 39, 56, 0.34) 0px 2px 4px inset, rgb(46, 64, 93) 0px 1px 0px, rgba(35, 22, 13, 0.18) 2px 3px 3px;}
+body[data-theme="retro"] #mail-dialog .mailx-rail-count{background: rgb(156, 81, 72); color: rgb(255, 255, 255); top: -2px; right: -3px;}
+body[data-theme="retro"] #mail-dialog .mailx-rail-divider{border-color: rgb(117, 107, 89);}
+body[data-theme="retro"] #mail-dialog .mailx-list-pane,
+body[data-theme="retro"] #mail-dialog .mailx-reader{border: 2px solid rgb(125, 113, 92); border-radius: 5px; background: rgb(184, 173, 148); box-shadow: rgba(55, 43, 28, 0.27) 0px 5px 10px inset, rgba(255, 255, 255, 0.18) 0px 1px; overflow: hidden;}
+body[data-theme="retro"] #mail-dialog .mailx-list-tools{padding: 9px 10px 7px; border-bottom: 1px solid rgb(127, 116, 95); background: rgb(185, 173, 148);}
+body[data-theme="retro"] #mail-dialog .mailx-list-meta{font: 700 7px "Courier New", monospace; color: rgb(94, 86, 73);}
+body[data-theme="retro"] #mail-dialog .mailx-list-extra select{border: 1px solid rgb(120, 109, 90); border-radius: 4px; background: rgb(145, 134, 114); color: rgb(238, 230, 212); box-shadow: rgba(40, 29, 18, 0.24) 0px 2px 4px inset; font-size: 9px;}
+body[data-theme="retro"] #mail-dialog .mailx-list-extra .campus-mail-mark-all{font-size: 8px; padding: 0px 8px;}
+body[data-theme="retro"] #mail-dialog .campus-mail-item{border-color: rgb(130, 119, 98); background: rgb(184, 173, 148);}
+body[data-theme="retro"] #mail-dialog .campus-mail-item .campus-mail-open{grid-template-columns: 34px minmax(0px, 1fr); gap: 9px; padding: 11px 10px; background: rgb(189, 177, 154); color: rgb(44, 40, 33);}
+body[data-theme="retro"] #mail-dialog .campus-mail-item .campus-mail-open:hover{background: rgb(200, 189, 165);}
+body[data-theme="retro"] #mail-dialog .campus-mail-item .campus-mail-open[aria-pressed="true"]{background: rgb(211, 200, 173); box-shadow: rgb(80, 103, 135) 4px 0px inset;}
+body[data-theme="retro"] #mail-dialog .campus-mail-avatar{width: 33px; height: 33px; border-radius: 4px; border: 1px solid rgb(133, 122, 101); background: rgb(158, 146, 122); color: rgb(238, 230, 212); box-shadow: rgba(255, 255, 255, 0.18) 0px 1px inset;}
+body[data-theme="retro"] #mail-dialog .campus-mail-avatar.tone-1{background: rgb(116, 128, 104); color: rgb(242, 237, 222);}
+body[data-theme="retro"] #mail-dialog .campus-mail-avatar.tone-2{background: rgb(123, 112, 131); color: rgb(242, 237, 222);}
+body[data-theme="retro"] #mail-dialog .campus-mail-avatar.tone-3{background: rgb(138, 115, 91); color: rgb(242, 237, 222);}
+body[data-theme="retro"] #mail-dialog .campus-mail-avatar.tone-4{background: rgb(101, 121, 133); color: rgb(242, 237, 222);}
+body[data-theme="retro"] #mail-dialog .campus-mail-sender{font-size: 11px; color: rgb(45, 41, 34);}
+body[data-theme="retro"] #mail-dialog .campus-mail-subject{font-size: 11px; color: rgb(52, 48, 39); line-height: 1.35;}
+body[data-theme="retro"] #mail-dialog .campus-mail-snippet{font-size: 9px; color: rgb(103, 95, 81);}
+body[data-theme="retro"] #mail-dialog .campus-mail-date,
+body[data-theme="retro"] #mail-dialog .campus-mail-provider .mailx-account,
+body[data-theme="retro"] #mail-dialog .mailx-row-status{color: rgb(113, 104, 88);}
+body[data-theme="retro"] #mail-dialog .mailx-unread-dot{background: rgb(101, 121, 90);}
+body[data-theme="retro"] #mail-dialog .campus-mail-actions{border: 1px solid rgb(130, 119, 97); border-radius: 5px; background: rgb(198, 186, 162); box-shadow: rgba(45, 26, 13, 0.18) 0px 4px 7px;}
+body[data-theme="retro"] #mail-dialog .campus-mail-actions button{color: rgb(92, 84, 71); border-radius: 4px;}
+body[data-theme="retro"] #mail-dialog .mailx-resizer{cursor: col-resize; position: relative;}
+body[data-theme="retro"] #mail-dialog .mailx-resizer::after{content: ""; position: absolute; width: 3px; top: 9px; bottom: 9px; left: 3px; border-radius: 3px; background: rgb(116, 106, 88); box-shadow: rgba(255, 255, 255, 0.12) 1px 0px;}
+body[data-theme="retro"] #mail-dialog .mailx-reader{background: rgb(145, 134, 112);}
+body[data-theme="retro"] #mail-dialog .mailx-reader-toolbar{min-height: 52px; padding: 9px 10px; gap: 6px; border-bottom: 1px solid rgb(118, 107, 88); background: rgb(183, 172, 147); backdrop-filter: none;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-toolbar .mailx-action{min-height: 30px; font-size: 8px; padding: 0px 8px;}
+body[data-theme="retro"] #mail-dialog .mail-frame{margin: 0px 8px 8px; border: 3px solid rgb(120, 109, 90); border-radius: 5px; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.016) 0px, rgba(255, 255, 255, 0.016) 1px, transparent 1px, transparent 3px), rgb(40, 43, 37); color: rgb(222, 220, 204); box-shadow: rgba(0, 0, 0, 0.58) 0px 7px 16px inset, rgba(40, 23, 11, 0.21) 8px 10px 12px; overflow: auto;}
+body[data-theme="retro"] #mail-dialog .mail-message-head{padding: 18px 20px 9px;}
+body[data-theme="retro"] #mail-dialog .mail-message-head h3{font-size: 22px; color: rgb(235, 230, 214); font-weight: 650;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-title-row{display: flex; align-items: flex-start; gap: 10px;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-title-row .mail-message-head h3{flex: 1 1 0%; min-width: 0px;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-head-actions{display: flex; gap: 5px;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-tags .mailx-account,
+body[data-theme="retro"] #mail-dialog .mailx-reader-tags .mailx-chip{background: rgb(52, 56, 48); color: rgb(174, 181, 164); border: 1px solid rgb(76, 82, 71); border-radius: 3px;}
+body[data-theme="retro"] #mail-dialog .mailx-chip.high{color: rgb(230, 182, 167);}
+body[data-theme="retro"] #mail-dialog .mailx-chip.reply{color: rgb(213, 199, 140);}
+body[data-theme="retro"] #mail-dialog .mailx-thread-message{margin: 0px 20px; border-color: rgb(70, 75, 65);}
+body[data-theme="retro"] #mail-dialog .mailx-thread-details > summary{color: rgb(205, 208, 194);}
+body[data-theme="retro"] #mail-dialog .mailx-thread-summary strong{color: rgb(225, 223, 209);}
+body[data-theme="retro"] #mail-dialog .mailx-thread-summary > span,
+body[data-theme="retro"] #mail-dialog .mailx-thread-details > summary time,
+body[data-theme="retro"] #mail-dialog .mailx-message-meta > summary{color: rgb(147, 155, 141);}
+body[data-theme="retro"] #mail-dialog .mailx-mail-body{color: rgb(207, 210, 196); font-size: 13px; line-height: 1.78;}
+body[data-theme="retro"] #mail-dialog .mailx-login-card{border: 1px solid rgb(83, 90, 77); background: rgb(48, 53, 45); border-radius: 5px;}
+body[data-theme="retro"] #mail-dialog .mailx-login-label{color: rgb(155, 169, 146);}
+body[data-theme="retro"] #mail-dialog .mailx-login-code{color: rgb(216, 210, 167);}
+body[data-theme="retro"] #mail-dialog .mailx-copy-code{border: 1px solid rgb(113, 102, 83); background: rgb(217, 206, 182); color: rgb(49, 45, 37); border-radius: 4px;}
+body[data-theme="retro"] #mail-dialog .mailx-attachment-download{transform: none; color: rgb(214, 216, 203) !important; background: rgb(53, 58, 49) !important; border-color: rgb(85, 92, 79) !important; box-shadow: none !important;}
+body[data-theme="retro"] #mail-dialog .mailx-file-type{background: rgb(83, 91, 77); color: rgb(217, 221, 206);}
+body[data-theme="retro"] #mail-dialog .mailx-reply-bar{background: transparent; border-color: rgb(70, 75, 65); padding: 13px 20px 18px;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-more > summary{color: rgb(215, 213, 198);}
+body[data-theme="retro"] #mail-dialog .mailx-reader-more[open] > summary{background: rgb(68, 73, 63);}
+body[data-theme="retro"] #mail-dialog .mailx-reader-more > div{background: rgb(184, 173, 148); border: 1px solid rgb(118, 107, 88); border-radius: 5px; box-shadow: rgba(25, 11, 3, 0.34) 8px 10px 14px;}
+body[data-theme="retro"] #mail-dialog .campus-compose,
+body[data-theme="retro"] #mail-dialog .mailx-sheet{border: 1px solid rgb(117, 106, 86); border-radius: 8px; background: rgb(197, 186, 161); box-shadow: rgb(131, 119, 96) 0px 8px 0px, rgba(25, 10, 3, 0.43) 18px 24px 18px;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-head{background: rgb(183, 171, 145); border-color: rgb(130, 119, 98); cursor: default;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-fields{background: rgb(194, 182, 157);}
+body[data-theme="retro"] #mail-dialog .mailx-field-row{border-color: rgb(142, 130, 107);}
+body[data-theme="retro"] #mail-dialog .mailx-field-row label{color: rgb(93, 85, 72);}
+body[data-theme="retro"] #mail-dialog .mailx-field-row input,
+body[data-theme="retro"] #mail-dialog .mailx-field-row select{color: rgb(43, 39, 31);}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{border: 2px solid rgb(122, 112, 93); border-radius: 5px; background: rgb(145, 134, 114); box-shadow: rgba(37, 27, 16, 0.3) 0px 4px 7px inset;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-label{color: rgb(226, 217, 197);}
+body[data-theme="retro"] #mail-dialog .mailx-ai-label span:last-child{color: rgb(196, 186, 166);}
+body[data-theme="retro"] #mail-dialog .mailx-ai-prompt{color: rgb(240, 233, 218);}
+body[data-theme="retro"] #mail-dialog .mailx-ai-prompt::placeholder{color: rgb(209, 199, 179);}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip{font-size: 8px !important; padding: 5px 7px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-editor-label{color: rgb(96, 88, 75);}
+body[data-theme="retro"] #mail-dialog .mailx-editor-tools button{color: rgb(101, 92, 77);}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{margin: 0px 14px 8px; padding: 7px; border: 1px solid rgb(130, 119, 98); border-radius: 5px; background: rgb(174, 162, 137); display: flex; gap: 5px; align-items: center; flex-wrap: wrap;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar button,
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar select{min-height: 28px; padding: 0px 8px; font-size: 9px;}
+body[data-theme="retro"] #mail-dialog .mailx-format-divider{width: 1px; height: 20px; background: rgb(127, 116, 95);}
+body[data-theme="retro"] #mail-dialog .mailx-format-spacer{flex: 1 1 0%;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body{margin: 0px 14px 9px; min-height: 120px; border: 2px solid rgb(118, 107, 88); border-radius: 4px; background: rgb(129, 119, 99); color: rgb(238, 231, 216); box-shadow: rgba(34, 24, 14, 0.35) 0px 5px 9px inset; padding: 11px;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body:empty::before{content: attr(data-placeholder); color: rgb(207, 198, 179);}
+body[data-theme="retro"] #mail-dialog .mailx-attachment-list{padding: 0px 14px 7px; display: flex; gap: 6px; flex-wrap: wrap;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot{border-color: rgb(136, 125, 103); background: rgb(184, 172, 146);}
+body[data-theme="retro"] #mail-dialog .mailx-sheet-body{background: rgb(196, 185, 159); color: rgb(49, 45, 37);}
+body[data-theme="retro"] #mail-dialog .mailx-sheet-body h3{color: rgb(45, 41, 34);}
+body[data-theme="retro"] #mail-dialog .mailx-sheet-body label{color: rgb(98, 90, 76);}
+body[data-theme="retro"] #mail-dialog .mailx-sheet-body input,
+body[data-theme="retro"] #mail-dialog .mailx-sheet-body select,
+body[data-theme="retro"] #mail-dialog .mailx-callback{border: 1px solid rgb(120, 109, 89); border-radius: 4px; background: rgb(138, 128, 108); color: rgb(239, 231, 215); box-shadow: rgba(39, 28, 17, 0.28) 0px 3px 6px inset;}
+body[data-theme="retro"] #mail-dialog .mailx-rule,
+body[data-theme="retro"] #mail-dialog .mailx-settings-account{border-color: rgb(139, 128, 106);}
+body[data-theme="retro"] #mail-dialog .mailx-toast{background: rgb(44, 48, 42); color: rgb(238, 232, 217); border-radius: 4px;}
+body[data-theme="retro"] #mail-dialog .mailx-mobile-tabs{background: rgb(183, 172, 147); border-color: rgb(129, 118, 95);}
+body[data-theme="retro"] #mail-dialog .mailx-mobile-tab{border: 1px solid rgb(139, 128, 106); border-radius: 5px; background: rgb(222, 212, 189); color: rgb(73, 66, 54);}
+body[data-theme="retro"] #mail-dialog .mailx-mobile-tab.is-active{background: rgb(82, 104, 135); color: rgb(241, 237, 227); border-color: rgb(53, 73, 102);}
+body[data-theme="retro"] #mail-dialog .mailx-shell.is-reader-focused .mailx-reader{grid-column: 1 / -1;}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog.mailx-dialog{width: 100vw; height: 100dvh; border: 0px; border-radius: 0px; padding: 0px;}
+body[data-theme="retro"] #mail-dialog .mailx-shell{border: 0px; border-radius: 0px;}
+body[data-theme="retro"] #mail-dialog .mailx-main{padding: 0px;}
+body[data-theme="retro"] #mail-dialog .mail-frame{margin: 0px; border-width: 0px; border-radius: 0px;}
+body[data-theme="retro"] #mail-dialog .campus-compose,
+body[data-theme="retro"] #mail-dialog .mailx-sheet{border: 0px; border-radius: 0px;}
+}
+
+body[data-theme="retro"] #mail-dialog{grid-row: 2 / -1; min-width: 0px; min-height: 0px; display: block !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; margin: 0px !important; padding: 0px !important; position: relative !important; inset: auto !important; border: 0px !important; border-radius: 0px !important; background: transparent !important; box-shadow: none !important; transform: none !important; overflow: hidden !important;}
+body[data-theme="retro"] #mail-dialog::backdrop{display: none !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell{height: 100%; min-height: 0px; overflow: hidden; display: grid; grid-template-rows: 48px minmax(0px, 1fr); gap: 7px; border: 0px !important; border-radius: 0px !important; background: transparent !important; box-shadow: none !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell > .mailx-topbar{height: 48px; min-height: 0px !important; margin: 0px !important; padding: 7px 9px !important; border: 1px solid rgb(130, 119, 98) !important; border-radius: 5px !important; background: linear-gradient(rgba(255, 255, 255, 0.15), transparent 30%), rgb(183, 171, 145) !important; box-shadow: rgba(255, 255, 255, 0.2) 0px 2px inset, rgba(91, 76, 54, 0.12) 0px -2px inset !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell > .mailx-mobile-tabs{display: none !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell > .mailx-main{height: 100%; min-height: 0px !important; padding: 0px !important; grid-template-columns: 58px var(--mailx-list-w,340px) 7px minmax(0,1fr) !important; gap: 7px !important; background: transparent !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav{padding: 8px 5px !important; border: 1px solid rgb(123, 112, 92) !important; border-radius: 5px !important; background: rgb(170, 158, 132) !important; box-shadow: rgba(65, 49, 30, 0.22) 0px 4px 8px inset, rgba(255, 255, 255, 0.18) 0px -1px inset !important; overflow: hidden !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter{width: 38px !important; height: 38px !important; min-height: 38px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-list-pane,
+body[data-theme="retro"] #mail-dialog .mailx-reader{height: 100%; min-height: 0px; border: 1px solid rgb(119, 108, 88) !important; border-radius: 5px !important; background: rgb(180, 169, 144) !important; box-shadow: rgba(60, 46, 29, 0.28) 0px 4px 9px inset, rgba(255, 255, 255, 0.16) 0px -1px inset !important;}
+body[data-theme="retro"] #mail-dialog .mailx-list-tools{min-height: 40px; padding: 6px 8px !important; background: rgb(183, 172, 147) !important; border-bottom: 1px solid rgb(125, 114, 94) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-list{min-height: 0px; overflow: auto !important;}
+body[data-theme="retro"] #mail-dialog .campus-mail-item .campus-mail-open{padding: 9px !important; background: rgb(189, 177, 153) !important;}
+body[data-theme="retro"] #mail-dialog .campus-mail-item .campus-mail-open:hover{background: rgb(198, 186, 162) !important;}
+body[data-theme="retro"] #mail-dialog .campus-mail-item .campus-mail-open[aria-pressed="true"]{background: rgb(209, 197, 171) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader{display: flex !important; flex-direction: column !important; background: rgb(150, 139, 117) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-toolbar{min-height: 43px !important; height: 43px !important; padding: 6px 8px !important; background: rgb(181, 170, 145) !important; border-bottom: 1px solid rgb(121, 110, 89) !important;}
+body[data-theme="retro"] #mail-dialog .mail-frame{flex: 1 1 0%; min-height: 0px; margin: 0px 7px 7px !important; border: 2px solid rgb(116, 105, 87) !important; border-radius: 4px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell:has(.mail-frame) .mailx-reader{display: block !important; overflow: auto !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell:has(.mail-frame) .mailx-reader-toolbar{position: static !important; top: auto !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell:has(.mail-frame) .mail-frame{overflow: visible !important; flex: 0 0 auto !important; min-height: auto !important;}
+body[data-theme="retro"] #mail-dialog .mail-message-head{padding: 14px 17px 7px !important;}
+body[data-theme="retro"] #mail-dialog .mail-message-head h3{font-size: 19px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-thread-message{margin: 0px 17px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-mail-body{padding: 17px 0px !important; font-size: 12px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reply-bar{padding: 10px 17px 14px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-resizer{min-width: 7px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-resizer::after{left: 2px !important; top: 7px !important; bottom: 7px !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose,
+body[data-theme="retro"] #mail-dialog > .mailx-sheet{position: absolute !important; right: 10px !important; top: 57px !important; bottom: 10px !important; width: min(590px, 100% - 82px) !important; height: auto !important; max-height: none !important; border: 1px solid rgb(119, 108, 88) !important; border-radius: 6px !important; background: rgb(195, 183, 158) !important; box-shadow: rgb(131, 119, 96) 0px 6px 0px, rgba(25, 10, 3, 0.34) 12px 16px 13px !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose:not(.is-open){display: none !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-head{min-height: 40px; padding: 7px 9px !important; background: rgb(178, 166, 140) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-fields{padding-top: 5px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{margin-top: 9px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{margin-bottom: 6px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body{min-height: 90px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot{padding-top: 8px !important; padding-bottom: 9px !important;}
+body[data-theme="retro"] #mail-dialog > #mail-dialog + .vent{opacity: 0.85;}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog{height: calc(100dvh - 58px) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell{grid-template-rows: auto minmax(0px, 1fr);}
+body[data-theme="retro"] #mail-dialog .mailx-shell > .mailx-topbar{height: auto; flex-wrap: wrap; min-height: 46px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell > .mailx-main{display: flex !important; padding: 0px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-shell > .mailx-mobile-tabs{display: flex !important;}
+body[data-theme="retro"] #mail-dialog .mail-frame{margin: 0px !important; border: 0px !important;}
+}
+
+body[data-theme="retro"] #mail-dialog .mailx-nav{overflow: visible !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter{isolation: isolate; overflow: visible !important;}
+body[data-theme="retro"] #mail-dialog .mailx-rail-count{top: -7px !important; right: -7px !important; min-width: 17px !important; height: 17px !important; padding: 0px 4px !important; border: 1px solid rgb(121, 58, 52) !important; border-radius: 5px !important; background: linear-gradient(rgb(184, 101, 91), rgb(147, 72, 65)) !important; color: rgb(245, 236, 227) !important; font: 700 8px / 15px "Courier New", monospace !important; box-shadow: rgba(255, 255, 255, 0.18) 0px 1px inset, rgba(88, 37, 31, 0.26) 0px 2px 0px, rgba(38, 18, 10, 0.22) 2px 4px 5px !important; z-index: 8 !important;}
+body[data-theme="retro"] #mail-dialog .mailx-list-pane,
+body[data-theme="retro"] #mail-dialog .mailx-reader{background-image: linear-gradient(92deg, transparent 0px, transparent 18%, rgba(87, 66, 42, 0.035) 18.2%, transparent 18.7%), linear-gradient(176deg, transparent 0px, transparent 73%, rgba(88, 64, 39, 0.024) 73.3%, transparent 74%) !important; background-blend-mode: multiply, normal;}
+body[data-theme="retro"] #mail-dialog .mail-frame{position: relative;}
+body[data-theme="retro"] #mail-dialog .mail-frame::before{content: ""; position: absolute; inset: 0px; pointer-events: none; z-index: 3; opacity: 0.24; background: linear-gradient(112deg, transparent 0px, transparent 23%, rgba(210, 199, 171, 0.09) 23.15%, transparent 23.35%), linear-gradient(97deg, transparent 0px, transparent 74%, rgba(208, 194, 166, 0.07) 74.1%, transparent 74.28%), linear-gradient(171deg, transparent 0px, transparent 46%, rgba(38, 30, 21, 0.22) 46.15%, transparent 46.35%);}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog .mailx-rail-count{top: -4px !important; right: -4px !important;}
+body[data-theme="retro"] #mail-dialog .mail-frame::before{opacity: 0.14;}
+}
+
+body[data-theme="retro"] #mail-dialog .mailx-reply-bar{display: none !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose{top: 50px !important; right: 7px !important; bottom: 5px !important; width: min(640px, 100% - 72px) !important; min-height: 0px !important; overflow: hidden !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{display: grid !important; grid-template-rows: 40px auto minmax(150px, 0.78fr) 28px auto minmax(185px, 1fr) auto auto 52px;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-head{min-height: 40px !important; height: 40px !important; padding: 6px 9px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-fields{padding: 3px 14px 0px !important; background: rgb(194, 182, 157) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row{min-height: 32px !important; height: 32px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row label{letter-spacing: 0.03em; font: 700 9px / 1 "Courier New", monospace !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row input,
+body[data-theme="retro"] #mail-dialog .mailx-field-row select{font-size: 11px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{position: relative; min-height: 0px !important; margin: 8px 14px 7px !important; padding: 12px 12px 10px !important; display: grid !important; grid-template-rows: auto minmax(0px, 1fr) auto !important; gap: 8px !important; border: 3px solid rgb(115, 105, 87) !important; border-radius: 4px !important; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 3px), linear-gradient(rgb(43, 46, 40), rgb(36, 39, 32)) !important; box-shadow: rgba(0, 0, 0, 0.62) 0px 7px 15px inset, rgba(255, 255, 255, 0.024) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.12) 0px 2px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap::before{content: "INPUT TERMINAL / AI-01"; position: absolute; right: 10px; top: 9px; color: rgb(127, 136, 123); font: 700 6px / 1 "Courier New", monospace; letter-spacing: 0.12em; pointer-events: none;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-label{padding-right: 105px; margin: 0px !important; color: rgb(214, 218, 203) !important; font: 700 8px / 1 "Courier New", monospace !important; letter-spacing: 0.11em !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-label span:last-child{display: none !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-row{min-height: 0px !important; display: grid !important; grid-template-columns: minmax(0px, 1fr) auto !important; gap: 10px !important; align-items: stretch !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-prompt{width: 100% !important; height: 100% !important; min-height: 72px !important; max-height: none !important; resize: none !important; padding: 10px !important; border: 1px solid rgb(68, 74, 64) !important; border-radius: 2px !important; outline: 0px !important; background: linear-gradient(90deg, rgba(135, 151, 127, 0.024) 1px, transparent 1px) 0% 0% / 16px 100%, transparent !important; color: rgb(216, 221, 208) !important; caret-color: rgb(188, 204, 174) !important; font: 500 12px / 1.55 "Courier New", monospace !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-prompt::placeholder{color: rgb(126, 135, 121) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate{align-self: center !important; min-width: 96px !important; min-height: 38px !important; padding: 0px 12px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chips{margin: 0px !important; gap: 6px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip{min-height: 26px !important; font-size: 7px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-editor-label{letter-spacing: 0.08em; min-height: 28px !important; padding: 5px 14px 4px !important; color: rgb(93, 85, 72) !important; font: 700 8px / 1 "Courier New", monospace !important;}
+body[data-theme="retro"] #mail-dialog .mailx-editor-label > span:first-child::after{content: " / MESSAGE TERMINAL 02"; color: rgb(128, 118, 99);}
+body[data-theme="retro"] #mail-dialog .mailx-editor-tools{gap: 9px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{overflow: hidden; min-height: 38px !important; margin: 0px 14px 7px !important; padding: 5px 7px !important; gap: 5px !important; align-content: center !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar button,
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar select{min-height: 25px !important; height: 25px !important; padding: 0px 7px !important; font-size: 8px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body{position: relative; min-height: 0px !important; height: 100% !important; margin: 0px 14px 7px !important; padding: 15px 16px !important; overflow: auto !important; border: 3px solid rgb(113, 103, 85) !important; border-radius: 4px !important; outline: 0px !important; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.016) 0px, rgba(255, 255, 255, 0.016) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 78% 20%, rgba(133, 153, 122, 0.035), transparent 26%), rgb(37, 40, 33) !important; color: rgb(216, 220, 207) !important; caret-color: rgb(192, 208, 179) !important; box-shadow: rgba(0, 0, 0, 0.63) 0px 8px 17px inset, rgba(255, 255, 255, 0.02) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.1) 0px 2px !important; font: 500 12px / 1.62 "Courier New", monospace !important;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body:focus{border-color: rgb(104, 113, 95) !important; box-shadow: rgba(0, 0, 0, 0.63) 0px 8px 17px inset, rgba(181, 200, 167, 0.055) 0px 0px 0px 1px inset, rgba(94, 112, 83, 0.12) 0px 0px 0px 1px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body:empty::before{color: rgb(126, 135, 121) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-attachment-list{min-height: 0px !important; max-height: 38px !important; overflow: auto !important; padding: 0px 14px 5px !important;}
+body[data-theme="retro"] #mail-dialog #mailxComposeError{min-height: 0px !important; padding: 0px 14px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot{min-height: 52px !important; height: 52px !important; padding: 8px 12px 7px !important; margin: 0px !important; display: flex !important; align-items: center !important; border-top: 1px solid rgb(133, 122, 101) !important; background: linear-gradient(rgba(255, 255, 255, 0.12), transparent 32%), rgb(179, 167, 142) !important; box-shadow: rgba(255, 255, 255, 0.18) 0px 1px inset !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-note{font: 700 7px / 1.25 "Courier New", monospace !important; color: rgb(113, 103, 86) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot button{height: 32px !important; min-height: 32px !important; flex: 0 0 auto !important; transform: translateY(-3px) !important;}
+body[data-theme="retro"] #mail-dialog #mailxSaveDraft{min-width: 74px !important;}
+body[data-theme="retro"] #mail-dialog #mailxSchedule{min-width: 100px !important;}
+body[data-theme="retro"] #mail-dialog #mailxSend{min-width: 76px !important; font-size: 11px !important; font-weight: 900 !important;}
+@media (min-width: 861px) and (max-height: 760px){
+body[data-theme="retro"] #mail-dialog > .campus-compose{top: 46px !important; bottom: 3px !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{grid-template-rows: 36px auto minmax(118px, 0.68fr) 25px auto minmax(145px, 1fr) auto auto 46px;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-head{height: 36px !important; min-height: 36px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row{height: 29px !important; min-height: 29px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{margin-top: 5px !important; padding-top: 9px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{min-height: 33px !important; margin-bottom: 5px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot{height: 46px !important; min-height: 46px !important; padding-top: 6px !important;}
+}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog > .campus-compose{inset: 0px !important; width: 100% !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{grid-template-rows: auto auto
+      minmax(140px,.75fr)
+      auto auto
+      minmax(200px,1fr)
+      auto auto
+      calc(56px + env(safe-area-inset-bottom));}
+}
+
+body[data-theme="retro"] #mail-dialog > .campus-compose{top: 48px !important; right: 5px !important; bottom: 1px !important; width: min(650px, 100% - 68px) !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{display: grid !important; grid-template-rows: 38px auto minmax(156px, 0.82fr) 26px 37px minmax(260px, 1.42fr) auto auto 50px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-head{height: 38px !important; min-height: 38px !important; padding: 5px 8px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-fields{padding: 2px 13px 0px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row{height: 30px !important; min-height: 30px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row label{width: 60px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{margin: 5px 13px !important; padding: 10px 10px 8px !important; min-height: 156px !important; border: 3px solid rgb(109, 100, 83) !important; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.016) 0px, rgba(255, 255, 255, 0.016) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 78% 18%, rgba(126, 145, 116, 0.04), transparent 24%), rgb(36, 39, 31) !important; box-shadow: rgba(0, 0, 0, 0.66) 0px 8px 18px inset, rgba(255, 255, 255, 0.024) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.1) 0px 2px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-row{min-height: 78px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-prompt{min-height: 78px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip,
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate{border: 1px solid rgb(81, 88, 75) !important; border-radius: 3px !important; background: linear-gradient(rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 55%), rgb(48, 52, 44) !important; color: rgb(214, 221, 206) !important; text-shadow: none !important; box-shadow: rgba(255, 255, 255, 0.055) 0px 1px inset, rgba(0, 0, 0, 0.27) 0px -2px inset, rgb(25, 27, 23) 0px 2px 0px, rgba(0, 0, 0, 0.24) 3px 4px 4px !important; transform: translateY(-2px) !important; font-family: "Courier New", monospace !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip{text-transform: uppercase; min-height: 25px !important; padding: 0px 9px !important; font-size: 7px !important; font-weight: 700 !important; letter-spacing: 0.035em !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate{letter-spacing: 0.05em; text-transform: uppercase; min-width: 104px !important; height: 38px !important; min-height: 38px !important; padding: 0px 12px !important; font-size: 9px !important; font-weight: 800 !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip:hover,
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate:hover{background: rgb(55, 60, 50) !important; color: rgb(237, 241, 232) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chip:active,
+body[data-theme="retro"] #mail-dialog .mailx-ai-generate:active{transform: translateY(1px) !important; background: rgb(37, 40, 33) !important; box-shadow: rgba(0, 0, 0, 0.48) 0px 3px 5px inset, rgb(23, 25, 20) 0px 1px 0px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-editor-label{height: 26px !important; min-height: 26px !important; padding: 4px 13px 3px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{height: 37px !important; min-height: 37px !important; margin: 0px 13px 5px !important; padding: 4px 6px !important; flex-wrap: nowrap !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar button,
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar select{height: 25px !important; min-height: 25px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body{margin: 0px 13px 4px !important; min-height: 260px !important; height: 100% !important; padding: 15px 16px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-attachment-list{max-height: 30px !important; padding: 0px 13px 2px !important;}
+body[data-theme="retro"] #mail-dialog #mailxComposeError{padding: 0px 13px !important; min-height: 0px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot{height: 50px !important; min-height: 50px !important; padding: 7px 11px 6px !important; gap: 8px !important; border-top: 1px solid rgb(130, 119, 98) !important; background: linear-gradient(rgba(255, 255, 255, 0.12), transparent 32%), rgb(177, 165, 140) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-note{margin-right: auto !important;}
+body[data-theme="retro"] #mail-dialog #mailxSaveDraft,
+body[data-theme="retro"] #mail-dialog #mailxSchedule,
+body[data-theme="retro"] #mail-dialog #mailxSend{height: 31px !important; min-height: 31px !important; border: 1px solid rgb(129, 118, 97) !important; border-radius: 5px !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.34), transparent 31%), linear-gradient(rgb(240, 232, 213), rgb(224, 214, 191) 62%, rgb(193, 180, 154)) !important; color: rgb(45, 41, 33) !important; box-shadow: rgba(255, 255, 255, 0.62) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 4px 0px, rgba(42, 24, 11, 0.22) 4px 6px 5px !important; transform: translateY(-3px) !important; font: 800 10px / 1 Arial, sans-serif !important;}
+body[data-theme="retro"] #mail-dialog #mailxSaveDraft:active,
+body[data-theme="retro"] #mail-dialog #mailxSchedule:active,
+body[data-theme="retro"] #mail-dialog #mailxSend:active{transform: translateY(1px) !important; box-shadow: rgba(72, 61, 45, 0.22) 0px 2px 3px inset, rgb(129, 118, 97) 0px 1px 0px !important;}
+body[data-theme="retro"] #mail-dialog #mailxSaveDraft{width: 36px !important; min-width: 36px !important; padding: 0px !important;}
+body[data-theme="retro"] #mail-dialog #mailxSaveDraft svg{width: 15px !important; height: 15px !important; fill: none !important; stroke: currentcolor !important; stroke-width: 1.8 !important; stroke-linecap: round !important; stroke-linejoin: round !important;}
+body[data-theme="retro"] #mail-dialog #mailxSchedule,
+body[data-theme="retro"] #mail-dialog #mailxSend{width: 112px !important; min-width: 112px !important; padding: 0px 14px !important;}
+body[data-theme="retro"] #mail-dialog #mail-close,
+body[data-theme="retro"] #mail-dialog .mailx-compose-close,
+body[data-theme="retro"] #mail-dialog .mailx-sheet .mailx-compose-close{width: 32px !important; min-width: 32px !important; height: 28px !important; min-height: 28px !important; padding: 0px !important; border: 1px solid rgb(129, 118, 97) !important; border-radius: 5px !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.3), transparent 31%), linear-gradient(rgb(238, 229, 210), rgb(219, 208, 184) 63%, rgb(187, 174, 148)) !important; color: rgb(59, 53, 43) !important; box-shadow: rgba(255, 255, 255, 0.57) 0px 2px inset, rgb(167, 155, 131) 0px 1px 0px, rgb(127, 116, 95) 0px 4px 0px, rgba(40, 23, 11, 0.21) 4px 6px 5px !important; transform: translateY(-3px) !important; font: 900 16px / 1 Arial, sans-serif !important;}
+body[data-theme="retro"] #mail-dialog #mail-close:hover,
+body[data-theme="retro"] #mail-dialog .mailx-compose-close:hover{filter: brightness(1.025) !important;}
+body[data-theme="retro"] #mail-dialog #mail-close:active,
+body[data-theme="retro"] #mail-dialog .mailx-compose-close:active{transform: translateY(1px) !important; box-shadow: rgba(72, 61, 45, 0.22) 0px 2px 3px inset, rgb(127, 116, 95) 0px 1px 0px !important;}
+@media (min-width: 861px) and (max-height: 760px){
+body[data-theme="retro"] #mail-dialog > .campus-compose{top: 44px !important; bottom: 0px !important;}
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{grid-template-rows: 34px auto minmax(120px, 0.68fr) 23px 33px minmax(190px, 1.2fr) auto auto 44px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-head{height: 34px !important; min-height: 34px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-field-row{height: 27px !important; min-height: 27px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{min-height: 120px !important; margin-top: 4px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-prompt{min-height: 58px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-editor-label{height: 23px !important; min-height: 23px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{height: 33px !important; min-height: 33px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-email-body{min-height: 190px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-compose-foot{height: 44px !important; min-height: 44px !important; padding-top: 5px !important;}
+body[data-theme="retro"] #mail-dialog #mailxSaveDraft,
+body[data-theme="retro"] #mail-dialog #mailxSchedule,
+body[data-theme="retro"] #mail-dialog #mailxSend{height: 28px !important; min-height: 28px !important;}
+}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{grid-template-rows: auto auto
+      minmax(140px,.75fr)
+      auto auto
+      minmax(210px,1.2fr)
+      auto auto
+      calc(52px + env(safe-area-inset-bottom)) !important;}
+}
+
+body[data-theme="retro"] #mail-dialog .mailx-reader-toolbar{gap: 4px !important; overflow: visible !important; flex-wrap: nowrap !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-toolbar > .mailx-action{white-space: nowrap; min-width: 0px !important; padding: 0px 7px !important; font-size: 7.5px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-more{flex: 0 0 auto;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-title-row{min-width: 0px;}
+body[data-theme="retro"] #mail-dialog .mail-message-head h3{min-width: 0px; overflow: hidden; text-overflow: ellipsis;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-head-actions{flex: 0 0 auto;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body[data-theme="retro"] #mail-dialog > .campus-compose.is-open{grid-template-rows: 38px auto minmax(132px, 0.68fr) 26px 37px minmax(260px, 1.42fr) auto auto 50px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware{min-height: 132px !important; margin: 5px 13px !important; display: grid !important; grid-template-columns: minmax(0px, 1fr) 126px !important; gap: 12px !important; align-items: stretch !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware .mailx-ai-wrap{height: 100% !important; min-height: 0px !important; margin: 0px !important; padding: 10px 10px 9px !important; grid-template-rows: auto minmax(0px, 1fr) !important; gap: 8px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware .mailx-ai-row{min-height: 0px !important; height: 100% !important; grid-template-columns: minmax(0px, 1fr) !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware .mailx-ai-prompt{min-height: 0px !important; height: 100% !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware > .mailx-ai-generate{text-transform: uppercase; place-self: center stretch !important; width: 126px !important; min-width: 126px !important; height: 68px !important; min-height: 68px !important; padding: 0px 14px !important; border: 1px solid rgb(129, 118, 97) !important; border-radius: 6px !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.34), transparent 31%), linear-gradient(rgb(240, 232, 213), rgb(224, 214, 191) 62%, rgb(193, 180, 154)) !important; color: rgb(45, 41, 33) !important; box-shadow: rgba(255, 255, 255, 0.62) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 5px 0px, rgba(42, 24, 11, 0.24) 5px 8px 7px !important; transform: translateY(-4px) !important; text-shadow: rgba(255, 255, 255, 0.3) 0px 1px !important; font: 900 10px / 1 Arial, sans-serif !important; letter-spacing: 0.04em !important;}
+@media (hover: hover) and (pointer: fine){
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware > .mailx-ai-generate:hover{background: linear-gradient(145deg, rgba(255, 255, 255, 0.38), transparent 31%), linear-gradient(rgb(244, 237, 221), rgb(229, 220, 200) 62%, rgb(200, 186, 160)) !important; color: rgb(45, 41, 33) !important; transform: translateY(-2px) !important; box-shadow: rgba(255, 255, 255, 0.62) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 3px 0px, rgba(42, 24, 11, 0.22) 4px 6px 6px !important;}
+}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware > .mailx-ai-generate:active{transform: translateY(1px) !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.28), transparent 31%), linear-gradient(rgb(232, 223, 203), rgb(216, 205, 181) 62%, rgb(185, 170, 144)) !important; color: rgb(45, 41, 33) !important; box-shadow: rgba(72, 61, 45, 0.22) 0px 2px 3px inset, rgb(129, 118, 97) 0px 1px 0px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-chips{display: none !important;}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware{grid-template-columns: minmax(0px, 1fr) 108px !important; gap: 8px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware > .mailx-ai-generate{width: 108px !important; min-width: 108px !important; height: 62px !important; min-height: 62px !important;}
+}
+
+
+body[data-theme="retro"] #mail-dialog .mailx-reader-empty{position: relative; width: min(360px, 100% - 34px) !important; max-width: none !important; margin: auto !important; padding: 34px 24px 28px !important; border: 3px solid rgb(109, 100, 83) !important; border-radius: 4px !important; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.016) 0px, rgba(255, 255, 255, 0.016) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 74% 18%, rgba(125, 145, 115, 0.043), transparent 28%), rgb(37, 40, 32) !important; color: rgb(157, 166, 149) !important; box-shadow: rgba(0, 0, 0, 0.66) 0px 8px 18px inset, rgba(255, 255, 255, 0.024) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.1) 0px 2px, rgba(42, 24, 11, 0.2) 7px 9px 10px !important; text-align: center !important; font-family: "Courier New", monospace !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-empty::before{content: "MAIL READER / STANDBY"; position: absolute; top: 10px; left: 12px; color: rgb(115, 125, 112); font: 700 7px / 1 "Courier New", monospace; letter-spacing: 0.13em;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-empty-icon{transform: translateY(-4px); text-shadow: rgba(255, 255, 255, 0.3) 0px 1px; width: 58px !important; height: 52px !important; margin: 8px auto 18px !important; border: 1px solid rgb(129, 118, 97) !important; border-radius: 5px !important; display: grid !important; place-items: center !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.34), transparent 31%), linear-gradient(rgb(240, 232, 213), rgb(224, 214, 191) 62%, rgb(193, 180, 154)) !important; color: rgb(88, 98, 79) !important; box-shadow: rgba(255, 255, 255, 0.62) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 5px 0px, rgba(42, 24, 11, 0.22) 4px 7px 6px !important; font-size: 20px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-empty strong{text-transform: uppercase; display: block !important; margin: 0px 0px 8px !important; color: rgb(215, 220, 207) !important; font: 700 13px / 1.15 "Courier New", monospace !important; letter-spacing: 0.06em !important;}
+body[data-theme="retro"] #mail-dialog .mailx-reader-empty > span{letter-spacing: 0.02em; display: block !important; color: rgb(133, 142, 129) !important; font: 700 8px / 1.55 "Courier New", monospace !important;}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog .mailx-reader-empty{width: min(330px, 100% - 28px) !important; padding: 32px 20px 25px !important;}
+}
+
+
+
+
+body[data-theme="retro"] #mail-dialog :where(.key, .cool-finish-key, .skeuo-function-key, .skeuo-function-close, .transfer-action-skeuo, #mail-dialog button, #mail-dialog .mailx-attachment-download){-webkit-tap-highlight-color: transparent;}
+body[data-theme="retro"] #mail-dialog :where(.key, .cool-finish-key, .skeuo-function-key, .skeuo-function-close, .transfer-action-skeuo, #mail-dialog .mailx-compose-main, #mail-dialog .mailx-top-action, #mail-dialog .mailx-icon-button, #mail-dialog .mailx-action, #mail-dialog .mailx-reply-button, #mail-dialog .mailx-send, #mail-dialog .mailx-schedule, #mail-dialog .mailx-ai-generate, #mail-dialog .mailx-format-toolbar button, #mail-dialog .mailx-attachment-download, #mail-dialog .mailx-sheet button){transition: transform 70ms cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 70ms cubic-bezier(0.2, 0.8, 0.3, 1), filter 80ms, background-color 80ms !important;}
+body[data-theme="retro"] #mail-dialog :is(.mailx-compose-main, .mailx-top-action, .mailx-icon-button, .mailx-action, .mailx-reply-button, .mailx-send, .mailx-schedule, .mailx-format-toolbar button, .mailx-attachment-download, .mailx-sheet button):not(:disabled){cursor: pointer;}
+body[data-theme="retro"] #mail-dialog .mailx-format-toolbar select{transform: none !important; box-shadow: rgba(57, 46, 31, 0.22) 0px 2px 4px inset, rgba(255, 255, 255, 0.16) 0px 1px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter:not(.is-active){transition: transform 70ms cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 70ms cubic-bezier(0.2, 0.8, 0.3, 1), filter 80ms !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter[aria-pressed="true"]{transform: translateY(1px) !important;}
+body[data-theme="retro"] #mail-dialog .campus-mail-actions button,
+body[data-theme="retro"] #mail-dialog .mailx-load-more{transition: transform 70ms cubic-bezier(0.2, 0.8, 0.3, 1), background-color 80ms, color 80ms, filter 80ms !important;}
+body[data-theme="retro"] #mail-dialog .campus-mail-actions button:active,
+body[data-theme="retro"] #mail-dialog .mailx-load-more:active{transform: translateY(1px) !important;}
+body[data-theme="retro"] #mail-dialog :where(.key, .cool-finish-key, .skeuo-function-key, .skeuo-function-close, #mail-dialog button):disabled{filter: saturate(0.55) brightness(0.94) !important;}
+@media (hover: hover) and (pointer: fine){
+body[data-theme="retro"] #mail-dialog :is(.mailx-compose-main, .mailx-top-action, .mailx-icon-button, .mailx-action, .mailx-reply-button, .mailx-send, .mailx-schedule, .mailx-format-toolbar button, .mailx-attachment-download, .mailx-sheet button):not(:disabled):hover{transform: translateY(-1px) !important; filter: brightness(1.035) !important; box-shadow: rgba(255, 255, 255, 0.6) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 2px 0px, rgba(42, 24, 11, 0.18) 3px 4px 4px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-ai-hardware > .mailx-ai-generate:not(:disabled):hover{transform: translateY(-2px) !important; box-shadow: rgba(255, 255, 255, 0.62) 0px 2px inset, rgb(174, 162, 138) 0px 1px 0px, rgb(129, 118, 97) 0px 3px 0px, rgba(42, 24, 11, 0.22) 4px 6px 6px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter:not(.is-active):not(:disabled):hover{transform: translateY(-1px) !important; filter: brightness(1.035) !important; box-shadow: rgba(255, 255, 255, 0.5) 0px 2px inset, rgb(158, 146, 122) 0px 1px 0px, rgb(119, 109, 90) 0px 3px 0px, rgba(42, 24, 11, 0.18) 4px 5px 5px !important;}
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter[aria-pressed="true"]:hover{transform: translateY(1px) !important; filter: brightness(1.035) !important;}
+body[data-theme="retro"] #mail-dialog .campus-mail-actions button:not(:disabled):hover,
+body[data-theme="retro"] #mail-dialog .mailx-load-more:hover{transform: translateY(1px) !important; filter: brightness(1.035);}
+}
+body[data-theme="retro"] #mail-dialog :is(.mailx-compose-main, .mailx-top-action, .mailx-icon-button, .mailx-action, .mailx-reply-button, .mailx-send, .mailx-schedule, .mailx-ai-generate, .mailx-format-toolbar button, .mailx-attachment-download, .mailx-sheet button):not(:disabled):active,
+body[data-theme="retro"] #mail-dialog .mailx-nav .mailx-filter:not(.is-active):active{transform: translateY(1px) !important; box-shadow: rgba(72, 61, 45, 0.22) 0px 2px 3px inset, rgb(129, 118, 97) 0px 1px 0px !important;}
+@media (prefers-reduced-motion: reduce){
+body[data-theme="retro"] #mail-dialog :where(.key, .cool-finish-key, .skeuo-function-key, .skeuo-function-close, .transfer-action-skeuo, #mail-dialog button, #mail-dialog .mailx-attachment-download){transition: none !important;}
+}
+
+body[data-theme="retro"] #mail-dialog .mail-pager button.mailx-load-more{position: relative !important; display: block !important; width: calc(100% - 24px) !important; min-height: 34px !important; margin: 11px 12px 15px !important; padding: 9px 14px 7px !important; border: 1px solid rgb(129, 118, 97) !important; border-radius: 5px !important; background: linear-gradient(145deg, rgba(255, 255, 255, 0.32), transparent 31%), linear-gradient(rgb(238, 229, 210), rgb(221, 210, 187) 62%, rgb(189, 176, 150)) !important; color: rgb(58, 52, 42) !important; box-shadow: rgba(255, 255, 255, 0.57) 0px 2px inset, rgb(167, 155, 131) 0px 1px 0px, rgb(127, 116, 95) 0px 4px 0px, rgba(40, 23, 11, 0.19) 4px 6px 5px !important; transform: translateY(-3px) !important; font: 800 9px / 1 "Courier New", monospace !important; letter-spacing: 0.045em !important; text-transform: uppercase !important; text-align: center !important; cursor: pointer !important;}
+body[data-theme="retro"] #mail-dialog .mail-pager button.mailx-load-more::before{content: "PAGE / NEXT"; display: block; margin-bottom: 4px; color: rgb(119, 109, 92); font: 700 5.5px / 1 "Courier New", monospace; letter-spacing: 0.12em;}
+body[data-theme="retro"] #mail-dialog .mail-pager button.mailx-load-more:disabled{cursor: wait !important; opacity: 0.55 !important;}
+@media (hover: hover) and (pointer: fine){
+body[data-theme="retro"] #mail-dialog .mail-pager button.mailx-load-more:not(:disabled):hover{transform: translateY(-1px) !important; filter: brightness(1.035) !important; box-shadow: rgba(255, 255, 255, 0.58) 0px 2px inset, rgb(167, 155, 131) 0px 1px 0px, rgb(127, 116, 95) 0px 2px 0px, rgba(40, 23, 11, 0.17) 3px 4px 4px !important;}
+}
+body[data-theme="retro"] #mail-dialog .mail-pager button.mailx-load-more:not(:disabled):active{transform: translateY(1px) !important; filter: none !important; box-shadow: rgba(72, 61, 45, 0.22) 0px 2px 3px inset, rgb(127, 116, 95) 0px 1px 0px !important;}
+@media (max-width: 860px){
+body[data-theme="retro"] #mail-dialog .mail-pager button.mailx-load-more{width: calc(100% - 20px) !important; margin: 10px 10px 14px !important; min-height: 38px !important;}
+}
