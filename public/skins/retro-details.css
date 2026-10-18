@@ -1,0 +1,89 @@
+/* Flat stamped deadline rows and the original reversible FINISH key. */
+body[data-theme="retro"] #cool-list .retro-deadline-row{grid-template-columns:minmax(0,1fr) 54px;gap:10px;align-items:stretch;min-height:68px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;flex:none}
+body[data-theme="retro"] #cool-list .retro-deadline-row.cool-nonassignment{grid-template-columns:minmax(0,1fr)}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-main{grid-template-columns:49px minmax(0,1fr);align-items:stretch;gap:0 11px;min-height:68px;background:none;text-decoration:none}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-date{grid-row:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0;min-height:66px;padding:5px 7px 5px 1px;border-right:1px solid #7b7d75;font-family:"Courier New",monospace;color:#44463f}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-date>small{order:-1;font:700 8px/1 "Courier New",monospace;color:#62645d;letter-spacing:.08em;text-transform:uppercase}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-date>strong{margin:4px 0 0;font:800 23px/.92 "Courier New",monospace;color:#32342f}
+body[data-theme="retro"] #cool-list .retro-date-time{margin-top:7px;font:700 7px/1 "Courier New",monospace;color:#686a62;white-space:nowrap}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-copy{position:relative;display:block;align-self:stretch;min-width:0;padding:12px 2px 15px 12px}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-copy::before{content:"";position:absolute;left:0;top:15px;width:7px;height:7px;border:1px solid #827459;border-radius:2px;background:#b99a65;box-shadow:inset 0 1px #ffffff38}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-copy>strong{display:block;font:800 12px/1.25 Arial,Helvetica,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#292a25}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-copy>small{display:inline;font:700 7px/1.3 "Courier New",monospace;color:#595c54;text-transform:uppercase;overflow-wrap:anywhere}
+body[data-theme="retro"] #cool-list .retro-date-status{font:700 7px/1.3 "Courier New",monospace;color:#595c54;text-transform:uppercase}
+body[data-theme="retro"] #cool-list .retro-date-status::before{content:" · "}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-due{display:none}
+body[data-theme="retro"] #cool-list .retro-entry-bar{position:absolute;left:12px;right:2px;bottom:5px;height:2px;background:#777a72;overflow:hidden}
+body[data-theme="retro"] #cool-list .retro-entry-bar i{display:block;height:100%;background:#b47e38}
+body[data-theme="retro"] #cool-list .retro-urgent .retro-entry-bar i,body[data-theme="retro"] #cool-list .retro-urgent .cool-copy::before{background:#a4584d}
+body[data-theme="retro"] #cool-list .retro-deadline-row.done .cool-main{opacity:.55}
+body[data-theme="retro"] #cool-list .retro-deadline-row.done .cool-copy>strong{text-decoration:line-through}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-main:hover{background:#ffffff09}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-main:hover .cool-copy>strong{color:#292a25;text-decoration:none}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button{
+ position:relative;display:block;align-self:center;width:54px;height:48px;min-height:48px;padding:15px 3px 4px;border:1px solid #6e695e;border-radius:5px;color:#292a25;font-size:0;
+ background:linear-gradient(145deg,#ffffff38,transparent 32%),linear-gradient(180deg,#ded8c7,#d2cbb9 66%,#bcb4a2);
+ box-shadow:inset 0 1px #ffffff7a,0 1px #8d897e,0 5px #736d62,4px 8px 7px #19140f42;transform:translateY(-4px);transition:transform .06s,box-shadow .06s,filter .08s;
+}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button::before{content:"DONE";position:absolute;left:6px;top:5px;font:700 5.5px/1 "Courier New",monospace;color:#777267;letter-spacing:.04em}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button::after{content:"FINISH";display:block;font:800 7px/1 "Courier New",monospace}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button:active,body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button.is-done{transform:translateY(1px);box-shadow:inset 0 3px 5px #2530234f,inset 0 -1px #ffffff1a,0 1px #596450,1px 2px 2px #19140f29}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button.is-done{color:#f0eee6;border-color:#58644f;background:linear-gradient(145deg,#ffffff1c,transparent 32%),linear-gradient(180deg,#8fa081,#718363 70%,#627255)}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button.is-done::before{color:#dfe7d8}
+body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button.is-done::after{content:"✓";font-size:11px}
+@media(hover:hover) and (pointer:fine){body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button:not(.is-done):hover{transform:translateY(-2px);filter:brightness(1.035)}}
+/* Sidebar key legends and small service inscriptions follow the source console. */
+@media(min-width:860px){
+ body[data-theme="retro"] .workspace{grid-template-columns:128px minmax(0,1.15fr) minmax(0,1fr) minmax(0,.8fr)}
+ body[data-theme="retro"] .workspace .week-section{padding:10px 9px;gap:10px;overflow:hidden;align-items:stretch}
+ body[data-theme="retro"] .week-section::before{color:#ece6d6;font-size:7px;text-shadow:0 1px #00000024}
+ body[data-theme="retro"] .week-section .day-strip{grid-template-rows:repeat(7,minmax(0,1fr));gap:9px}
+ body[data-theme="retro"] .week-section .day-strip-row{flex:1;min-height:0;width:100%}
+ body[data-theme="retro"] .week-section .day-button{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:0;padding:16px 8px 8px;min-height:0;height:100%;text-align:left}
+ body[data-theme="retro"] .week-section .day-button::before{content:"D1";position:absolute;left:7px;top:5px;font:700 6px/1 "Courier New",monospace;letter-spacing:.03em;color:#777267}
+ body[data-theme="retro"] .week-section .day-button:nth-child(2)::before{content:"D2"}body[data-theme="retro"] .week-section .day-button:nth-child(3)::before{content:"D3"}body[data-theme="retro"] .week-section .day-button:nth-child(4)::before{content:"D4"}body[data-theme="retro"] .week-section .day-button:nth-child(5)::before{content:"D5"}body[data-theme="retro"] .week-section .day-button:nth-child(6)::before{content:"D6"}body[data-theme="retro"] .week-section .day-button:nth-child(7)::before{content:"D7"}
+ body[data-theme="retro"] .week-section .day-button.active::before{color:#d4dbe5}
+ body[data-theme="retro"] .week-section .day-button .day-name{font:800 14px/1 Arial,Helvetica,sans-serif}
+ body[data-theme="retro"] .week-section .day-button .day-date{position:absolute;right:7px;top:5px;font:700 7px/1 "Courier New",monospace;color:inherit;opacity:.75}
+ body[data-theme="retro"] .week-section .shortcuts-panel{padding-top:4px}
+ body[data-theme="retro"] .week-section .shortcuts-panel::before{content:"NTU / SERVICES";display:block;margin:0 0 11px;color:#ece6d6;font:700 7px "Courier New",monospace;letter-spacing:.08em;text-shadow:0 1px #00000024}
+ body[data-theme="retro"] .week-section .ntu-grid{gap:10px}
+ body[data-theme="retro"] .week-section .ntu-link{height:65px;min-height:65px;padding:16px 5px 8px;justify-content:space-between;font:800 6px/1 "Courier New",monospace;text-transform:uppercase}
+ body[data-theme="retro"] .week-section .ntu-link::before{content:"N1";position:absolute;left:6px;top:5px;font:700 5.5px/1 "Courier New",monospace;color:#777267}
+ body[data-theme="retro"] .week-section .ntu-link:nth-child(2)::before{content:"N2"}body[data-theme="retro"] .week-section .ntu-link:nth-child(3)::before{content:"N3"}
+ body[data-theme="retro"] .week-section .ntu-link::after,body[data-theme="retro"] .week-section .day-button:nth-child(4)::after{content:"";position:absolute;right:4px;bottom:3px;width:8px;height:3px;border-radius:0 0 7px 4px;background:#8a806d;opacity:.48;box-shadow:0 -1px #b8ae95;transform:rotate(-10deg)}
+ body[data-theme="retro"] .week-section .ntu-link:nth-child(1)::after{display:none}
+ body[data-theme="retro"] .week-section .ntu-icon{margin:0 auto;color:#3e3d34}
+ body[data-theme="retro"] .week-section .ntu-icon svg{width:17px;height:17px;stroke-width:1.6}
+}
+@media(min-width:860px) and (max-width:1120px){body[data-theme="retro"] .workspace{grid-template-columns:128px minmax(0,1.1fr) minmax(0,1fr)}}
+body[data-theme="retro"] .workspace>.side-column{gap:16px}
+body[data-theme="retro"] .side-column .shortcuts-panel{display:block;flex:none;padding:12px 9px 9px;background:linear-gradient(#ffffff2e,transparent 18%),#b7ad96;border:1px solid #827762;border-radius:5px;box-shadow:inset 0 2px 3px #5449373d;overflow:visible}
+body[data-theme="retro"] .side-column .shortcuts-panel::before{content:"NTU / SERVICES";display:block;margin:0 0 12px;color:#625845;font:700 7px "Courier New",monospace;letter-spacing:.1em}
+body[data-theme="retro"] .side-column .ntu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+body[data-theme="retro"] .side-column .ntu-link{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:62px;min-height:62px;padding:17px 3px 8px;gap:3px;font:800 7px/1 "Courier New",monospace;text-transform:uppercase}
+body[data-theme="retro"] .side-column .ntu-link::before{content:"N1";position:absolute;left:6px;top:5px;font:700 6px/1 "Courier New",monospace;color:#777267}
+body[data-theme="retro"] .side-column .ntu-link:nth-child(2)::before{content:"N2"}body[data-theme="retro"] .side-column .ntu-link:nth-child(3)::before{content:"N3"}
+body[data-theme="retro"] .side-column .ntu-link:nth-child(2)::after{content:"";position:absolute;right:4px;bottom:3px;width:8px;height:3px;border-radius:0 0 7px 4px;background:#8a806d;opacity:.48}
+body[data-theme="retro"] .side-column .ntu-icon{margin:0 auto;color:#3e3d34}
+body[data-theme="retro"] .side-column .ntu-icon svg{width:17px;height:17px;stroke-width:1.6}
+@media(max-width:859px){body[data-theme="retro"] .side-column .shortcuts-panel{margin-top:17px}}
+/* LOCAL / TPE clock is mounted and removed with this skin. */
+body[data-theme="retro"] .next-badge{display:none}
+body[data-theme="retro"] .retro-clock{border-left:1px solid #445044;padding:8px 0 8px 15px;color:#9bb79a;font-family:"Courier New",monospace;white-space:nowrap}
+body[data-theme="retro"] .retro-clock-label{display:block;margin-bottom:9px;font:700 6px/1 "Courier New",monospace;letter-spacing:.1em;color:#809b7f}
+body[data-theme="retro"] .retro-clock-digits{font:700 25px/1 "Courier New",monospace;letter-spacing:-.035em;text-shadow:0 0 3px #7fb47b24}
+body[data-theme="retro"] .retro-clock-seconds{font-size:11px}
+body[data-theme="retro"] .retro-clock-ms{font-size:9px;color:#7b9a79}
+@media(max-width:859px){
+ body[data-theme="retro"] .retro-clock{padding-left:9px}
+ body[data-theme="retro"] .retro-clock-digits{font-size:19px}
+ body[data-theme="retro"] .retro-clock-seconds{font-size:9px}
+ body[data-theme="retro"] .retro-clock-ms{font-size:7px}
+ body[data-theme="retro"] #cool-list .retro-deadline-row{grid-template-columns:minmax(0,1fr) 48px;gap:7px}
+ body[data-theme="retro"] #cool-list .retro-deadline-row .cool-done-button{width:48px;height:46px;min-height:46px}
+ body[data-theme="retro"] #cool-list .retro-deadline-row .cool-main{grid-template-columns:43px minmax(0,1fr);gap:0 8px}
+ body[data-theme="retro"] #cool-list .retro-deadline-row .cool-copy>strong{font-size:11px}
+ body[data-theme="retro"] #cool-list .retro-deadline-row .cool-date>strong{font-size:21px}
+}
+@media(max-width:350px){body[data-theme="retro"] .retro-clock-ms{display:none}body[data-theme="retro"] .retro-clock-digits{font-size:17px}}

@@ -152,6 +152,35 @@ Send/Schedule freezes the saved draft version into an encrypted Outbox snapshot 
 
 ## Centralized settings
 
+**Retro console:** Settings → Appearance → Retro console selects the personal
+schedule's warm wood, worn beige chassis, raised keys, inset CRT and schedule
+interval waveform. It is a fixed light hardware appearance with a dark CRT;
+Daylight, Dark and Garden remain separate choices. The selection uses the same
+encrypted, versioned account preferences and device appearance fallback.
+The adapter moves existing dashboard nodes and restores their exact positions
+when leaving the skin. It adds no provider connections or student-data storage.
+The scope uses the shared next-class/personal-event boundary, respects reduced
+motion, and stops while hidden, on mobile, or after switching skins. It never
+requests audio or screen capture.
+
+Upcoming Dates retains the shared assignments/calendar feed; the separate Exams
+tab and exam editor remain available. The personal source's exam aggregator,
+Hanzi widget, PC transfer, lab shortcuts, Places and View controls are excluded.
+Settings occupies the old Places/View control area and opens the shared dialog.
+The original source's mobile layout also hides the scope below desktop width.
+The CRT includes a skin-only Taipei clock with seconds and milliseconds. Upcoming
+Dates uses the source's stamped dates, flat rows, deadline bars and reversible
+beige/pressed-green Finish keys. Physical fader pushers replace scrollbar chrome
+on the content lists while preserving native scrolling and adding accessible
+keyboard/drag controls. The day sidebar stays fixed; NTU service keys sit below
+Manual Tasks. Theme switching removes all decorations, faders and observers.
+
+`node scripts/retro-smoke.mjs` runs local browser checks using Playwright and
+fictional preview data (install Playwright separately or pass its absolute
+`index.mjs` path). It defaults to installed Microsoft Edge; set `BROWSER_CHANNEL`
+to select another installed Chromium channel. Screenshots go to ignored
+`test-results/retro/`. No real email, provider login or push is performed.
+
 The skeleton Settings dialog is one continuous page: student number/logout, three live theme previews (Daylight, After hours, device appearance), interface language, timetable statistics, illustrated iOS/Android installation guides and an optional Hanzi Steps companion. Miniature previews are local CSS; no remote pages or trackers load. Statistics derive from stable course IDs and valid weekly meetings; personal events and duplicate meetings are excluded. Hours measure the scheduled start-to-end duration, including breaks within an imported meeting.
 
 `GET/PATCH /api/preferences` saves versioned, student-bound AES-GCM preferences. Migration `0006_student_preferences.sql` also bootstraps idempotently on first use. Theme changes apply immediately, serialize to the account, and use a device-only appearance fallback. Preview profiles never call the preferences API. Late responses are discarded after account changes, and logout clears the widget and username from the view.

@@ -1,0 +1,258 @@
+@import url('./retro-scrollbars.css');
+/* Personal console cosmetics adapted from ntu-mail-push/sites/eren/skeuo-demo.html.
+   Every application rule is scoped. The original console is a fixed, warm-light
+   hardware skin; Daylight, Dark and Garden keep their own appearance. */
+.retro-only{display:none!important}
+.theme-window-retro{--mini-bg:#c8bea4;--mini-card:#b7ad96;--mini-line:#827762;--mini-muted:#a69a80;--mini-banner:#282923;border-color:#827762}
+.theme-window-retro .theme-window-chrome{background:#b7ad96}
+.theme-window-retro .theme-mini-week i{background:linear-gradient(#f1ead8,#c5b9a0);box-shadow:0 2px #8a7e68}
+.settings-theme-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:600px){.settings-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+html:has(body[data-theme="retro"]){height:auto;min-height:100%;overflow:auto;background:#3a1d10}
+body[data-theme="retro"]{
+ color-scheme:light;--bg:#c8bea4;--card:#b7ad96;--panel:#aa9f87;--text:#29251e;--muted:#5e5749;--line:#827762;--accent:#455b7c;--accent-soft:#bbc1c5;--banner:#282923;
+ --key-side:#8a7e68;--shadow:0 3px 0 #827762;
+ min-height:100dvh;height:auto;margin:0;padding:44px 43px 70px;overflow:auto;font-family:Arial,Helvetica,sans-serif;
+ background:radial-gradient(circle at 72% 6%,#ffab524d,transparent 16%),repeating-linear-gradient(1deg,transparent 0 23px,#1f0c032e 24px,#ffffff05 25px,transparent 28px 52px),repeating-linear-gradient(91deg,#ffffff03 0 1px,transparent 1px 11px),linear-gradient(102deg,#3a1d10,#58301a 33%,#6d3a20 61%,#3a1d10);
+}
+body[data-theme="retro"] .app-shell{
+ position:relative;z-index:1;isolation:isolate;width:min(1360px,100%);height:min(760px,calc(100dvh - 108px));min-height:610px;margin:0 auto;
+ display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:14px;padding:22px 20px 30px;overflow:visible;
+ border:1px solid #7c715d;border-radius:13px 13px 19px 19px;
+ background:linear-gradient(180deg,#ffffff52,transparent 10%),linear-gradient(180deg,#d7ccb1 0 6%,#c8bea4 6% 92%,#b3a78e 92%);
+ box-shadow:inset 0 2px #ffffff8f,inset 0 -4px #6458423d,0 10px #8b806a,0 17px #6e6453,24px 34px 8px #18090285,46px 58px 20px #11060266;
+ transform:perspective(1400px) rotateX(1.5deg) rotateZ(-.35deg);transform-origin:center top;
+}
+body[data-theme="retro"] .retro-desk-art{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+body[data-theme="retro"] .retro-paper{position:absolute;bottom:-12px;width:245px;height:175px;padding:20px;color:#79694e;background:repeating-linear-gradient(0deg,transparent 0 21px,#99866b1a 22px,transparent 23px),linear-gradient(104deg,#e0d5b8,#ece1c8 48%,#d6c8aa);box-shadow:4px 10px 14px #160a0466;font:italic 12px/1.3 Georgia,serif;opacity:.88}
+body[data-theme="retro"] .retro-paper small{font:7px "Courier New",monospace;letter-spacing:.12em}
+body[data-theme="retro"] .retro-paper p{margin:9px 0;opacity:.58}
+body[data-theme="retro"] .retro-paper svg{width:180px;height:45px;stroke:#79694e;stroke-width:1;opacity:.5}
+body[data-theme="retro"] .paper-a{left:3%;transform:rotate(-7deg)}
+body[data-theme="retro"] .paper-b{right:3%;transform:rotate(9deg)}
+body[data-theme="retro"] .paper-c{left:26%;bottom:-115px;width:205px;transform:rotate(4deg)}
+body[data-theme="retro"] .retro-coffee-ring{position:absolute;left:4%;top:19%;width:145px;height:145px;border:7px double #31140747;border-radius:50%;transform:scaleY(.85) rotate(-17deg)}
+body[data-theme="retro"] .app-shell::before{
+ content:"";position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;opacity:.1;mix-blend-mode:multiply;
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='11'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+}
+body[data-theme="retro"] .app-shell>.login-footer{display:none}
+body[data-theme="retro"] .retro-only{display:inline-flex!important}
+body[data-theme="retro"] .retro-hardware{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden;border-radius:inherit}
+body[data-theme="retro"] .retro-screw{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#aaa99f 0 12%,#686a64 35%,#444741 70%);border:1px solid #4c4e49;box-shadow:0 1px 1px #ffffff33,inset 0 0 0 1px #00000026}
+body[data-theme="retro"] .retro-screw::after{content:"";position:absolute;left:1px;right:1px;top:3px;height:1px;background:#363833;transform:rotate(23deg)}
+body[data-theme="retro"] .s1{left:7px;top:8px}body[data-theme="retro"] .s2{right:7px;top:8px}body[data-theme="retro"] .s3{left:7px;bottom:8px}body[data-theme="retro"] .s4{right:7px;bottom:8px}
+body[data-theme="retro"] .retro-wear{position:absolute;top:0;left:16%;width:21px;height:4px;background:#837761;clip-path:polygon(0 0,100% 0,78% 100%,22% 82%);opacity:.7}
+body[data-theme="retro"] .retro-serial{position:absolute;bottom:9px;right:30px;font:700 6px "Courier New",monospace;letter-spacing:.16em;color:#766b57}
+body[data-theme="retro"] .retro-vent{position:absolute;bottom:10px;left:24px;width:90px;height:7px;background:repeating-linear-gradient(90deg,#675f50 0 3px,transparent 3px 9px);border-bottom:1px solid #ffffff4d}
+body[data-theme="retro"] .dashboard-hero{display:flex;flex-direction:column;gap:14px;min-width:0;padding:0;margin:0;border:0;background:none;box-shadow:none}
+body[data-theme="retro"] .dashboard-hero .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;min-height:40px;gap:12px;padding:0 5px 10px;margin:0;border-bottom:1px solid #92836b;box-shadow:0 1px #ffffff33}
+body[data-theme="retro"] .topbar h1{font-size:24px;line-height:1.05;letter-spacing:-.035em;color:#29251e}
+body[data-theme="retro"] .eyebrow{font:700 8px/1.3 "Courier New",monospace;letter-spacing:.12em;color:#6c6252;text-shadow:0 1px #ffffff47}
+body[data-theme="retro"] .topbar .eyebrow{font-size:8px;margin:0 0 4px}
+body[data-theme="retro"] .topbar-actions{display:flex;align-items:center;gap:10px}
+body[data-theme="retro"] .topbar .language-toggle{border:0;background:none;padding:0;display:flex;gap:6px;box-shadow:none}
+body[data-theme="retro"] :is(#app-screen,#settings-dialog,#event-dialog,#lesson-dialog,#mail-dialog,.campus-compose) :is(.button,.icon-button,.day-button,.ntu-link,.language-toggle button,.timetable-view-switch button,.cool-view-switch button,.todo-check,.todo-remove,.mailx-dialog button,.campus-compose button){
+ position:relative;border:1px solid #8c806a;border-radius:5px 5px 7px 7px;
+ background:radial-gradient(circle at 81% 18%,#70471d14,transparent 13%),linear-gradient(145deg,#ffffff57,transparent 31%),linear-gradient(180deg,#f1ead8,#e3dac4 61%,#c5b9a0);
+ color:#38342a;box-shadow:inset 0 2px #ffffffb8,inset 1px 0 #ffffff2e,0 2px #afa48d,0 5px var(--key-side),5px 8px 7px #27160a40;
+ transform:translateY(-3px);transition:transform .08s ease,box-shadow .08s ease,filter .1s ease;
+ font-family:"Courier New",monospace;font-weight:800;cursor:pointer;text-decoration:none;
+}
+body[data-theme="retro"] :is(#app-screen,#settings-dialog,#event-dialog,#lesson-dialog,#mail-dialog,.campus-compose) :is(.button,.icon-button,.day-button,.ntu-link,.language-toggle button,.timetable-view-switch button,.cool-view-switch button,.todo-check,.todo-remove,.mailx-dialog button,.campus-compose button):not(:disabled):active{
+ transform:translateY(1px);box-shadow:inset 0 2px 3px #483d2d3b,0 1px var(--key-side),2px 3px 3px #26150a2e;
+}
+@media(hover:hover) and (pointer:fine){
+ body[data-theme="retro"] :is(#app-screen,#settings-dialog,#event-dialog,#lesson-dialog,#mail-dialog,.campus-compose) :is(.button,.icon-button,.day-button,.ntu-link,.language-toggle button,.timetable-view-switch button,.cool-view-switch button,.todo-check,.todo-remove,.mailx-dialog button,.campus-compose button):not(:disabled):hover{filter:brightness(1.035);transform:translateY(-1px)}
+}
+body[data-theme="retro"] :is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid #294969;outline-offset:4px}
+body[data-theme="retro"] :is(button,input,textarea,select):disabled{cursor:default;opacity:.55}
+body[data-theme="retro"] .topbar .icon-button{width:42px;height:34px;border-radius:5px}
+body[data-theme="retro"] .topbar .language-toggle button{min-height:34px;padding:5px 9px;font-size:10px}
+body[data-theme="retro"] #open-settings{display:flex;align-items:center;justify-content:center;width:auto;min-width:91px;gap:7px;padding:6px 10px;font-size:10px}
+body[data-theme="retro"] #open-settings svg{width:16px;height:16px}
+body[data-theme="retro"] #app-screen :is(.language-toggle button[aria-pressed="true"],.day-button.active,.timetable-view-switch button[aria-pressed="true"],.cool-view-switch button[aria-selected="true"]){
+ --key-side:#293a55;color:#f0ecdf;border-color:#384c68;background:linear-gradient(145deg,#ffffff2e,transparent 31%),linear-gradient(180deg,#7184a0,#526887 67%,#435876);box-shadow:inset 0 1px #ffffff33,0 1px #354966,0 5px #293a55,5px 9px 8px #19140f4d;
+}
+body[data-theme="retro"] .dashboard-hero .next-class{display:grid;grid-template-columns:minmax(0,1fr) clamp(145px,17vw,220px) auto;gap:18px;align-items:center;width:100%;min-height:98px;max-height:none;padding:14px 18px;margin:0;border:3px solid #8c826e;border-bottom-color:#afa58f;border-radius:6px;background:repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 3px),#282923;box-shadow:inset 0 5px 12px #000000a1,8px 10px 13px #26160a3d;color:#e0ddc8}
+body[data-theme="retro"] .next-copy{min-width:0}
+body[data-theme="retro"] .next-class .eyebrow{color:#8d968b;text-shadow:none;font-size:8px;margin-bottom:6px}
+body[data-theme="retro"] .next-title{font-size:20px;line-height:1.15;color:#e0ddc8;margin:0 0 6px;overflow-wrap:anywhere}
+body[data-theme="retro"] :is(.next-meta,.next-relative){font:700 9px/1.4 "Courier New",monospace;color:#aeb6aa;overflow-wrap:anywhere}
+body[data-theme="retro"] .next-relative{margin-top:4px;color:#c6cbb9}
+body[data-theme="retro"] .next-badge{min-width:75px;max-width:120px;padding:8px 0 8px 15px;gap:4px;border:0;border-left:1px solid #444b49;background:transparent;border-radius:0;color:#aeb6aa;font-family:"Courier New",monospace}
+body[data-theme="retro"] .next-badge strong{font-size:11px}body[data-theme="retro"] .next-badge small{color:#91a18b;font-size:9px}
+body[data-theme="retro"] .retro-scope{align-self:center;min-width:0;height:60px;padding:3px 2px 2px;border-left:1px solid #7c917b4d;color:#91b38f;opacity:.94}
+body[data-theme="retro"] .scope-head,body[data-theme="retro"] .scope-foot{display:flex;align-items:center;justify-content:space-between;gap:5px;padding-left:7px;font:700 6px/1 "Courier New",monospace;letter-spacing:.08em;color:#768d74;white-space:nowrap}
+body[data-theme="retro"] .scope-head b{font-size:8px;color:#aed1aa;text-shadow:0 0 2px #7fb47b3d}
+body[data-theme="retro"] .scope-wave{display:block;width:100%;height:43px;margin:-1px 0 0;overflow:visible}
+body[data-theme="retro"] .scope-gridline{fill:none;stroke:#667b66;stroke-width:.35;opacity:.14;vector-effect:non-scaling-stroke}
+body[data-theme="retro"] .scope-trace{fill:none;stroke:#9fc99b;stroke-width:1.18;stroke-linecap:round;stroke-linejoin:round;opacity:.96;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 1.9px #7cbb7875)}
+body[data-theme="retro"] .scope-foot{margin-top:-3px;font-size:5px;color:#637a62}
+body[data-theme="retro"] .workspace{display:grid;grid-template-columns:96px minmax(0,1.15fr) minmax(0,1fr) minmax(0,.8fr);grid-template-rows:minmax(0,1fr);gap:14px;min-width:0;min-height:0;height:100%;overflow:visible}
+body[data-theme="retro"] .workspace>.week-section{grid-column:1;grid-row:1}
+body[data-theme="retro"] .workspace>.schedule-column{grid-column:2;grid-row:1}
+body[data-theme="retro"] .workspace>.cool-column{grid-column:3;grid-row:1}
+body[data-theme="retro"] .workspace>.side-column{grid-column:4;grid-row:1;display:flex;flex-direction:column;min-height:0;min-width:0;gap:0;overflow:visible}
+body[data-theme="retro"] :is(.week-section,.workspace .cool-column,.workspace .tasks-column){display:flex;flex-direction:column;min-width:0;min-height:0;padding:12px;border:1px solid #827762;border-radius:5px;background:radial-gradient(circle at 8% 12%,#653e1a14,transparent 15%),linear-gradient(180deg,#ffffff2e,transparent 18%),#b7ad96;box-shadow:inset 0 2px 3px #5449373d,inset 0 -1px #ffffff3d,0 1px #ffffff2e;overflow:hidden;container-type:normal}
+body[data-theme="retro"] .workspace .schedule-column{display:flex;flex-direction:column;min-width:0;min-height:0;padding:0;border:0;border-radius:0;box-shadow:none;background:none;overflow:hidden;container-type:normal}
+body[data-theme="retro"] .workspace .tasks-column{flex:1;grid-column:auto;grid-row:auto}
+body[data-theme="retro"] .workspace .week-section{padding:10px 8px;gap:12px;background:linear-gradient(#ffffff14,transparent 16%),#aa9f87;box-shadow:inset 0 4px 8px #463b2b38,inset 0 -1px #ffffff33,7px 10px 12px #2f1b0d33}
+body[data-theme="retro"] .week-section::before{content:"WEEK / SELECT";font:700 7px "Courier New",monospace;color:#494537;letter-spacing:.1em}
+body[data-theme="retro"] .week-section .day-strip-row{min-height:0;min-width:0;flex:1}
+body[data-theme="retro"] .week-section .day-strip{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:repeat(7,minmax(36px,1fr));gap:9px;height:100%;width:100%;margin:0;padding:0;background:none;border:0;border-radius:0}
+body[data-theme="retro"] .week-section .day-button{display:grid;grid-template-columns:1fr auto;align-content:center;align-items:center;justify-content:center;gap:3px;padding:6px;min-height:36px;height:auto;margin:0;min-width:0;text-align:left}
+body[data-theme="retro"] .day-button .day-name{font:800 12px Arial,Helvetica,sans-serif;color:inherit}
+body[data-theme="retro"] .day-button .day-date{font:700 9px "Courier New",monospace;color:inherit}
+body[data-theme="retro"] .day-button .day-subtitle{display:none}
+body[data-theme="retro"] .day-button.today:not(.active){border-color:#445a3e;color:#324a30}
+body[data-theme="retro"] .day-button.today::after{display:none}
+body[data-theme="retro"] .week-section .shortcuts-panel{flex:none;display:block;padding:6px 2px 0;margin:0;border:0;box-shadow:none;background:none;overflow:visible;container-type:normal}
+body[data-theme="retro"] .shortcuts-heading{display:none}
+body[data-theme="retro"] .ntu-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+body[data-theme="retro"] .ntu-link{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;min-height:42px;padding:6px 2px;gap:3px;font-size:8px;text-align:center}
+body[data-theme="retro"] .ntu-icon{width:auto;height:auto;background:none;color:inherit;margin:0;border:0;border-radius:0}
+body[data-theme="retro"] .ntu-icon svg{width:16px;height:16px}
+body[data-theme="retro"] .schedule-column .week-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px;padding:2px 2px 8px;border:0;border-bottom:1px solid #9e9179;border-radius:0;background:none}
+body[data-theme="retro"] .week-caption{display:flex;gap:5px;align-items:center;min-width:0}
+body[data-theme="retro"] .week-caption .eyebrow{display:none}
+body[data-theme="retro"] .week-range{font:700 10px "Courier New",monospace;min-width:0;white-space:normal}
+body[data-theme="retro"] .week-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0;max-width:100%}
+body[data-theme="retro"] .week-actions .icon-button{width:28px;height:28px;min-height:28px}
+body[data-theme="retro"] .week-actions .button{min-height:28px;padding:5px 7px;font-size:9px}
+body[data-theme="retro"] .timetable-view-switch{display:flex;gap:7px;padding:0;border:0;background:none}
+body[data-theme="retro"] .timetable-view-switch button{padding:5px 7px;min-height:28px;font-size:9px}
+body[data-theme="retro"] .calendar-picker{max-width:145px;background:#c6bba2;border:1px solid #8b806a;border-radius:3px;padding:3px;box-shadow:inset 0 2px 3px #54493733}
+body[data-theme="retro"] .calendar-picker input{width:109px;min-width:0;padding:0;font:700 9px "Courier New",monospace;color:#38342a}
+body[data-theme="retro"] .calendar-picker svg{width:13px;height:13px}
+body[data-theme="retro"] .workspace .section-head{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:0 0 9px;margin:0 0 10px;border:0;border-bottom:1px solid #968a72;flex:none}
+body[data-theme="retro"] .workspace .section-head h2{font-size:22px;line-height:1.05;color:#29251e}
+body[data-theme="retro"] .workspace .section-head h3{font-size:14px;line-height:1.15;color:#29251e}
+body[data-theme="retro"] .workspace .section-side{font:700 8px "Courier New",monospace;white-space:normal;color:#5e5749}
+body[data-theme="retro"] .section-action{flex-wrap:wrap;gap:8px}
+body[data-theme="retro"] #add-event{min-height:28px;font-size:9px;padding:6px 8px}
+body[data-theme="retro"] :is(.schedule-list,.cool-list,.todo-list){display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:4px 5px 9px 0;scrollbar-width:thin;scrollbar-color:#817661 #aca189}
+body[data-theme="retro"] .schedule-list{flex:1}
+body[data-theme="retro"] .schedule-list .lesson{display:grid;grid-template-columns:53px minmax(0,1fr);gap:7px;flex:1 0 80px;min-height:80px;max-height:128px;align-items:stretch}
+body[data-theme="retro"] .lesson-time{display:flex;flex-direction:column;justify-content:center;gap:5px;text-align:left;font-family:"Courier New",monospace;padding:0}
+body[data-theme="retro"] .lesson-time strong{font-size:12px;color:#353126}
+body[data-theme="retro"] .lesson-time span{font-size:9px;color:#615746}
+body[data-theme="retro"] .schedule-list .lesson-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-width:0;min-height:76px;padding:12px 21px 12px 13px;border:1px solid #8a7d66;border-radius:5px;background:linear-gradient(#ffffff26,transparent 30%),#d0c5a9;box-shadow:inset 0 1px #ffffff52,0 3px #8d8067,5px 7px 8px #21150d2e;text-align:left;transition:filter .1s,transform .1s}
+body[data-theme="retro"] .lesson-card::before{width:4px;background:var(--course-color,#bd8840)}
+body[data-theme="retro"] .lesson-card::after{content:"";position:absolute;right:9px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--course-color,#bd8840);border:1px solid #30312d61;box-shadow:inset 0 1px #ffffff47}
+body[data-theme="retro"] .lesson-card:hover{filter:brightness(1.035)}
+body[data-theme="retro"] .lesson-card:active{transform:translateY(2px);box-shadow:inset 0 1px 2px #483d2d33,0 1px #8d8067}
+body[data-theme="retro"] .schedule-list .lesson-name{display:block;width:100%;font-size:12px;font-weight:800;line-height:1.3;overflow-wrap:anywhere;white-space:normal}
+body[data-theme="retro"] .schedule-list .lesson-room{display:block;width:100%;font:700 9px/1.4 "Courier New",monospace;color:#625845;overflow-wrap:anywhere}
+body[data-theme="retro"] .lesson-arrow{display:none}
+body[data-theme="retro"] #app-screen .cool-panel-header{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+body[data-theme="retro"] .cool-panel-header>.eyebrow{width:calc(100% - 40px);margin:0}
+body[data-theme="retro"] #cool-heading{position:static!important;width:auto!important;height:auto!important;overflow:visible!important;clip:auto!important;clip-path:none;white-space:normal!important;margin:0;order:1}
+body[data-theme="retro"] #app-screen .cool-view-switch{display:flex;flex-wrap:wrap;gap:7px;width:100%;padding:0;margin:5px 0 0;border:0;background:none;order:2;border-radius:0}
+body[data-theme="retro"] #app-screen .cool-view-switch button{min-width:0;flex:1;padding:6px 5px;min-height:30px;font-size:9px;border-radius:4px}
+body[data-theme="retro"] .cool-header-refresh{width:28px;height:28px;min-height:28px;margin:0}
+body[data-theme="retro"] .cool-list{flex:1}
+body[data-theme="retro"] .cool-list .cool-item{flex:none;display:grid;grid-template-columns:39px minmax(0,1fr) auto;gap:8px;padding:10px 8px;min-height:72px;border:1px solid #8a7d66;border-radius:4px;background:linear-gradient(#ffffff26,transparent 30%),#d0c5a9;box-shadow:inset 0 1px #ffffff3d,0 3px #8d8067,3px 5px 6px #21150d26;color:#38342a}
+body[data-theme="retro"] .cool-list .announcement-card{grid-template-columns:39px minmax(0,1fr)}
+body[data-theme="retro"] .cool-list .cool-item.cool-checkable{grid-template-columns:minmax(0,1fr) 24px}
+body[data-theme="retro"] .cool-list .cool-item.cool-nonassignment{grid-template-columns:minmax(0,1fr)}
+body[data-theme="retro"] .cool-list .cool-main{display:grid;grid-template-columns:36px minmax(0,1fr);gap:5px 8px;min-width:0;padding:0;background:none;color:inherit}
+body[data-theme="retro"] .announcement-card>.cool-copy{grid-column:1/-1}
+body[data-theme="retro"] .cool-date{font-family:"Courier New",monospace;color:#3e382d}
+body[data-theme="retro"] .cool-copy strong{font-size:11px;line-height:1.35}
+body[data-theme="retro"] .cool-copy small{font-size:9px;line-height:1.4;color:#625845}
+body[data-theme="retro"] .cool-due{border-radius:3px;background:#b58d55;color:#30271c;font:700 8px "Courier New",monospace;padding:4px}
+body[data-theme="retro"] .cool-complete{background:#c1b79e;border-color:#8b806a;color:#394a33}
+body[data-theme="retro"] .announcement-body{background:#dcd3bd;color:#3e382d;border-color:#a3977e}
+body[data-theme="retro"] .todo-form{order:-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin:4px 0 12px}
+body[data-theme="retro"] .tasks-column .section-head{order:-2}
+body[data-theme="retro"] .todo-form input{height:36px;border:1px solid #887c65;border-radius:3px;background:#c6bba2;box-shadow:inset 0 2px 4px #54493733;color:#38342a;padding:0 8px;font-size:11px}
+body[data-theme="retro"] .todo-form .button{font-size:9px;padding:6px 8px;min-height:36px}
+body[data-theme="retro"] .todo-list{flex:1}
+body[data-theme="retro"] .todo-row{grid-template-columns:25px minmax(0,1fr) 22px;gap:7px;padding:9px 0;border:0;border-bottom:1px solid #9b8f78;background:none;border-radius:0;box-shadow:none;flex:none}
+body[data-theme="retro"] .todo-label{font-size:11px;line-height:1.4}
+body[data-theme="retro"] .todo-check{width:24px;height:24px;border-radius:3px;box-shadow:inset 0 1px #ffffff66,0 2px #8a7e68,2px 3px 3px #27160a33}
+body[data-theme="retro"] .todo-remove{width:20px;height:24px;padding:0;border-radius:3px;box-shadow:inset 0 1px #ffffff66,0 2px #8a7e68,2px 3px 3px #27160a33}
+body[data-theme="retro"] .todo-row.done .todo-check{background:#718261;color:#f3eedb}
+body[data-theme="retro"] .todo-row.done .todo-label{color:#655e50}
+body[data-theme="retro"] .preview-footnote{font-size:9px;line-height:1.4;color:#625845}
+body[data-theme="retro"] :is(.empty-card,.week-timetable,.week-timetable-scroll){background:#beb39a;color:#625845;border-color:#968a72;border-radius:5px}
+body[data-theme="retro"] .column-resizer,body[data-theme="retro"] #dashboard-hanzi{display:none!important}
+/* Campus Mail and all editors keep their existing controls and safe content renderer. */
+body[data-theme="retro"] :is(.settings-hub,.detail-sheet,.mailx-dialog,.campus-compose){background:linear-gradient(#ffffff26,transparent 14%),#c8bea4;color:#29251e;border:1px solid #827762;border-radius:8px;box-shadow:inset 0 2px #ffffff52,0 7px #8b806a,15px 24px 35px #18090266}
+body[data-theme="retro"] .settings-topbar{background:#c8bea4;border-color:#a39880}
+body[data-theme="retro"] :is(.settings-section,.settings-account-block,.setting-card){border-color:#a39880;background:#d1c7ae}
+body[data-theme="retro"] :is(.settings-stats-strip,.settings-student-icon,.settings-brand-mark,.settings-pill,.settings-jumps button){background:#b6ab91;color:#514936;border-color:#998c71;border-radius:5px}
+body[data-theme="retro"] .settings-jumps button{box-shadow:inset 0 1px #ffffff4d,0 2px #8a7e68;font-family:"Courier New",monospace}
+body[data-theme="retro"] .week-bar-track{background:#c2b79d}
+body[data-theme="retro"] .week-bar-fill{background:#7c8067}
+body[data-theme="retro"] :is(input,select,textarea){accent-color:#455b7c}
+body[data-theme="retro"] .mailx-dialog{--mail-ink:#3d382e;--mail-muted:#655d4e;--mail-accent:#455b7c}
+body[data-theme="retro"] .mailx-topbar{background:#c8bea4;border-bottom:1px solid #a39880}
+body[data-theme="retro"] :is(.mailx-list-pane,.mailx-reader){background:#ddd4bd;border-color:#9c8f74;border-radius:5px}
+body[data-theme="retro"] :is(.mailx-search,.mailx-list-tools,.mailx-reader-toolbar,.mailx-message,.mailx-mobile-tabs){background:#d0c5a9;color:#3d382e;border-color:#b0a388}
+body[data-theme="retro"] .mailx-message.is-selected{background:#bdc1b1}
+body[data-theme="retro"] .mailx-dialog button{margin:2px;font-size:inherit}
+body[data-theme="retro"] .mailx-topbar button{flex-shrink:0}
+body[data-theme="retro"] .campus-compose{--compose-bg:#c8bea4;--compose-card:#ddd4bd}
+body[data-theme="retro"] .login-screen{color:#29251e;min-height:calc(100dvh - 78px)}
+body[data-theme="retro"] .login-wrap{background:#c8bea4;border:1px solid #827762;border-radius:8px;padding:26px;box-shadow:inset 0 2px #ffffff52,0 7px #8b806a,15px 24px 35px #18090266}
+body[data-theme="retro"] .login-panel{background:#d1c7ae;border-color:#a39880}
+@media(min-width:860px) and (max-width:1120px){
+ body[data-theme="retro"]{padding:20px 16px 45px}
+ body[data-theme="retro"] .app-shell{padding:19px 15px 29px;height:calc(100dvh - 70px)}
+ body[data-theme="retro"] .workspace{grid-template-columns:78px minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(150px,.55fr);gap:12px}
+ body[data-theme="retro"] .workspace>.week-section{grid-row:1/3}
+ body[data-theme="retro"] .workspace>.schedule-column{grid-row:1/3}
+ body[data-theme="retro"] .workspace>.cool-column{grid-column:3;grid-row:1}
+ body[data-theme="retro"] .workspace>.side-column{grid-column:3;grid-row:2}
+ body[data-theme="retro"] .workspace .section-head h2{font-size:20px}
+}
+@media(max-width:859px){
+ body[data-theme="retro"]{padding:14px 10px calc(35px + env(safe-area-inset-bottom));overflow-x:clip}
+ body[data-theme="retro"] .app-shell{height:auto;min-height:0;max-height:none;padding:18px 12px 30px;gap:18px;border-radius:8px 8px 13px 13px;transform:none}
+ body[data-theme="retro"] .retro-desk-art{display:none}
+ body[data-theme="retro"] .topbar h1{font-size:23px}
+ body[data-theme="retro"] .topbar .eyebrow{font-size:7px}
+ body[data-theme="retro"] .topbar-actions{gap:8px;flex-wrap:wrap}
+ body[data-theme="retro"] .topbar .icon-button{min-height:38px;height:38px}
+ body[data-theme="retro"] .topbar .language-toggle button{min-height:38px}
+ body[data-theme="retro"] .dashboard-hero .next-class{grid-template-columns:minmax(0,1fr) auto;padding:14px 11px;gap:9px}
+ body[data-theme="retro"] .next-title{font-size:17px}
+ body[data-theme="retro"] .next-badge{min-width:58px;max-width:83px;padding-left:9px}
+ body[data-theme="retro"] .retro-scope{display:none}
+ body[data-theme="retro"] .workspace{display:flex;flex-direction:column;gap:19px;height:auto;min-width:0}
+ body[data-theme="retro"] .workspace>.week-section{order:0;display:flex;gap:12px;padding:12px 8px}
+ body[data-theme="retro"] .workspace>.schedule-column{order:1;width:100%}
+ body[data-theme="retro"] .workspace>.cool-column{order:2;width:100%;min-height:240px;max-height:none;padding:12px}
+ body[data-theme="retro"] .workspace>.side-column{order:3;width:100%;display:block}
+ body[data-theme="retro"] .workspace .tasks-column{padding:12px;min-height:180px}
+ body[data-theme="retro"] .week-section .day-strip{grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:auto;gap:6px;height:auto}
+ body[data-theme="retro"] .week-section .day-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:7px 2px;min-height:49px;text-align:center}
+ body[data-theme="retro"] .week-section .day-button .day-name{font-size:9px}
+ body[data-theme="retro"] .week-section .shortcuts-panel{padding:2px 3px 0}
+ body[data-theme="retro"] .ntu-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ body[data-theme="retro"] .ntu-link{flex-direction:row;min-height:38px;font-size:9px;gap:6px}
+ body[data-theme="retro"] .schedule-column .week-toolbar{gap:12px;padding-bottom:12px}
+ body[data-theme="retro"] .week-actions{gap:10px}
+ body[data-theme="retro"] .week-actions :is(.icon-button,.button),body[data-theme="retro"] .timetable-view-switch button{min-height:34px}
+ body[data-theme="retro"] .schedule-list .lesson{min-height:84px;max-height:none;flex:none;grid-template-columns:48px minmax(0,1fr)}
+ body[data-theme="retro"] .schedule-list .lesson-card{min-height:80px}
+ body[data-theme="retro"] .cool-list{max-height:560px;overflow:auto}
+ body[data-theme="retro"] .todo-list{max-height:430px;overflow:auto}
+ body[data-theme="retro"] .cool-view-switch button{min-height:36px;font-size:10px}
+ body[data-theme="retro"] .mailx-dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;margin:0;box-shadow:none}
+ body[data-theme="retro"] .settings-hub{border-radius:0;max-width:100%}
+ body[data-theme="retro"] .retro-serial{font-size:5px}
+}
+@media(max-width:380px){
+ body[data-theme="retro"]{padding-left:7px;padding-right:7px}
+ body[data-theme="retro"] .app-shell{padding-left:9px;padding-right:9px}
+ body[data-theme="retro"] .topbar-actions{gap:7px}
+ body[data-theme="retro"] .topbar .language-toggle button{padding:5px 6px}
+ body[data-theme="retro"] #open-settings{min-width:80px;padding:6px}
+ body[data-theme="retro"] .week-section .day-button .day-name{font-size:8px}
+ body[data-theme="retro"] .cool-list .cool-item{grid-template-columns:32px minmax(0,1fr) auto;gap:6px}
+ body[data-theme="retro"] .cool-list .announcement-card{grid-template-columns:32px minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce){body[data-theme="retro"] *,body[data-theme="retro"] *::before,body[data-theme="retro"] *::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
