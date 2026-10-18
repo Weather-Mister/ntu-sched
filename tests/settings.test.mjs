@@ -73,6 +73,16 @@ test('Garden appearance round-trips through existing encrypted preferences and s
  env.sqlite.close();
 });
 
+test('Retro appearance round-trips through the same encrypted account preference record',async()=>{
+ const env=setup(),a=await identity(env),b=await identity(env,'r23456789');
+ const saved=await request(env,a,'preferences','PATCH',{version:0,theme:'retro',hanziEnabled:false,hanziUsername:''});
+ assert.equal(saved.status,200);
+ assert.equal((await(await request(env,a,'preferences')).json()).preferences.theme,'retro');
+ assert.equal((await(await request(env,b,'preferences')).json()).preferences.theme,'light');
+ assert.doesNotMatch(env.sqlite.prepare('SELECT encrypted_preferences FROM student_preferences WHERE student_id=?').get(a.student_id).encrypted_preferences,/retro/);
+ env.sqlite.close();
+});
+
 
 test('removed System preference loads safely as Daylight without losing other preferences',async()=>{
  const env=setup(),a=await identity(env);

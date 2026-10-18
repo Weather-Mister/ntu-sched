@@ -11,6 +11,7 @@ import {createExamEditor} from './exam-editor.mjs';
 import { createMailUI } from './mail.mjs';
 import { examCompletionKey } from '/exam-completion.mjs';
 import { createSettings } from './settings.mjs';
+import { updateRetroBoundary, setRetroBoundaryReader } from '../skins/retro.mjs';
 import { missingInitialSources, syncInitialSources } from './initial-sync.mjs';
 import { academicWeek } from '/academic-calendar.mjs';
 import { ForegroundRefresh } from './foreground-refresh.mjs';
@@ -126,14 +127,18 @@ function shortMonth(key){return new Intl.DateTimeFormat(language==='zh'?'zh-TW':
 function lessonTime(key,time){return Date.parse(key+'T'+time+':00+08:00');}
 function howLong(ms){const n=Math.max(0,Math.ceil(ms/60000));const h=Math.floor(n/60);return (h?h+'h ':'')+(n%60?n%60+'m':h?'':'0m');}
 function lessonState(c,key){const now=Date.now();return now>=lessonTime(key,c[2])?t('completed'):now>=lessonTime(key,c[1])?t('live'):t('upcoming');}
-function renderBanner(){
-  if(!student)return;const today=taipeiToday(),now=Date.now(),events=[];
+function nextScheduleEvent(){
+  if(!student)return null;const today=taipeiToday(),now=Date.now(),events=[];
   const keys=new Set([...Array.from({length:8},(_,d)=>offset(today,d)),...nextEventDates(eventUI.events(),today)]);
   for(const key of keys){
     for(const c of scheduleOn(key)){const start=lessonTime(key,c[1]),end=lessonTime(key,c[2]);if(end>now)events.push({c,key,start,end,live:start<=now});}
   }
   events.sort((a,b)=>Number(b.live)-Number(a.live)||a.start-b.start);
-  const next=events[0];
+  return events[0]||null;
+}
+function renderBanner(){
+  if(!student)return;const today=taipeiToday(),now=Date.now(),next=nextScheduleEvent();
+  updateRetroBoundary(next);
   $('next-label').textContent=next?(next.live?t('live'):t('next')):'—';
   $('next-title').textContent=next?next.c[language==='zh'?4:3]:'—';
   $('next-meta').textContent=next?longDate(next.key)+' · '+next.c[1]+'–'+next.c[2]+' · '+next.c[5]:'';
@@ -409,6 +414,7 @@ function renderDeadlinesContent(){
   for(const [index,item] of student.deadlines.entries()){
     const key=offset(taipeiToday(),item[0]),card=node('article','cool-item card'),
       main=node('div','cool-main'),date=node('span','cool-date'),copy=node('span','cool-copy');
+    card.dataset.dueAt=key+'T23:59:00+08:00';card.dataset.allDay='true';
     date.append(node('strong','',String(dateFor(key).getUTCDate())),node('small','',shortMonth(key)));
     copy.append(node('strong','',item[language==='zh'?2:1]),node('small','',item[language==='zh'?4:3]));
     main.append(date,copy,node('span','cool-due',language==='zh'?item[0]+' 天後':'In '+item[0]+' days'));
@@ -458,6 +464,7 @@ function renderLiveDeadlines(expanded=new Set()){
       main=node(item.url?'a':'div','cool-main'),
       date=node('span','cool-date'),copy=node('span','cool-copy');
     const when=new Date(item.dueAt);
+    card.dataset.dueAt=item.dueAt;card.dataset.allDay=String(item.allDay);
     date.append(node('strong','',String(when.toLocaleDateString('en-US',{timeZone:'Asia/Taipei',day:'numeric'}))),
       node('small','',when.toLocaleDateString(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short'})));
     copy.append(node('strong','',item.title),node('small','',item.course));
@@ -724,6 +731,7 @@ function leavePreview(){
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);settingsUI.reset();$('task-input').value='';
   eventUI.reset();examEditor.bind(null);
   student=null;tasks=[];opened=null;counter=0;selectedDate=taipeiToday();activePanel='account';coolView='assignments';setTimetableView('day');coolScroll.reset();
+  updateRetroBoundary(null);
   for(const id of ['schedule-list','cool-list','todo-list','day-strip','week-timetable-grid'])$(id).replaceChildren();
   $('next-title').textContent='—';$('next-meta').textContent='';$('next-countdown').textContent='';$('next-badge-day').textContent='—';$('next-badge-time').textContent='';
   $('account-name').textContent='';$('account-id').textContent='';
@@ -1091,6 +1099,7 @@ window.addEventListener('offline',updateSyncDots);
 const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language});
 
 const settingsUI=createSettings({account,onSessionExpired:sessionExpired});
+setRetroBoundaryReader(()=>{const next=nextScheduleEvent();return next?{target:next.live?next.end:next.start,live:next.live}:null;});
 renderTranslations();
 // Explicit design-preview links always use the labelled fictional profile.
 if(new URL(location.href).searchParams.get('preview')==='settings'){

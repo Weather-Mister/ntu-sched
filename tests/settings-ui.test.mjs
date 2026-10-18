@@ -58,8 +58,37 @@ test('Garden switches the shared interface without replacing controls or leaving
 }));
 
 
-test('Appearance offers exactly Daylight, Dark and Garden',async()=>fixture(async({document,settings,student})=>{
+test('Appearance offers Daylight, Dark, Garden and Retro console',async()=>fixture(async({document,settings,student})=>{
  settings.update({student,liveMode:false,language:'en',timetable:null});
- assert.deepEqual([...document.querySelectorAll('[data-theme-choice]')].map(e=>e.dataset.themeChoice),['light','dark','garden']);
- assert.deepEqual([...document.querySelector('#theme-select').options].map(e=>e.value),['light','dark','garden']);
+ assert.deepEqual([...document.querySelectorAll('[data-theme-choice]')].map(e=>e.dataset.themeChoice),['light','dark','garden','retro']);
+ assert.deepEqual([...document.querySelector('#theme-select').options].map(e=>e.value),['light','dark','garden','retro']);
+}));
+
+test('Retro reuses controls and restores the exact layout repeatedly, including Garden transitions',async()=>fixture(async({document,settings,student,requests})=>{
+ settings.update({student,liveMode:false,language:'en',timetable:null});
+ const app=document.getElementById('app-screen'),before=app.innerHTML;
+ const controls=['day-strip','open-settings','task-form','cool-list','schedule-list','mail-dialog','cool-exams-tab'].map(id=>document.getElementById(id));
+ let submissions=0;document.getElementById('task-form').addEventListener('submit',()=>submissions++);
+ for(let i=0;i<5;i++){
+  document.querySelector('[data-theme-choice="retro"]').click();
+  assert.equal(document.body.dataset.theme,'retro');
+  assert.equal(document.querySelectorAll('.retro-scope').length,1);
+  assert.equal(document.querySelector('.retro-scope').hasAttribute('tabindex'),false);
+  assert.equal(document.querySelector('.workspace>.week-section #day-strip'),controls[0]);
+  assert.ok(document.querySelector('.side-column .shortcuts-panel'));
+  assert.ok(document.querySelector('.schedule-column>.week-toolbar'));
+  for(const control of controls)assert.equal(document.getElementById(control.id),control);
+  document.getElementById('task-form').dispatchEvent(new document.defaultView.Event('submit'));
+  document.querySelector('[data-theme-choice="light"]').click();
+  assert.equal(app.innerHTML,before);
+ }
+ assert.equal(submissions,5);assert.equal(requests.length,0);
+ document.querySelector('[data-theme-choice="retro"]').click();
+ document.querySelector('[data-theme-choice="garden"]').click();
+ assert.equal(document.querySelectorAll('.retro-scope,.retro-hardware').length,0);
+ assert.equal(document.querySelectorAll('.garden-scenery').length,1);
+ document.querySelector('[data-theme-choice="retro"]').click();
+ assert.equal(document.querySelectorAll('.garden-scenery,.garden-mail-decoration,.garden-flight-layer').length,0);
+ document.querySelector('[data-theme-choice="dark"]').click();
+ assert.equal(document.querySelectorAll('.retro-scope,.retro-hardware').length,0);
 }));
