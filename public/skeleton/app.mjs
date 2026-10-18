@@ -258,6 +258,7 @@ function fitLessonCards(){
     button.style.removeProperty('max-height');
     button.style.removeProperty('flex');
   }
+  if(document.body.dataset.theme==='retro')return;
   for(const button of cards){
     const card=button.querySelector('.lesson-card');
     const parts=[...card.children].filter(n=>!n.classList.contains('lesson-arrow'));

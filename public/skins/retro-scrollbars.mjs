@@ -3,7 +3,7 @@
 export function startRetroScrollbars(app){
  if(!window.ResizeObserver)return()=>{};
  const layer=document.createElement('div');layer.className='retro-slider-layer';document.body.append(layer);
- const entries=[],hosts=[...app.querySelectorAll('#cool-list,#todo-list,#schedule-list')];
+ const entries=[],hosts=[...app.querySelectorAll('#cool-list,#todo-list')];
  let frame=0,stopped=false;
  function schedule(){if(!frame&&!stopped)frame=window.requestAnimationFrame(()=>{frame=0;entries.forEach(draw);});}
  function draw(s){

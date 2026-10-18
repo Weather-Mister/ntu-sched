@@ -47,6 +47,8 @@ try{
   assert.equal(await page.locator('.retro-slider[aria-controls="retro-week-rail"]').count(),0);
   assert.equal(await page.locator('.week-section').evaluate(e=>getComputedStyle(e).overflowY),'hidden');
   assert.equal(await page.locator('.side-column>.shortcuts-panel').count(),1);
+  assert.equal(await page.locator('.retro-slider[aria-controls="schedule-list"]').count(),0);
+  assert.equal(await page.locator('#schedule-list').evaluate(e=>getComputedStyle(e).overflowY),'visible');
   if(width>=860)assert.ok(await page.locator('.week-section').evaluate(e=>e.querySelector('.day-button').getBoundingClientRect().width>e.getBoundingClientRect().width*.7),'Day keys fill the fixed sidebar');
   const topMail=page.locator('.side-column [data-open-mail]');assert.ok(await topMail.isVisible());
   assert.equal(await page.locator('.topbar [data-open-mail]').count(),0);
@@ -87,6 +89,24 @@ try{
   await page.locator('#open-settings').click();await checkOverflow(page,`${width} settings`);
   await page.screenshot({path:resolve(output,`settings-${width}.png`)});await page.keyboard.press('Escape');
   if(width===1440){
+   await page.locator('.side-column [data-open-mail]').click();
+   await page.locator('#open-settings').click();
+   await page.locator('[data-theme-choice="light"]').click();
+   assert.ok(await page.locator('#settings-dialog').evaluate(e=>e.matches(':modal')));
+   assert.ok(await page.locator('#mail-dialog').evaluate(e=>e.matches(':modal')));
+   await page.locator('[data-theme-choice="retro"]').click();
+   await page.locator('#settings-close-desktop').click();
+   assert.ok(await page.locator('#mail-dialog').evaluate(e=>e.open&&!e.matches(':modal')));
+   await page.keyboard.press('Escape');await page.locator('#mail-dialog').waitFor({state:'hidden'});
+   await page.locator('.day-button').first().click();
+   await page.locator('#schedule-list').evaluate(list=>{
+    const first=list.querySelector('.lesson');
+    for(let i=0;i<8;i++){const lesson=first.cloneNode(true);lesson.classList.add('smoke-lesson');lesson.querySelector('.lesson-name').textContent='Fictional busy-day lesson '+(i+1)+' with a deliberately long course title';list.append(lesson);}
+   });
+   await checkOverflow(page,'busy day with ten lesson rows');
+   assert.ok(await page.locator('#schedule-list').evaluate(e=>e.scrollHeight<=e.clientHeight+2));
+   await page.screenshot({path:resolve(output,'busy-day-no-nested-scroll.png'),fullPage:true});
+   await page.locator('.smoke-lesson').evaluateAll(nodes=>nodes.forEach(n=>n.remove()));
    const trace=page.locator('.scope-trace'),a=await trace.getAttribute('d');await page.waitForTimeout(180);assert.notEqual(await trace.getAttribute('d'),a);
    await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(100);
    const still=await trace.getAttribute('d');await page.waitForTimeout(150);assert.equal(await trace.getAttribute('d'),still);await page.emulateMedia({reducedMotion:'no-preference'});

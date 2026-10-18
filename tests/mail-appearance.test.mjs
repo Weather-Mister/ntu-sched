@@ -14,3 +14,13 @@ test('dark email appearance preserves sandbox CSP, content, links and image URLs
  assert.doesNotMatch(dark,/filter\s*:\s*invert|<script/i);
  for(const theme of ['light','garden'])assert.equal(mailDocumentAppearance(source,theme),source);
 });
+
+test('retro reader uses the personal CRT palette while preserving the sandbox and sanitized message',()=>{
+ const source=sanitizeMail('<p>Fictional message</p><a href="https://ntu.edu.tw">Course</a><img src="https://example.com/image.png">',true);
+ const original=parseHTML(source).document,retro=parseHTML(mailDocumentAppearance(source,'retro')).document;
+ assert.equal(retro.body.innerHTML,original.body.innerHTML);
+ assert.equal(retro.querySelector('meta[http-equiv="Content-Security-Policy"]').content,original.querySelector('meta[http-equiv="Content-Security-Policy"]').content);
+ assert.match(retro.querySelector('style[data-campus-mail-appearance]').textContent,/#282b25/);
+ assert.equal(retro.querySelector('img').src,original.querySelector('img').src);
+ assert.doesNotMatch(mailDocumentAppearance(source,'retro'),/<script|filter\s*:\s*invert/i);
+});

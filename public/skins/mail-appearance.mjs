@@ -11,9 +11,10 @@ body th{background-color:#252c38!important}
 ::selection{background:#475d8d;color:#fff}
 </style>`;
 export function mailDocumentAppearance(html,theme){
- if(theme!=='dark')return html;
+ if(theme!=='dark'&&theme!=='retro')return html;
+ const style=theme==='retro'?darkStyle.replaceAll('#1b1e25','#282b25').replaceAll('#e4e9f3','#cfd2c4').replaceAll('#475062','#464b41').replaceAll('#b3ceff','#d4c292').replaceAll('#758ab0','#7b806c').replaceAll('#bac6da','#b5bcaa').replaceAll('#252c38','#343830').replaceAll('#475d8d','#555f4b').replace('</style>','body{font:12px/1.78 Arial,Helvetica,sans-serif}</style>'):darkStyle;
  const source=String(html||'');
- return /<\/head\s*>/i.test(source)?source.replace(/<\/head\s*>/i,darkStyle+'</head>'):darkStyle+source;
+ return /<\/head\s*>/i.test(source)?source.replace(/<\/head\s*>/i,style+'</head>'):style+source;
 }
 export function setMailDocument(frame,html){
  sources.set(frame,html);
