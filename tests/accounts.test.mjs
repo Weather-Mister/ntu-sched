@@ -648,6 +648,7 @@ test('actual authenticated calendar responses keep the dashboard signed in, whil
   let expired=0,rendered=0;
   const context={
     liveMode:true,liveAccount:auth.body,liveEpoch:1,liveDetailsRevision:0,lessonSaving:false,language:'en',
+    snapshotLoads:new Map(),liveSnapshotsLoading:false,updateLiveStatus(){},
     liveCourseOverrides:{},liveTimetable:null,liveExamPlans:{},liveSectionOptions:{},liveTimetableOk:false,liveTimetableInfo:'',liveCalendar:null,liveCalendarOk:false,liveCoolInfo:'',
     taskStore:{refresh:async()=>{}},eventUI:{refresh(){}},foregroundRefresh:{record(){}},
     account:{timetable:async()=> (await request(e,'timetable',{cookie:auth.cookie})).json(),coolCalendar:async()=> (await request(e,'cool/calendar',{cookie:auth.cookie})).json()},

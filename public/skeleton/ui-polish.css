@@ -1,0 +1,52 @@
+/* Shared finishing rules. Themes retain their typography, palette and artwork. */
+html:has(dialog:modal),html:has(dialog:modal) body{overflow:hidden;overscroll-behavior:none}
+textarea{font:inherit}
+textarea:focus-visible,summary:focus-visible{outline:3px solid #e4b964;outline-offset:3px}
+:is(.settings-main,.mailx-list,.mailx-reader,.campus-compose-scroll,.cool-list,.todo-list){overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.mailx-mobile-tabs{scrollbar-width:thin;scrollbar-color:#c5cdbf transparent;scroll-padding-inline:12px}
+.mailx-mobile-tabs button{scroll-margin-inline:12px}
+.mailx-reader{overflow-y:auto}
+.mail-frame{display:block;flex:1 1 auto}
+.mailx-reader-toolbar,.mail-message-head{flex-shrink:0}
+.mailx-reader-toolbar-buttons button{min-height:36px}
+.ui-loading-card{text-align:left;min-height:120px;padding:20px;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.ui-loading-card>span:first-child{color:var(--muted);font-size:12px;font-weight:600}
+.ui-loading-lines{display:flex;flex-direction:column;gap:9px;width:100%}
+.ui-loading-lines i{display:block;height:8px;border-radius:5px;background:var(--line);opacity:.65}
+.ui-loading-lines i:nth-child(2){width:82%}.ui-loading-lines i:last-child{width:57%}
+body .sync-dot.is-loading{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);animation:ui-breathe 1.6s ease-in-out infinite}
+button[aria-busy="true"]{cursor:progress}
+button[aria-busy="true"] svg{animation:ui-spin 1.1s linear infinite}
+body:not([data-theme="retro"]) :is(.button,.icon-button,.day-button,.ntu-link,.todo-check,.todo-remove){transition:background-color .15s,border-color .15s,box-shadow .15s,color .15s}
+body:not([data-theme="retro"]) :is(.button,.icon-button,.ntu-link):hover:not(:disabled){border-color:var(--accent);box-shadow:0 2px 7px #152a3910}
+body:not([data-theme="retro"]) .empty-card{line-height:1.6}
+.detail-sheet textarea,.event-dialog textarea{resize:vertical;min-height:90px;max-height:240px}
+.settings-jumps button{min-height:32px}
+.settings-section-heading{align-items:flex-start}
+.settings-save-state:empty{display:none}
+body:not([data-theme="retro"]) .cool-column .cool-panel-header .cool-view-switch button{white-space:nowrap;overflow-wrap:normal;font-size:11px;padding-inline:6px;flex:1 1 auto}
+@media(min-width:1101px){
+ body:not([data-theme="retro"]) .shortcuts-panel .ntu-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ body:not([data-theme="retro"]) .shortcuts-panel .ntu-link{flex-direction:column;justify-content:center;text-align:center;gap:5px;min-height:62px;padding:8px 4px;font-size:10px;line-height:1.3}
+}
+@keyframes ui-spin{to{transform:rotate(360deg)}}
+@keyframes ui-breathe{50%{opacity:.4}}
+@media(max-width:790px){
+ .mailx-dialog:not([data-retro-embedded="true"]){inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh}
+ .mailx-main{padding-bottom:env(safe-area-inset-bottom)}
+ .mailx-reader-toolbar{gap:8px;align-items:flex-start;flex-wrap:wrap}
+ .mailx-reader-toolbar>button{min-height:36px}
+ .mailx-reader-toolbar-buttons{gap:5px;justify-content:flex-start}
+ .mailx-mobile-tabs{gap:4px;padding-block:7px}
+ .mail-message-head{padding:14px 16px}.mail-message-head h3{font-size:18px;line-height:1.4}
+ .ui-loading-card{min-height:110px}
+ body[data-theme="garden"] .dashboard-hero{gap:13px}
+ body[data-theme="garden"] .garden-scenery{height:64px;margin-top:-8px}
+ body:not([data-theme="retro"]) :is(.cool-done-button,.todo-check,.todo-remove){min-width:32px;min-height:32px}
+}
+@media(max-width:380px){.settings-jumps button{padding-inline:8px}.mailx-mobile-tabs button{padding-inline:10px}}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important}
+ .sync-dot.is-loading,button[aria-busy="true"] svg{animation:none}
+ body:not([data-theme="retro"]) :is(.button,.icon-button,.day-button,.ntu-link,.todo-check,.todo-remove){transition:none}
+}
