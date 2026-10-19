@@ -56,7 +56,7 @@ export async function withMailbox(env,owner,work,{retryRead=false}={}){
   try{result=await work(s,row);}
   catch(error){
    // Retry only idempotent reads: moving mail or sending may have succeeded upstream.
-   if(!retryRead||!['ntu_session_expired','ntu_action_failed'].includes(error?.code))throw error;
+   if(!retryRead||!['ntu_session_expired','ntu_action_failed','ntu_unavailable'].includes(error?.code)||error.status===404)throw error;
    s.close();s=newSession();await s.login();issuedAt=clock();
    result=await work(s,row);
   }
@@ -97,7 +97,7 @@ export async function listMail(env,owner,url){
  const cacheable=folder==='inbox'&&!query&&(!progressive&&page===1||progressive&&limit===25&&!url.searchParams.has('cursor'));
  if(cacheable){
   const cached=await env.DB.prepare('SELECT inbox,inbox_at FROM mail_state WHERE student_id=?').bind(owner.student_id).first();
-  if(cached?.inbox&&clock()-cached.inbox_at<60000){
+  if(url.searchParams.get('fresh')!=='1'&&cached?.inbox&&clock()-cached.inbox_at<60000){
    const stored=JSON.parse(cached.inbox);
    if((!progressive&&!stored.progressive)||(progressive&&stored.progressive&&stored.limit===25))
     return {...stored,cached:true,updatedAt:cached.inbox_at};
@@ -141,6 +141,8 @@ export async function readMail(env,owner,url){
  return withMailbox(env,owner,async s=>{
   const html=await(await s.fetch('?'+new URLSearchParams({_task:'mail',_action:'show',_mbox:ref.mailbox,_uid:ref.uid,_safe:'1',_token:s.env.request_token}),{},2*1024*1024)).text();
   const message=messageFromPage(html,ref),headers=await rootHeaders(s,ref);
+  // Roundcube marks an opened message read. Do not serve the old unread cache.
+  await env.DB.prepare('UPDATE mail_state SET inbox_at=0 WHERE student_id=?').bind(owner.student_id).run();
   return {...message,body:undefined,html:sanitizeMail(message.body,url.searchParams.get('images')==='1'),replyTo:headers.replyTo};
  },{retryRead:true});
 }

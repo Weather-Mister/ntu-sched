@@ -240,6 +240,9 @@ export class Roundcube {
                     }
                     chunks.push(value);
                 }
+            } catch(error){
+                if(error instanceof ApiError)throw error;
+                throw new MailError(502, 'NTU Mail interrupted the download. Please retry.', 'ntu_unavailable');
             } finally{
                 reader.releaseLock();
             }
