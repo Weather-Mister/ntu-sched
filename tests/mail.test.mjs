@@ -15,13 +15,15 @@ import {cleanRichHtml,normalizeRevision,PART_BYTES} from '../public/mail-rich.mj
 import {revisionIsCurrent,QUICK_COMMANDS} from '../public/skeleton/mail-composer.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
 const APP='https://campus.example',KEY='ab'.repeat(32),realFetch=globalThis.fetch;
-let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0,failLoginCount=0,missingComposeAttachments=false;
-beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;failLoginCount=0;missingComposeAttachments=false;});
+let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0,failLoginCount=0,missingComposeAttachments=false,unavailableAction='',unavailableCount=0,interruptedAction='';
+beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;failLoginCount=0;missingComposeAttachments=false;unavailableAction='';unavailableCount=0;interruptedAction='';});
 after(()=>{globalThis.fetch=realFetch;});
 globalThis.fetch=async(url,init={})=>{
  const u=new URL(url),fields=init.body instanceof URLSearchParams?init.body:u.searchParams,action=fields.get('_action')||u.searchParams.get('_action');calls.push({url:u.href,action,init});
  if(u.hostname==='fcm.googleapis.com')return new Response(null,{status:pushStatus});
  assert.equal(u.origin,'https://wmail1.cc.ntu.edu.tw');
+ if(action===unavailableAction&&unavailableCount-->0)return new Response('NTU temporarily unavailable',{status:503});
+ if(action===interruptedAction){interruptedAction='';return new Response(new ReadableStream({start(controller){controller.error(new Error('Interrupted download'));}}));}
  if(action==='login'){
   const rejected=failLoginCount>0;if(rejected)failLoginCount--;
   return new Response('rcmail.set_env('+JSON.stringify({task:rejected?'login':'mail',request_token:'nonce',username:fields.get('_user')})+');',{headers:{'Set-Cookie':'roundcube_sessid=test'}});
@@ -60,7 +62,7 @@ async function request(e,a,path,method='GET',body,extra={}){const headers=new He
 const sendBody=()=>({id:crypto.randomUUID(),to:'friend@ntu.edu.tw',subject:'Hello',text:'A test message'});
 const composeDraft=()=>({id:crypto.randomUUID(),version:0,to:'friend@ntu.edu.tw',subject:'Draft subject',body:'A current editable draft',bodyHtml:'<p>A <strong>current editable</strong> draft</p>',attachments:[]});
 test('composer runtime bootstrap matches the versioned D1 migration',()=>{
- const migration=readFileSync(new URL('../migrations/0005_mail_composer.sql',import.meta.url),'utf8').split(';').map(s=>s.trim()).filter(Boolean);assert.deepEqual(COMPOSER_SCHEMA,migration);
+ const migration=readFileSync(new URL('../migrations/0005_mail_composer.sql',import.meta.url),'utf8').replace(/\r\n/g,'\n').split(';').map(s=>s.trim()).filter(Boolean);assert.deepEqual(COMPOSER_SCHEMA,migration);
 });
 test('all composer mutations require the current account and CSRF before accessing a draft or Gemini',async()=>{
  const e=env(),a=await identity(e);for(const path of ['ai','drafts','drafts/attachment','outbox','outbox/action']){assert.equal((await request(e,null,path,'POST',{})).status,401);assert.equal((await request(e,{...a,csrf:'wrong'},path,'POST',{})).status,403);}assert.equal(calls.length,0);e.sqlite.close();
@@ -204,6 +206,37 @@ test('mailbox reads recover once from an NTU action error using a fresh session'
  assert.equal(r.status,200);assert.equal((await r.json()).count,1);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
  e.sqlite.close();
+});
+test('temporary upstream failures recover once for inbox and message reads',async()=>{
+ for(const [action,path]of [['list','list?folder=sent'],['show','message?mailbox=INBOX&uid=20']]){
+  const e=env(),a=await identity(e);unavailableAction=action;unavailableCount=1;
+  const response=await request(e,a,path);assert.equal(response.status,200,await response.clone().text());
+  assert.equal(calls.filter(c=>c.action===action).length,2);e.sqlite.close();calls=[];
+ }
+});
+test('persistent upstream failure stops after one safe retry and preserves Campus Week sign-in',async()=>{
+ const e=env(),a=await identity(e);unavailableAction='show';unavailableCount=3;
+ const response=await request(e,a,'message?mailbox=INBOX&uid=20');assert.equal(response.status,502);
+ assert.equal((await response.json()).error.code,'ntu_unavailable');assert.equal(calls.filter(c=>c.action==='show').length,2);
+ assert.equal(e.sqlite.prepare('SELECT COUNT(*) AS n FROM sessions').get().n,1);
+ assert.equal(e.sqlite.prepare('SELECT lease FROM mail_state').get().lease,null);e.sqlite.close();
+});
+test('an interrupted NTU body download is recognized as a temporary failure and recovered',async()=>{
+ const e=env(),a=await identity(e);interruptedAction='show';
+ const response=await request(e,a,'message?mailbox=INBOX&uid=20');assert.equal(response.status,200);
+ assert.equal(calls.filter(c=>c.action==='show').length,2);e.sqlite.close();
+});
+test('manual refresh bypasses the inbox cache and opened messages invalidate unread metadata',async()=>{
+ const e=env(),a=await identity(e);await request(e,a,'list?limit=25');latest=21;
+ assert.equal((await(await request(e,a,'list?limit=25')).json()).messages[0].uid,'20');
+ assert.equal((await(await request(e,a,'list?limit=25&fresh=1')).json()).messages[0].uid,'21');
+ await request(e,a,'message?mailbox=INBOX&uid=21');
+ assert.equal(e.sqlite.prepare('SELECT inbox_at FROM mail_state').get().inbox_at,0);e.sqlite.close();
+});
+test('temporary upstream errors never automatically replay mailbox mutations',async()=>{
+ const e=env(),a=await identity(e);unavailableAction='mark';unavailableCount=1;
+ const response=await request(e,a,'action','POST',{mailbox:'INBOX',uid:'20',action:'read'});
+ assert.equal(response.status,502);assert.equal(calls.filter(c=>c.action==='mark').length,1);e.sqlite.close();
 });
 test('rejected mail mutations discard the faulty session without replaying the operation',async()=>{
  const e=env(),a=await identity(e);

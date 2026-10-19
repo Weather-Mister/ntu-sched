@@ -8,10 +8,11 @@ export function createMailUI({account,isLive,language}){
  const dialog=$('mail-dialog'),list=dialog.querySelector('.mailx-list'),reader=dialog.querySelector('.mailx-reader'),
   count=dialog.querySelector('.mailx-count'),composeButton=dialog.querySelector('.mailx-compose-main'),
   refreshButton=dialog.querySelector('.mailx-refresh-button'),listTools=dialog.querySelector('.mailx-list-tools');
- let owner=null,epoch=0,folder='inbox',query='',busy=false,queuedLoad=null,sequence=0,reading=0,
-  current=null,pushId=null,registration=null,pushKey=null,pushSubscription=null,pushReady=false,pushLoading=false,lastLoad=0,messages=[],nextCursor=null,totalCount=0,mutating=false,
+ let owner=null,epoch=0,folder='inbox',query='',busy=false,queuedLoad=null,activeLoad=null,sequence=0,reading=0,readingKey=null,
+  current=null,pushId=null,registration=null,pushKey=null,pushSubscription=null,pushReady=false,pushLoading=false,lastLoad=0,messages=[],listError='',nextCursor=null,totalCount=0,mutating=false,
    translationCache=new Map(),translationShown=new Set(),translationRequests=new Map();
  const w=()=>words[language()==='zh'?'zh':'en'];
+ const retryLabel=()=>language()==='zh'?'重試':'Try again';
  const status=node('p',{class:'mail-status',role:'status','aria-live':'polite'}),
   search=node('input',{type:'search',placeholder:w().search,'aria-label':w().search}),
   searchForm=node('form',{class:'mail-search'}),pushButton=node('button',{type:'button'},w().enable),
@@ -35,7 +36,7 @@ export function createMailUI({account,isLive,language}){
  refreshButton.before(pushButton);pushButton.className='mailx-top-action campus-mail-push';
  pager.append(loadMoreButton);list.after(pager);
  composeButton.disabled=false;
- if(refreshButton){refreshButton.disabled=false;refreshButton.title=w().refresh;refreshButton.setAttribute('aria-label',w().refresh);refreshButton.addEventListener('click',()=>void load(false));}
+ if(refreshButton){refreshButton.disabled=false;refreshButton.title=w().refresh;refreshButton.setAttribute('aria-label',w().refresh);refreshButton.addEventListener('click',()=>void load(false,true));}
  loadMoreButton.addEventListener('click',()=>void load(true));
  const composer=createComposer({host:dialog,request,getOwner:()=>owner,tell,onChange:()=>{if(['drafts','outbox'].includes(folder))void load(false);}});
  const keyOf=ref=>String(ref.mailbox)+':'+String(ref.uid);
@@ -74,7 +75,7 @@ export function createMailUI({account,isLive,language}){
  function renderList(){
   if(['drafts','outbox'].includes(folder))return;
   list.replaceChildren();
-  if(!messages.length)list.append(node('p',{class:'mailx-list-placeholder'},w().empty));
+  if(!messages.length)list.append(node('p',{class:'mailx-list-placeholder'},busy?w().loading:listError||w().empty));
   for(const message of messages){
    const selected=!!current&&keyOf(current)===keyOf(message);
    const wrap=node('article',{class:'campus-mail-item'+(message.unread?' is-unread':'')+(selected?' is-active':'')});
@@ -108,7 +109,7 @@ export function createMailUI({account,isLive,language}){
   markAllButton.disabled=mutating||busy;
  }
  function emptyReader(){
-  current=null;reader.replaceChildren(node('div',{class:'mailx-reader-empty'},w().choose));
+  current=null;readingKey=null;reader.setAttribute('aria-busy','false');reader.replaceChildren(node('div',{class:'mailx-reader-empty'},w().choose));
   dialog.classList.remove('mail-reading');showSelection();
  }
  function locale(){
@@ -118,7 +119,8 @@ export function createMailUI({account,isLive,language}){
    b.setAttribute('aria-pressed',String(b.dataset.mailFolder===folder));
   }
   $('mail-folder-heading').textContent=w()[folder];composeButton.textContent=w().compose;
-  search.placeholder=w().search;
+  search.placeholder=w().search;search.setAttribute('aria-label',w().search);
+  refreshButton.title=w().refresh;refreshButton.setAttribute('aria-label',w().refresh);
   const pushLabel=pushId?w().disable:w().enable;
   pushLong.textContent=pushLabel;pushShort.textContent=pushId?w().mobileDisable:w().mobileEnable;
   pushButton.setAttribute('aria-label',pushLabel);
@@ -138,54 +140,75 @@ export function createMailUI({account,isLive,language}){
  }
  function bind(value){
   const next=value?.studentNumber||null;if(next===owner)return;
-  epoch++;sequence++;reading++;owner=next;busy=false;queuedLoad=null;folder='inbox';query='';
-  messages=[];nextCursor=null;totalCount=0;search.value='';composer.bind(next);pushId=null;pushKey=null;pushSubscription=null;pushReady=false;pushLoading=false;
+  epoch++;sequence++;reading++;owner=next;busy=false;queuedLoad=null;activeLoad=null;mutating=false;lastLoad=0;folder='inbox';query='';
+  messages=[];listError='';list.setAttribute('aria-busy','false');nextCursor=null;totalCount=0;search.value='';composer.bind(next);pushId=null;pushKey=null;pushSubscription=null;pushReady=false;pushLoading=false;
    translationCache.clear();translationShown.clear();translationRequests.clear();
   list.replaceChildren();emptyReader();tell('');locale();renderList();
   if(!next){dialog.close();void navigator.serviceWorker?.getRegistration('/').then(async r=>{await(await r?.pushManager.getSubscription())?.unsubscribe();}).catch(()=>{});}
   else if(dialog.open)void load(false);
  }
- async function load(append=false){
+ // Only replay safe reads when a scheduled job temporarily owns the mailbox.
+ async function mailboxRead(path,isCurrent){
+  for(let attempt=0;;attempt++){
+   try{return await request(path);}
+   catch(error){
+    if(error.code!=='mail_busy'||attempt>=2||!isCurrent())throw error;
+    tell(language()==='zh'?'信箱正在更新，正在重試…':'Mail is updating. Retrying…');
+    await new Promise(resolve=>setTimeout(resolve,Math.min(5000,Math.max(900,Number(error.retryAfterSeconds||0)*1000,900+attempt*900))));
+    if(!isCurrent())return null;
+   }
+  }
+ }
+ function showFailure(error,retry){
+  tell(error.message|| (language()==='zh'?'暫時無法載入信箱。':'Mail could not load right now.'));
+  const control=button(retryLabel(),retry);control.className='campus-mail-retry';status.append(' ',control);
+ }
+ async function load(append=false,fresh=false){
   if(!owner||!isLive()){tell(w().login);return;}
+  const location=folder+'\u0000'+query;
+  if(busy){
+   // Repeated open/refresh clicks join the current read. Only a new folder or
+   // search supersedes it; keep at most one request for that latest location.
+   if(activeLoad?.location!==location)queuedLoad={fresh};
+   return;
+  }
   if(['drafts','outbox'].includes(folder)){sequence++;messages=[];nextCursor=null;totalCount=0;pager.hidden=true;markAllButton.hidden=true;count.textContent='';tell('');lastLoad=Date.now();await composer.panel(folder,list,query);return;}
-  const seq=++sequence;
-  if(busy){queuedLoad=append&&queuedLoad!=='reset'?'append':'reset';return;}
   if(append&&!nextCursor)return;
-  busy=true;
-  const startEpoch=epoch,location=folder+'\u0000'+query,cursor=append?nextCursor:null;
-  tell(w().loading);loadMoreButton.disabled=true;markAllButton.disabled=true;
+  const seq=++sequence,startEpoch=epoch,cursor=append?nextCursor:null;
+  const operation={location};activeLoad=operation;busy=true;
+  const valid=()=>seq===sequence&&startEpoch===epoch&&location===folder+'\u0000'+query;
+  listError='';tell(w().loading);list.setAttribute('aria-busy','true');renderList();
   try{
    const params=new URLSearchParams({folder,q:query,limit:String(append?50:25)});
    if(cursor)params.set('cursor',cursor);
-   let result;
-   // A background NTU notification check can momentarily own the mailbox.
-   // Retry just this read without making the user reload the whole website.
-   for(let attempt=0;;attempt++){
-    try{result=await request('list?'+params);break;}
-    catch(error){
-     if(error.code!=='mail_busy'||attempt>=2)throw error;
-     await new Promise(resolve=>setTimeout(resolve,900+attempt*900));
-     if(seq!==sequence||startEpoch!==epoch||location!==folder+'\u0000'+query)return;
-    }
-   }
-   if(seq!==sequence||startEpoch!==epoch||location!==folder+'\u0000'+query)return;
+   if(fresh)params.set('fresh','1');
+   const result=await mailboxRead('list?'+params,valid);
+   if(!valid())return;
    const previous=append?messages:[],known=new Set(previous.map(keyOf));
    messages=previous.concat(result.messages.filter(m=>!known.has(keyOf(m))));
    totalCount=result.count;nextCursor=result.nextCursor||null;
    renderList();tell('');lastLoad=Date.now();
-  }catch(error){if(seq===sequence&&startEpoch===epoch)tell(error.message);}
+  }catch(error){if(valid()){lastLoad=0;listError=error.message;showFailure(error,()=>void load(append,true));}}
   finally{
-   busy=false;if(!['drafts','outbox'].includes(folder))renderList();
-   if(queuedLoad){const mode=queuedLoad;queuedLoad=null;void load(mode==='append');}
+   if(activeLoad===operation){
+    activeLoad=null;busy=false;list.setAttribute('aria-busy','false');if(!['drafts','outbox'].includes(folder))renderList();
+    if(queuedLoad){const mode=queuedLoad;queuedLoad=null;void load(false,mode.fresh);}
+   }
   }
  }
  async function read(ref,images=false){
    if(composer.active)return;
-   const generation=++reading,identity=epoch;tell(w().loading);
+   const readKey=keyOf(ref)+':'+images;if(readingKey===readKey)return;
+   const generation=++reading,identity=epoch;readingKey=readKey;current=ref;showSelection();tell(w().loading);
+   const valid=()=>generation===reading&&identity===epoch;
+   const loading=node('div',{class:'mailx-reader-empty'},w().loading);
+   loading.append(button(w().back,()=>{reading++;emptyReader();tell('');}));
+   reader.replaceChildren(loading);reader.setAttribute('aria-busy','true');dialog.classList.add('mail-reading');
    try{
-    const message=await request('message?'+new URLSearchParams({mailbox:ref.mailbox,uid:ref.uid,...(images?{images:'1'}:{})}));
-    if(generation!==reading||identity!==epoch)return;
+    const message=await mailboxRead('message?'+new URLSearchParams({mailbox:ref.mailbox,uid:ref.uid,...(images?{images:'1'}:{})}),valid);
+    if(!valid())return;
     current=message;showSelection();
+    const listed=messages.find(item=>keyOf(item)===keyOf(ref));if(listed)listed.unread=false;renderList();
     reader.replaceChildren();dialog.classList.add('mail-reading');
     const toolbar=node('div',{class:'mailx-reader-toolbar'}),tools=node('div',{class:'mailx-reader-toolbar-buttons'});
     toolbar.append(button(w().back,()=>{dialog.classList.remove('mail-reading');}),tools);
@@ -254,32 +277,42 @@ export function createMailUI({account,isLive,language}){
       }finally{control.disabled=false;}
      }
     }
-   }catch(error){if(generation===reading&&identity===epoch)tell(error.message);}
+   }catch(error){if(valid()){
+    showFailure(error,()=>void read(ref,images));
+    const failed=node('div',{class:'mailx-reader-empty'},error.message);
+    failed.append(button(retryLabel(),()=>void read(ref,images)),button(w().back,()=>{reading++;emptyReader();tell('');}));reader.replaceChildren(failed);
+   }}finally{if(valid()){readingKey=null;reader.setAttribute('aria-busy','false');}}
   }
+ function refreshAfterChange(){
+  if(busy){sequence++;queuedLoad={fresh:true};}
+  else void load(false,true);
+ }
  async function mutate(kind,ref){
   if(!ref||mutating)return;
+  const identity=epoch;
   mutating=true;markAllButton.disabled=true;
   try{
    await request('action',{method:'POST',body:JSON.stringify({mailbox:ref.mailbox,uid:ref.uid,action:kind})});
    if(kind==='archive'||kind==='trash'){
     if(current&&keyOf(current)===keyOf(ref))emptyReader();
-    void load(false);return;
+    refreshAfterChange();return;
    }
    const selected=messages.find(m=>keyOf(m)===keyOf(ref));
    if(selected){if(kind==='star'||kind==='unstar')selected.starred=kind==='star';if(kind==='read'||kind==='unread')selected.unread=kind==='unread';}
-   if((folder==='unread'&&(kind==='read'||kind==='unread'))||(folder==='starred'&&(kind==='star'||kind==='unstar')))void load(false);
+   if(busy||(folder==='unread'&&(kind==='read'||kind==='unread'))||(folder==='starred'&&(kind==='star'||kind==='unstar')))refreshAfterChange();
    else{renderList();tell('');}
-  }catch(error){tell(error.message);}
-  finally{mutating=false;markAllButton.disabled=false;}
+  }catch(error){if(identity===epoch)tell(error.message);}
+  finally{if(identity===epoch){mutating=false;markAllButton.disabled=busy;}}
  }
  async function markAllRead(){
   if(mutating||busy)return;mutating=true;markAllButton.disabled=true;
+  const identity=epoch;
   try{
    await request('action',{method:'POST',body:JSON.stringify({action:'read-all'})});
    for(const item of messages)item.unread=false;
-   if(folder==='unread')void load(false);else{renderList();tell('');}
-  }catch(error){tell(error.message);}
-  finally{mutating=false;markAllButton.disabled=false;}
+   if(busy||folder==='unread')refreshAfterChange();else{renderList();tell('');}
+  }catch(error){if(identity===epoch)tell(error.message);}
+  finally{if(identity===epoch){mutating=false;markAllButton.disabled=busy;}}
  }
  function switchFolder(next){
   if(folder===next)return;
@@ -312,9 +345,10 @@ export function createMailUI({account,isLive,language}){
    if(generation!==epoch)return;
    pushId=id&&data.devices.some(d=>d.id===id)?id:null;
    pushReady=true;
-   if(data.state?.last_error)tell(data.state.last_error);
+   // Notification failures must not overwrite the inbox/read loading status.
+   pushButton.title=data.state?.last_error||'';
   }catch(error){
-   if(generation===epoch){pushReady=false;tell(error?.message||w().pushRetry);}
+   if(generation===epoch){pushReady=false;pushButton.title=error?.message||w().pushRetry;}
   }finally{
    if(generation===epoch){pushLoading=false;pushButton.disabled=false;locale();}
   }
@@ -324,7 +358,7 @@ export function createMailUI({account,isLive,language}){
   if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))return tell(w().setup);
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.standalone&&!matchMedia('(display-mode: standalone)').matches)return tell(w().setup);
   if(pushLoading)return;
-  if(!pushReady){tell(w().pushPreparing);await initPush();if(pushReady)tell(w().pushReady);return;}
+  if(!pushReady){tell(w().pushPreparing);await initPush();tell(pushReady?w().pushReady:pushButton.title||w().pushRetry);return;}
   const generation=epoch;
   pushButton.disabled=true;
   try{
@@ -349,15 +383,17 @@ export function createMailUI({account,isLive,language}){
  function open(){
   if(!dialog.open){if(dialog.dataset.retroEmbedded==='true')dialog.show();else dialog.showModal();}locale();
   if(!owner){tell(w().login);return;}
-  void load(false);void initPush();
+  if(!busy&&(!lastLoad||Date.now()-lastLoad>=60000))void load(false);
+  if(!pushReady)void initPush();
  }
  composeButton.addEventListener('click',()=>owner?edit():tell(w().login));
  pushButton.addEventListener('click',()=>void togglePush());
  $('mail-close').addEventListener('click',async()=>{if(composer.active){await composer.close();return;}dialog.close();});
  document.querySelectorAll('[data-open-mail]').forEach(b=>b.addEventListener('click',open));
  for(const b of dialog.querySelectorAll('[data-mail-folder]'))b.addEventListener('click',()=>switchFolder(b.dataset.mailFolder));
- searchForm.addEventListener('submit',e=>{e.preventDefault();query=search.value.trim();messages=[];nextCursor=null;totalCount=0;void load(false);});
- search.addEventListener('search',()=>{if(!search.value){query='';messages=[];nextCursor=null;totalCount=0;void load(false);}});
+ function searchMail(){const next=search.value.trim();if(query===next)return;reading++;composer.cancelPanel();sequence++;query=next;messages=[];nextCursor=null;totalCount=0;emptyReader();renderList();void load(false);}
+ searchForm.addEventListener('submit',e=>{e.preventDefault();searchMail();});
+ search.addEventListener('search',()=>{if(!search.value)searchMail();});
  for(const id of ['language-en','language-zh','settings-language'])$(id).addEventListener(id==='settings-language'?'change':'click',()=>{locale();renderList();});
  setInterval(()=>{if(dialog.open&&owner&&!document.hidden&&navigator.onLine&&Date.now()-lastLoad>=60000&&!composer.active&&!busy&&messages.length<=25&&!current)void load(false);},60000);
  navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='open-mail')open();});

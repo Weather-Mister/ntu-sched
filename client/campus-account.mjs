@@ -7,8 +7,17 @@ export class CampusAccount {
     const headers = new Headers(options.headers);
     if (options.body) headers.set('Content-Type', 'application/json');
     if (options.method === 'POST' && this.current?.csrfToken) headers.set('X-CSRF-Token', this.current.csrfToken);
-    const response = await fetch(`/api/${path}`, { ...options, headers, credentials: 'same-origin', cache: 'no-store' });
-    const result = await response.json();
+    let response;
+    try { response = await fetch(`/api/${path}`, { ...options, headers, credentials: 'same-origin', cache: 'no-store' }); }
+    catch (error) {
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') throw error;
+      throw Object.assign(new Error('Could not connect. Check your internet connection and try again.'), {code:'network_unavailable'});
+    }
+    let result;
+    try { result = await response.json(); }
+    catch {
+      throw Object.assign(new Error('Campus Week could not load this response. Please try again.'), {code:'temporarily_unavailable',status:response.status >= 400 ? response.status : 502});
+    }
     if (!response.ok) {
       if (response.status === 401 && this.current === activeAccount) this.current = null;
       const error = new Error(result.error?.message || 'Campus Week could not complete this request.');
