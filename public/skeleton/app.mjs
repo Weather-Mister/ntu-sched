@@ -9,6 +9,7 @@ import { eventsOn, nextEventDates } from '/event-model.mjs';
 import { createEventUI } from './custom-events.mjs';
 import {createExamEditor} from './exam-editor.mjs';
 import { createMailUI } from './mail.mjs';
+import {withListFocus,loadingCard} from './ui-state.mjs';
 import { examCompletionKey } from '/exam-completion.mjs';
 import { createSettings } from './settings.mjs';
 import { updateRetroBoundary, setRetroBoundaryReader } from '../skins/retro.mjs';
@@ -88,6 +89,8 @@ try{const saved=localStorage.getItem('campus-week:language');if(saved==='en'||sa
 let language=savedLanguage,student=null,tasks=[],selectedDate=taipeiToday(),activePanel='account',opened=null,counter=0,coolView='assignments',timetableView='day';
 let pastExamsOpen=false,hiddenExamsOpen=false,missingExamsOpen=false;
 let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpoch=0,livePending=false,initialSyncBusy=false,liveTimetableInfo='',liveCoolInfo='';
+let liveSnapshotsLoading=false,liveSyncSource=null;
+const snapshotLoads=new Map();
 let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},liveExamPlans={},liveSectionOptions={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
@@ -143,6 +146,7 @@ function renderBanner(){
   $('next-title').textContent=next?next.c[language==='zh'?4:3]:'—';
   $('next-meta').textContent=next?longDate(next.key)+' · '+next.c[1]+'–'+next.c[2]+' · '+next.c[5]:'';
   $('next-countdown').textContent=next?(next.live?t('endsIn'):t('startsIn'))+' '+howLong((next.live?next.end:next.start)-now):'';
+  if(liveMode&&liveSnapshotsLoading&&!liveTimetable){$('next-label').textContent=language==='zh'?'正在載入':'LOADING';$('next-title').textContent=language==='zh'?'正在準備你的課表…':'Getting your schedule ready…';}
   const badgeDay = $('next-badge-day'), badgeTime = $('next-badge-time');
   if(!next){badgeDay.textContent='—';badgeTime.textContent='';}
   else {
@@ -178,6 +182,7 @@ function layoutOverlaps(entries){
 function renderWeekTimetable(){
   if(!student||timetableView!=='week')return;
   const container=$('week-timetable-grid');container.replaceChildren();
+  if(liveMode&&liveSnapshotsLoading&&!liveTimetable){container.append(loadingCard(document,language==='zh'?'正在載入課表…':'Loading your timetable…'));$('week-timetable-range').textContent='';return;}
   const base=monday(selectedDate),courses=Array.from({length:7},(_,d)=>scheduleOn(offset(base,d))).flat();
   const dayCount=courses.some(c=>c[0]>=5)||weekday(selectedDate)>=5?7:5;
   const dayNames=t('shortDays');
@@ -290,7 +295,7 @@ function updateCalendarClock(){
 }
 function renderCalendar(){
   if(!student)return;
-  const signature=JSON.stringify([student.id,language,selectedDate,taipeiToday(),timetableView,liveTimetable?.term,student.courses,eventUI.events(),student.courses.map(c=>courseOffering(c))]);
+  const signature=JSON.stringify([student.id,language,selectedDate,taipeiToday(),timetableView,liveTimetable?.term,liveSnapshotsLoading,student.courses,eventUI.events(),student.courses.map(c=>courseOffering(c))]);
   if(signature===calendarSignature){updateCalendarClock();return;}
   calendarSignature=signature;const base=monday(selectedDate),today=taipeiToday(),strip=$('day-strip');
   const end=offset(base,6);
@@ -319,8 +324,11 @@ function renderCalendar(){
   $('selected-day').textContent=timetableView==='week'?t('weeklyTimetable'):t('days')[weekday(selectedDate)];
   $('selected-date').textContent=timetableView==='week'?t('calendarLabel'):pretty(selectedDate);
   $('class-count').textContent=numberOfClasses+' '+t(eventUI.events().length?(numberOfClasses===1?'scheduleItem':'scheduleItems'):(numberOfClasses===1?'singleClass':'classes'));
+  if(liveMode&&liveSnapshotsLoading&&!liveTimetable)$('class-count').textContent='…';
   const list=$('schedule-list');list.replaceChildren();
-  if(!items.length){const empty=node('div','empty-card');empty.append(node('strong','',liveMode&&!student.courses.length?t('liveNoTimetable'):t('noClasses')),node('span','',liveMode&&!student.courses.length?'':t('noClassesDesc')));list.append(empty);}
+  list.setAttribute('aria-busy',String(liveMode&&liveSnapshotsLoading));
+  if(!items.length&&liveMode&&liveSnapshotsLoading)list.append(loadingCard(document,language==='zh'?'正在載入課表…':'Loading your timetable…'));
+  else if(!items.length){const empty=node('div','empty-card');empty.append(node('strong','',liveMode&&!student.courses.length?t('liveNoTimetable'):t('noClasses')),node('span','',liveMode&&!student.courses.length?'':t('noClassesDesc')));list.append(empty);}
   for(const c of items){
     const btn=node('button','lesson');btn.type='button';
     btn.classList.toggle('custom-event',!!c[7]);
@@ -357,6 +365,7 @@ function addCoolCheck(card,key,doneStore,save=()=>{},host=card){
   card.classList.add('cool-checkable');
   card.classList.toggle('done',done);
   const control=node('button','cool-done-button'+(done?' is-done':''),'✓');
+  control.dataset.uiFocus='calendar-check:'+key;
   control.type='button';control.setAttribute('aria-pressed',String(done));
   control.setAttribute('aria-label',t(done?'markUndone':'markDone'));
   control.title=t(key.startsWith('exam:')?'examDoneLocally':'doneLocally');
@@ -389,11 +398,11 @@ function saveCoolChecks(){
 function renderDeadlines(){
   document.querySelectorAll('[data-cool-view]').forEach(button=>button.tabIndex=button.dataset.coolView===coolView?0:-1);
   const scrollTop=$('cool-list').scrollTop;
-  renderDeadlinesContent();
+  withListFocus($('cool-list'),renderDeadlinesContent);
   coolScroll.update(coolView,scrollTop);
 }
 function renderDeadlinesContent(){
-  updateSyncDots();
+  updateLiveStatus();
   const list=$('cool-list'),expanded=new Set([...list.querySelectorAll('details[open]')].map(el=>el.dataset.announcement));list.replaceChildren();if(!student)return;
   if(liveMode){renderLiveDeadlines(expanded);return;}
   if(coolView==='exams'){renderExams();return;}
@@ -442,19 +451,20 @@ function renderLiveDeadlines(expanded=new Set()){
     for(const item of state.items.items){
       const card=node('article','cool-item announcement-card card'),copy=node('div','cool-copy');
       const link=node('a','announcement-title',item.title);
+      link.dataset.uiFocus='announcement:'+item.id;
       try{const url=new URL(item.url);if(url.origin!=='https://cool.ntu.edu.tw'||url.protocol!=='https:'||url.username||url.password)continue;link.href=url.href;}catch{continue;}
       link.target='_blank';link.rel='noopener noreferrer';
       copy.append(node('small','',item.course+' · '+fmt.format(new Date(item.postedAt))),link);
       if(item.author)copy.append(node('small','',item.author));
-      if(item.body){const details=node('details','announcement-body'),body=node('p','',item.body);details.dataset.announcement=item.id;details.open=expanded.has(item.id);details.append(node('summary','',language==='zh'?'閱讀公告':'Read announcement'),body);copy.append(details);}
+      if(item.body){const details=node('details','announcement-body'),body=node('p','',item.body),summary=node('summary','',language==='zh'?'閱讀公告':'Read announcement');summary.dataset.uiFocus='announcement-body:'+item.id;details.dataset.announcement=item.id;details.open=expanded.has(item.id);details.append(summary,body);copy.append(details);}
       if(item.bodyTruncated)copy.append(node('small','',language==='zh'?'完整內容請至 COOL 查看。':'Open in COOL for the complete announcement.'));
       card.append(copy);list.append(card);
     }
     return;
   }
-  $('cool-refresh').disabled=false;
+  $('cool-refresh').disabled=livePending||initialSyncBusy||liveSnapshotsLoading;
   if(!liveCalendar){
-    list.append(node('div','empty-card',t('noCalendar')));return;
+    list.append(liveSnapshotsLoading?loadingCard(document,language==='zh'?'正在載入近期日期…':'Loading upcoming dates…'):node('div','empty-card',liveCoolInfo||t('noCalendar')));return;
   }
   const items=mapCalendar(liveCalendar);
   if(!items.length){list.append(node('div','empty-card',t('liveNoAssignments')));return;}
@@ -465,6 +475,7 @@ function renderLiveDeadlines(expanded=new Set()){
       main=node(item.url?'a':'div','cool-main'),
       date=node('span','cool-date'),copy=node('span','cool-copy');
     const when=new Date(item.dueAt);
+    main.dataset.uiFocus='calendar:'+item.id;
     card.dataset.dueAt=item.dueAt;card.dataset.allDay=String(item.allDay);
     date.append(node('strong','',String(when.toLocaleDateString('en-US',{timeZone:'Asia/Taipei',day:'numeric'}))),
       node('small','',when.toLocaleDateString(language==='zh'?'zh-TW':'en-US',{timeZone:'Asia/Taipei',month:'short'})));
@@ -494,6 +505,7 @@ function renderExams(){
   const footer=$('cool-preview-note');
   footer.hidden=true;footer.classList.remove('exam-warning');footer.removeAttribute('role');footer.replaceChildren();
   if(!liveMode){list.append(node('div','empty-card',language==='zh'?'登入以載入你的課程考試。':'Sign in to load exams for your classes.'));return;}
+  if(liveSnapshotsLoading&&!liveTimetable){list.append(loadingCard(document,language==='zh'?'正在載入課程…':'Loading your classes…'));return;}
   if(!examStore.courses.length&&!examEditor.items().length)list.append(node('div','empty-card',t('liveNoTimetable')));
   const headingRow=node('div','exam-list-heading');
   const heading=node('h4','exam-group-title',language==='zh'?'近期考試':'Upcoming exams');
@@ -586,6 +598,9 @@ function renderExams(){
   }
 }
 function renderTasks(){
+  withListFocus($('todo-list'),renderTasksContent);
+}
+function renderTasksContent(){
   updateSyncDots();
   const list=$('todo-list');list.replaceChildren();$('task-count').textContent=tasks.length+' '+(tasks.length===1?t('singleTask'):t('tasks'));
   const state=taskStore.state,busy=liveMode&&(!state.ready||state.saving);
@@ -599,11 +614,13 @@ function renderTasks(){
   const taskStatus=!liveMode?t('tasksOnly'):taskErrorVisible?t(errorKey):'';
   $('tasks-status').textContent=taskStatus;$('tasks-status').hidden=!taskStatus;
   $('tasks-retry').textContent=t('tasksRetry');$('tasks-retry').hidden=!taskErrorVisible;$('tasks-retry').disabled=state.loading||state.saving;
-  if(!tasks.length){list.append(node('div','empty-card',liveMode&&!state.ready?t(state.error?'tasksLoadFailed':'tasksLoading'):t('noTasks')));return;}
+  list.setAttribute('aria-busy',String(liveMode&&(state.loading||state.saving)));
+  if(!tasks.length){list.append(liveMode&&!state.ready&&!state.error?loadingCard(document,t('tasksLoading')):node('div','empty-card',liveMode&&!state.ready?t('tasksLoadFailed'):t('noTasks')));return;}
   for(const task of tasks){
     const row=node('div','todo-row card'),check=node('button','todo-check',task.done?'✓':''),label=node('span','todo-label',task.text),remove=node('button','todo-remove','×');
     row.classList.toggle('done',task.done);check.type='button';remove.type='button';
     check.setAttribute('aria-label',t(task.done?'markUndone':'markDone'));check.setAttribute('aria-pressed',String(task.done));remove.setAttribute('aria-label',t('removeTask'));
+    check.dataset.uiFocus='task-check:'+task.id;remove.dataset.uiFocus='task-remove:'+task.id;
     check.disabled=remove.disabled=busy;
     check.addEventListener('click',()=>{if(liveMode){void taskStore.setDone(task,!task.done);return;}task.done=!task.done;renderTasks();});
     remove.addEventListener('click',()=>{if(liveMode){void taskStore.remove(task);return;}tasks=tasks.filter(x=>x.id!==task.id);renderTasks();});
@@ -725,6 +742,7 @@ async function saveLessonDetails(reset=false){
 }
 function previewCourseRows(profile){return profile.courses.map(c=>{const row=[...c];row[8]='preview:'+(c[6]||c[3]);return row;});}
 function leavePreview(){
+  liveSnapshotsLoading=false;liveSyncSource=null;snapshotLoads.clear();
   foregroundRefresh.reset();calendarSignature='';
   liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   if($('lesson-dialog').open)$('lesson-dialog').close();
@@ -835,13 +853,21 @@ function updateSyncDots(){
     const dot=$(key+'-sync-dot');dot.hidden=!liveMode;
     const synced=liveMode&&online&&ready;
     dot.classList.toggle('is-synced',!!synced);
-    const label=synced?(language==='zh'?'已同步':'Synced'):!online?(language==='zh'?'離線':'Offline'):detail||(language==='zh'?'尚未同步':'Not synced yet');
+    const busy=liveMode&&online&&(key==='tasks'?tasksState.loading||tasksState.saving:key==='timetable'?liveSnapshotsLoading||initialSyncBusy||liveSyncSource==='timetable':coolView==='exams'?examStore.busy:coolView==='announcements'?announcements.loading||announcements.busy:liveSnapshotsLoading||initialSyncBusy||liveSyncSource==='cool');
+    dot.classList.toggle('is-loading',!!busy);
+    const label=!online?(language==='zh'?'離線':'Offline'):busy?(language==='zh'?'更新中…':'Updating…'):synced?(language==='zh'?'已同步':'Synced'):detail||(language==='zh'?'尚未同步':'Not synced yet');
     dot.title=label;dot.setAttribute('aria-label',label);
   }
 }
 function updateLiveStatus(){
   updateSyncDots();
   $('live-timetable-refresh').disabled=$('live-cool-refresh').disabled=!liveMode||livePending||initialSyncBusy;
+  const timetableBusy=liveMode&&(liveSnapshotsLoading||initialSyncBusy||liveSyncSource==='timetable');
+  const coolBusy=liveMode&&(coolView==='announcements'?announcementStore.busy||announcementStore.loading:coolView==='exams'?examStore.busy:liveSnapshotsLoading||initialSyncBusy||liveSyncSource==='cool');
+  $('live-timetable-refresh').setAttribute('aria-busy',String(timetableBusy));
+  $('live-cool-refresh').setAttribute('aria-busy',String(liveMode&&(liveSyncSource==='cool'||initialSyncBusy)));
+  $('cool-refresh').disabled=!!coolBusy;$('cool-refresh').setAttribute('aria-busy',String(!!coolBusy));
+  $('cool-list').setAttribute('aria-busy',String(!!coolBusy));
   if(!liveMode)return;
   const messageT=liveTimetableInfo||(liveTimetable?(language==='zh'?'已載入課表':'Saved timetable loaded'):t('liveNoTimetable'));
   const messageC=liveCoolInfo||(liveCalendar?(language==='zh'?'已載入 COOL 行事曆':'COOL calendar loaded'):t('noCalendar'));
@@ -861,11 +887,17 @@ function sessionExpired(){
 }
 async function readLiveSnapshots({initializeMissing=false}={}){
   if(!liveMode||!liveAccount)return;
+  const pending=snapshotLoads.get(liveEpoch);if(pending)return pending;
   void taskStore.refresh();
   eventUI.refresh();
   const epoch=liveEpoch,detailsRevision=liveDetailsRevision;
-  const [tResult,cResult]=await Promise.allSettled([account.timetable(),account.coolCalendar()]);
+  liveSnapshotsLoading=true;
+  updateLiveStatus();
+  const load=Promise.allSettled([account.timetable(),account.coolCalendar()]);snapshotLoads.set(epoch,load);
+  const [tResult,cResult]=await load;
+  if(snapshotLoads.get(epoch)===load)snapshotLoads.delete(epoch);
   if(epoch!==liveEpoch||!liveMode)return;
+  liveSnapshotsLoading=false;
   if(tResult.status==='fulfilled'&&detailsRevision===liveDetailsRevision&&!lessonSaving){
     if(tResult.value.studentNumber!==liveAccount.studentNumber){sessionExpired();return;}
     foregroundRefresh.record('timetable',tResult.value);
@@ -947,6 +979,7 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
 function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
   foregroundRefresh.reset();
+  liveSnapshotsLoading=true;liveSyncSource=null;snapshotLoads.clear();
   liveMode=true;liveEpoch++;initialSyncBusy=false;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
   liveTimetableInfo='';liveCoolInfo='';tasks=[];counter=0;coolView='assignments';coolScroll.reset();
   $('task-input').value='';taskStore.bind(current);mailUI.bind(current);examStore.bind(current);examEditor.bind(current);
@@ -980,7 +1013,7 @@ function checkLiveSources(){
 }
 async function syncLive(which,{automatic=false}={}){
   if(!liveMode||!liveAccount||livePending||initialSyncBusy||lessonSaving)return;
-  const epoch=liveEpoch,detailsRevision=liveDetailsRevision;livePending=true;foregroundRefresh.attempt(which);
+  const epoch=liveEpoch,detailsRevision=liveDetailsRevision;livePending=true;liveSyncSource=which;foregroundRefresh.attempt(which);
   if(which==='timetable'){liveTimetableOk=false;liveTimetableInfo=language==='zh'?'正在檢查臺大 ePortfolio…':'Checking NTU ePortfolio…';}
   else{liveCalendarOk=false;liveCoolInfo=language==='zh'?'正在檢查 COOL 行事曆…':'Checking your COOL calendar…';}
   updateLiveStatus();
@@ -999,7 +1032,7 @@ async function syncLive(which,{automatic=false}={}){
     if(e.status===401){sessionExpired();return;}
     foregroundRefresh.fail(which,e);
     if(which==='timetable')liveTimetableInfo=liveNotice(e);else liveCoolInfo=liveNotice(e);
-  }finally{if(epoch===liveEpoch){livePending=false;updateLiveStatus();}}
+  }finally{if(epoch===liveEpoch){livePending=false;liveSyncSource=null;updateLiveStatus();}}
 }
 async function submitLiveLogin(event){
   event.preventDefault();
@@ -1027,6 +1060,7 @@ async function endLiveAccount(){
 }
 
 function enterPreview(){
+  liveSnapshotsLoading=false;liveSyncSource=null;snapshotLoads.clear();
   foregroundRefresh.reset();
   liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
   taskStore.bind(null);mailUI.bind(null);announcementStore.bind(null);examStore.bind(null);$('task-input').value='';

@@ -66,6 +66,7 @@ export function createNotificationSettings({account,getContext}){
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!installed()){
    show(w().install,true);$('settings-notify-device').textContent=w().missing;return;
   }
+  busy=true;buttons();
   show(w().checking);
   try{
    const registration=await navigator.serviceWorker.getRegistration('/')||await navigator.serviceWorker.register('/mail-sw.js',{scope:'/'});
@@ -89,7 +90,7 @@ export function createNotificationSettings({account,getContext}){
     $('settings-notify-checker').textContent='—';
     show(e.message||w().unsupported,true);
    }
-  }finally{if(current(g,student))buttons();}
+  }finally{if(current(g,student)){busy=false;buttons();}}
  }
  async function localTest(){
   const student=owner(),g=epoch;

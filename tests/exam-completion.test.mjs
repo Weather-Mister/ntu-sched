@@ -25,7 +25,7 @@ test('only exams gain checkmarks; announcements and existing assignments are unc
   const css=readFileSync(new URL('../public/skeleton/exams.css',import.meta.url),'utf8');
   assert.match(js,/addCoolCheck\(card,examCompletionKey\(item\),coolDone,saveCoolChecks,actions\)/);
   assert.match(js,/if\(item\.kind==='assignment'\)addCoolCheck\(card,item\.id,coolDone,saveCoolChecks\)/);
-  const announce=js.slice(js.indexOf("if(coolView==='announcements'){",js.indexOf("function renderLiveDeadlines(")),js.indexOf("  $('cool-refresh').disabled=false;",js.indexOf("function renderLiveDeadlines(")));
+  const announce=js.slice(js.indexOf("if(coolView==='announcements'){",js.indexOf("function renderLiveDeadlines(")),js.indexOf('  const items=mapCalendar(liveCalendar);',js.indexOf("function renderLiveDeadlines(")));
   assert.doesNotMatch(announce,/addCoolCheck/);
   assert.match(css,/\.exam-card \.exam-card-actions/);
   assert.match(js,/coolDoneKey\(current\.studentNumber\)/);
