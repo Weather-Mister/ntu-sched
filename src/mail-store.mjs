@@ -1,4 +1,4 @@
-import { ApiError, digest, encryptAuthorization, decryptAuthorization } from './security.mjs';
+import { ApiError, digest, encryptAuthorization, decryptAuthorization, responseSecurityHeaders } from './security.mjs';
 import { Roundcube, roundcubeEnvironment, roundcubeFormInputs, roundcubeSendResult } from './mail-roundcube.mjs';
 import { mailReference, mailText, mailListText, messageFromPage, sanitizeMail, rootHeaders, validateSend, buildMime } from './mail-content.mjs';
 import { pushConfiguration,sendPush } from './mail-push.mjs';
@@ -155,7 +155,7 @@ export async function attachment(env,owner,url){
   let size=0;const limit=20*1024*1024;
   if(Number(response.headers.get('content-length'))>limit){await response.body?.cancel();throw new ApiError(413,'attachment_too_large','Open attachments over 20 MB in official NTU Mail.');}
   const stream=response.body.pipeThrough(new TransformStream({transform(chunk,controller){size+=chunk.length;if(size>limit)controller.error(new Error('Attachment limit exceeded'));else controller.enqueue(chunk);}}));
-  return new Response(stream,{headers:{'Content-Type':'application/octet-stream','Content-Disposition':response.headers.get('content-disposition')||'attachment; filename="attachment"','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"}});
+  return new Response(stream,{headers:{...responseSecurityHeaders,'Content-Type':'application/octet-stream','Content-Disposition':response.headers.get('content-disposition')||'attachment; filename="attachment"','Cache-Control':'no-store, private','Content-Security-Policy':"default-src 'none'; sandbox; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"}});
  },{retryRead:true});
 }
 async function findMessage(s,folder,messageId){

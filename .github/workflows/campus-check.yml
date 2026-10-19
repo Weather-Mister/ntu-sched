@@ -1,4 +1,6 @@
 name: Campus Week checks
+permissions:
+  contents: read
 on:
   push:
     branches: [main]
@@ -15,6 +17,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Check production dependencies for known serious vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - run: npm run check
       - name: Verify real public NTU course lookup and syllabus plans

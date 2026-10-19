@@ -17,7 +17,7 @@ test('mail preloads subscription and VAPID key before the enable click',()=>{
  assert.doesNotMatch(click,/await request\('push'\)(?!.*method:)/);
 });
 test('a background 401 may not silently revoke a valid push subscription',()=>{
- assert.match(sw,/if\(response\.ok&&\(await response\.json\(\)\)\.studentNumber!==value\.studentNumber\)return/);
+ assert.match(sw,/if\(\(await response\.json\(\)\)\.studentNumber!==value\.studentNumber\)return/);
  assert.doesNotMatch(sw,/unsubscribe\(/);
  assert.match(sw,/showNotification\(/);
 });

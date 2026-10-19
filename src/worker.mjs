@@ -1,4 +1,4 @@
-import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson } from './security.mjs';
+import { ApiError, digest, encryptionKey, encryptAuthorization, normalizeStudentNumber, randomToken, readJson, responseSecurityHeaders } from './security.mjs';
 import { verifyNtuMail } from './ntu-mail.mjs';
 import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails, saveStudentExamPlan, saveStudentSectionOptions } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } from './cool-store.mjs';
@@ -24,8 +24,7 @@ const cookie = (token, maxAge = SESSION_SECONDS) => `${COOKIE}=${token}; Path=/;
 function json(value, status = 200, additional = {}) {
   return Response.json(value, { status, headers: {
     'Cache-Control': 'no-store, private',
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'no-referrer',
+    ...responseSecurityHeaders,
     ...additional
   }});
 }
@@ -102,7 +101,7 @@ export default {
       const path = new URL(request.url).pathname;
       if (['/skeleton', '/skeleton/', '/skeleton/index.html'].includes(path)) {
         const destination = new URL(request.url); destination.pathname = '/';
-        return Response.redirect(destination.href, 308);
+        return new Response(null, { status: 308, headers: { ...responseSecurityHeaders, Location: destination.href } });
       }
       if (!path.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : json({ error: { code: 'not_found', message: 'Not found.' } }, 404);
       sameOrigin(request, env);

@@ -31,10 +31,26 @@ test('preference runtime bootstrap upgrades an existing database without requiri
 test('Hanzi proxy calls only the fixed public read-only endpoint, without NTU cookies or authorization',async()=>{
  const env=setup(),a=await identity(env);let call;
  const result=await readHanziWidget(env,a,'example_user',{upstream:async(url,options)=>{call={url,options};return Response.json({streak:12,todayProgress:4,todayGoal:10,unit:8,book:1,unitColor:'url(https://bad.example)',nextCharacter:{character:'學',pinyin:'xué',meaning:'to learn'},private:'never copy'});}});
- assert.equal(call.url,'https://hanzi-steps-api.weatherisgood06.workers.dev/widget?username=example_user');assert.deepEqual(call.options.headers,{Accept:'application/json'});assert.equal(call.options.redirect,'error');assert.equal(result.widget.streak,12);assert.equal(result.widget.unitColor,'#627b61');assert.equal(result.widget.private,undefined);
+ assert.equal(call.url,'https://hanzi-steps-api.weatherisgood06.workers.dev/widget?username=example_user');assert.deepEqual(call.options.headers,{Accept:'application/json'});assert.equal(call.options.redirect,'manual');assert.equal(result.widget.streak,12);assert.equal(result.widget.unitColor,'#627b61');assert.equal(result.widget.private,undefined);
  await assert.rejects(readHanziWidget(env,a,'https://evil.example',{upstream:()=>{throw new Error('must not call');}}),error=>error.code==='invalid_hanzi_username');
  await assert.rejects(readHanziWidget(env,a,'missing',{upstream:async()=>new Response('',{status:404})}),error=>error.code==='hanzi_not_found');env.sqlite.close();
 });
+test('Hanzi rejects redirects, wrong media types, malformed JSON and oversized streamed summaries',async()=>{
+ const env=setup(),a=await identity(env);
+ try{
+  for(const response of [
+   new Response('',{status:302,headers:{Location:'https://untrusted.example'}}),
+   new Response('{"streak":1}',{headers:{'Content-Type':'text/html'}}),
+   new Response('{bad json',{headers:{'Content-Type':'application/json'}}),
+   new Response('{"streak":1}',{headers:{'Content-Type':'application/json','Content-Length':'65537'}})
+  ])await assert.rejects(readHanziWidget(env,a,'example_user',{upstream:async()=>response}),e=>e.status===502&&e.code==='hanzi_unavailable');
+  let cancelled=false,calls=0;
+  const stream=new ReadableStream({pull(controller){controller.enqueue(new Uint8Array(32768));},cancel(){cancelled=true;}});
+  await assert.rejects(readHanziWidget(env,a,'example_user',{upstream:async(_url,options)=>{calls++;assert.equal(options.redirect,'manual');return new Response(stream,{headers:{'Content-Type':'application/json'}});}}),e=>e.code==='hanzi_unavailable');
+  assert.equal(calls,1);assert.equal(cancelled,true);
+ }finally{env.sqlite.close();}
+});
+
 test('all settings sections coexist on one page, with valid jump targets and accessible controls',()=>{
  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');const section=html.slice(html.indexOf('<dialog id="settings-dialog"'),html.indexOf('<dialog id="mail-dialog"'));
  for(const panel of ['appearance','timetable','install']){assert.match(section,new RegExp('data-settings-tab="'+panel+'"'));assert.match(section,new RegExp('data-settings-panel="'+panel+'"'));assert.doesNotMatch(section,new RegExp('data-settings-panel="'+panel+'" hidden'));}
