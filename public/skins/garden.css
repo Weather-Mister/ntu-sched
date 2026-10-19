@@ -205,3 +205,64 @@ body[data-theme="garden"] .week-section .week-range{font-size:21px;line-height:1
  body[data-theme="garden"] .dashboard-hero .language-toggle button{padding-inline:5px}
  body[data-theme="garden"] .garden-scenery{width:calc(100% + 24px)}
 }
+
+/* A fuller garden: meadow planting, herb-paper panels and softer botanical edges. */
+body[data-theme="garden"]{
+ --bg:#e3ead2;--panel:#edf3e0;--line:#d5e1c4;--accent:#3e704c;--accent-soft:#e0edcf;
+ background:radial-gradient(ellipse at 5% 0%,#f8edc9 0,transparent 36%),radial-gradient(ellipse at 100% 100%,#b6cea5 0,transparent 45%),#e3ead2;
+}
+body[data-theme="garden"] .app-shell{
+ border-color:#acbf98;
+ background:linear-gradient(145deg,#fffdf2,#f5f8eb 65%,#edf3df);
+ box-shadow:0 22px 64px #36552d26,inset 0 0 0 5px #fffdf480;
+}
+body[data-theme="garden"] .dashboard-hero{
+ background:radial-gradient(ellipse at 78% 20%,#eef0c7 0,transparent 47%),linear-gradient(110deg,#fff9e7,#edf4dc 72%,#dce9c7);
+ border:1px solid #d7e2bd;border-radius:21px 21px 32px 12px;
+}
+body[data-theme="garden"] .dashboard-hero .garden-scenery{width:43%;height:170px;right:0;bottom:0}
+body[data-theme="garden"] .garden-scenery .hero-art>svg{visibility:hidden}
+body[data-theme="garden"] .garden-scenery .hero-art::before{content:"";position:absolute;inset:0;background:url('./garden-meadow.svg') right bottom/contain no-repeat;pointer-events:none}
+body[data-theme="garden"] .dashboard-hero .next-class{border-left-color:#9fb77b;width:59%}
+body[data-theme="garden"] .dashboard-hero .next-relative{color:#916d2e}
+body[data-theme="garden"] .workspace :is(.schedule-column,.cool-column,.tasks-column,.shortcuts-panel){
+ background-image:url('./garden-sprig.svg'),linear-gradient(140deg,#fffef8,#fbfcf2);
+ background-size:185px auto,100% 100%;background-position:right bottom,center;background-repeat:no-repeat;
+ border-color:#d1dfbf;border-radius:19px 19px 25px 11px;box-shadow:0 3px 0 #bdcda626,0 8px 20px #3d5c3010;
+}
+body[data-theme="garden"] .workspace .cool-column{
+ background-image:url('./garden-sprig.svg'),linear-gradient(145deg,#fffdf3,#faf4df);
+}
+body[data-theme="garden"] .workspace .section-head{border-bottom:1px dashed #cbdab3;padding-bottom:12px}
+body[data-theme="garden"] :is(.section-head,.shortcuts-heading) .eyebrow::after{
+ content:"";display:inline-block;width:14px;height:7px;margin-left:7px;background:#a7bd87;border-radius:2px 9px 2px 9px;transform:rotate(-19deg);opacity:.8;
+}
+body[data-theme="garden"] .week-section .day-button{border-radius:14px 14px 18px 6px;background:linear-gradient(#fffef7,#f4f6e8);border-color:#d0ddbb}
+body[data-theme="garden"] .week-section .day-button.active{background:linear-gradient(140deg,#527e50,#315f43);border-color:#426d44;box-shadow:0 4px 0 #a8bf8e60,0 6px 14px #2d553b1c}
+body[data-theme="garden"] .week-section .day-button.active::after{width:23px;height:23px;top:-8px;right:-3px;filter:drop-shadow(0 2px 1px #54673d18)}
+body[data-theme="garden"] .cool-view-switch{background:#eeeacb;border-color:#dfdbb5}
+body[data-theme="garden"] .cool-view-switch button[aria-selected=true]{background:#fff9e5;color:#6d6330}
+body[data-theme="garden"] .cool-item{border-color:#e5ddbd;border-left-color:#c9a353;background:linear-gradient(110deg,#f7efd8,#fffdf4)}
+body[data-theme="garden"] .todo-row{border-bottom-color:#c8d9b6}
+body[data-theme="garden"] :is(.todo-check,.cool-done-button){border-radius:50% 50% 50% 22%;border-color:#a7be8f}
+body[data-theme="garden"] .todo-form input{background:#fbfcf2;border-color:#cbdcba;box-shadow:inset 0 2px 3px #496a3520}
+body[data-theme="garden"] .ntu-link{background:linear-gradient(#fffef7,#f1f5e6);border-color:#d0debb;border-radius:12px 12px 16px 6px}
+body[data-theme="garden"] .settings-hub{--hub-bg:#f6f8eb;--hub-soft:#e7efd8;--hub-line:#d3dfc1;--hub-accent:#3e704c}
+body[data-theme="garden"] :is(.settings-topbar,.mailx-dialog .mailx-topbar){background:linear-gradient(110deg,#fff6e3,#eaf1d9 70%,#efdae0);border-bottom-color:#d4dfbd}
+body[data-theme="garden"] .settings-account{background:url('./garden-sprig.svg') right bottom/150px auto no-repeat}
+body[data-theme="garden"] .login-panel{background: url('./garden-sprig.svg') right bottom/150px auto no-repeat,#fffdf4;border-color:#cadbb5;border-radius:20px 20px 28px 10px}
+.theme-window-garden .theme-mini-banner::after{width:100%;height:100%;right:0;background-image:url('./garden-meadow.svg');background-position:right bottom;background-size:auto 100%}
+@media(min-width:791px) and (max-width:1100px){
+ body[data-theme="garden"] .dashboard-hero .garden-scenery{width:34%;height:145px}
+ body[data-theme="garden"] .dashboard-hero .next-class{width:65%}
+}
+@media(max-width:790px){
+ body[data-theme="garden"] .dashboard-hero{border-radius:18px 18px 27px 10px}
+ body[data-theme="garden"] .dashboard-hero .next-class{width:100%}
+ body[data-theme="garden"] .dashboard-hero .garden-scenery{position:relative;width:calc(100% + 32px);height:76px;right:auto;bottom:auto;margin-top:-7px}
+ body[data-theme="garden"] .garden-scenery .hero-art::before{background-size:auto 100%;background-position:right bottom}
+ body[data-theme="garden"] .workspace :is(.schedule-column,.cool-column,.tasks-column,.shortcuts-panel){background-size:130px auto,100% 100%}
+}
+@media(max-width:350px){
+ body[data-theme="garden"] .workspace .cool-column .cool-panel-header .cool-view-switch button{font-size:10px;padding-inline:3px;letter-spacing:-.02em}
+}
