@@ -1,4 +1,4 @@
-/* A quiet signal: warm enamel for Daylight, sage for Garden, amber for the console. */
+/* A quiet signal: enamel, a garden flower, or a count recessed into the console. */
 :root{--mail-badge-bg:#ad493a;--mail-badge-fg:#fffaf5;--mail-badge-ring:#fffdfa;--mail-badge-shadow:0 2px 5px #752b2026}
 body[data-theme="dark"]{--mail-badge-bg:#efad98;--mail-badge-fg:#33221d;--mail-badge-ring:#222937;--mail-badge-shadow:0 2px 6px #0004}
 body[data-theme="garden"]{--mail-badge-bg:#3e6b50;--mail-badge-fg:#fffef7;--mail-badge-ring:#f9faf4;--mail-badge-shadow:0 2px 5px #294e3726}
@@ -9,7 +9,13 @@ body[data-theme="retro"]{--mail-badge-bg:#943e26;--mail-badge-fg:#fff1cd;--mail-
 .mailx-nav .campus-mail-badge{position:absolute;top:-3px;right:-5px;min-width:18px;height:18px;padding:0 4px;font-size:9px;outline:2px solid var(--mail-badge-ring)}
 .mailx-mobile-tabs [data-mail-folder]{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
 .mailx-mobile-tabs .campus-mail-badge{min-width:18px;height:18px;padding:0 5px;font-size:9px}
-body[data-theme="retro"] .campus-mail-badge{border-radius:5px;border-color:#5e2d22;font-family:ui-monospace,monospace}
+body[data-theme="garden"] .campus-mail-badge{isolation:isolate;overflow:visible;background:none;border:0;color:#304c35;box-shadow:none;text-shadow:none}
+body[data-theme="garden"] .campus-mail-badge::before{content:"";position:absolute;inset:-3px;z-index:-2;background:#6d8e57;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4C8-1 3 2 6 6C0 4-1 9 4 12C-1 16 2 21 6 18C4 24 9 25 12 20C16 25 21 22 18 18C24 20 25 15 20 12C25 8 22 3 18 6C20 0 15-1 12 4Z'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+body[data-theme="garden"] .campus-mail-badge::after{content:"";position:absolute;inset:2px;z-index:-1;border-radius:50%;background:#f6e9b3;box-shadow:inset 0 1px 1px #fff8d9,0 0 0 1px #496e3933}
+body[data-theme="garden"] .mailx-nav .campus-mail-badge{outline:none}
+body[data-theme="retro"] .campus-mail-badge{border-radius:4px;border:1px solid #7b6c54;border-top-color:#584a37;background:#81735a;color:#fff1c8;box-shadow:inset 0 2px 4px #35271999,inset 0 1px 1px #271e14aa,0 1px 0 #f4e5be99;text-shadow:0 1px 1px #392c1d;font-family:ui-monospace,monospace}
+body[data-theme="retro"] .mailx-nav .campus-mail-badge{top:1px;right:1px;min-width:15px;height:15px;padding:0 3px;font-size:8px;outline:none}
+body[data-theme="retro"] .mail-badge-arrive{animation:none}
 .mail-badge-arrive{animation:mail-badge-arrive .24s ease-out both}
 @keyframes mail-badge-arrive{from{opacity:.4;transform:translateY(2px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.mail-badge-arrive{animation:none}}
