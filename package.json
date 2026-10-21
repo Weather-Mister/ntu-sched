@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "test:mail": "node --test tests/mail*.test.mjs tests/translation.test.mjs",
+    "test:accounts": "node --test tests/account*.test.mjs tests/security-headers.test.mjs",
+    "test:exams": "node --test tests/*exam*.test.mjs tests/cool-course-plan.test.mjs tests/ntu-course-catalog.test.mjs",
+    "test:upstream": "node scripts/check-ntu-syllabus.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 migrations apply DB --local",
