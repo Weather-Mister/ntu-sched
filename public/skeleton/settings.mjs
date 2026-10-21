@@ -2,6 +2,7 @@ import {THEMES,lessonStatistics,preferenceDefaults,normalizePreferences} from '.
 import {applyGardenSkin} from '../skins/garden.mjs';
 import {applyRetroSkin} from '../skins/retro.mjs';
 import {createNotificationSettings} from './notification-settings.mjs';
+import {createPersonalTaskLink} from './personal-tasks.mjs';
 const $=id=>document.getElementById(id);
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
 const copy={
@@ -11,9 +12,10 @@ const copy={
 // Temporarily hidden throughout Campus Week; keep stored account preferences for restoration.
 const HANZI_WIDGET_AVAILABLE=false;
 const SAMPLE_WIDGET={streak:12,todayProgress:4,todayGoal:10,unit:8,book:1,unitColor:'#7f8f65',nextCharacter:{character:'學',pinyin:'xué',meaning:'to learn'}};
-export function createSettings({account,onSessionExpired=()=>{}}){
+export function createSettings({account,onSessionExpired=()=>{},onTasksChanged=()=>{}}){
  let context={student:null,liveMode:false,language:'en',timetable:null},owner=null,epoch=0,revision=0,version=0,preferences=preferenceDefaults(),ready=Promise.resolve(),saveChain=Promise.resolve(),widget=null,widgetError='',widgetBusy=false,widgetEpoch=0,lastWidgetLoad=0,installPrompt=null;
  const notificationSettings=createNotificationSettings({account,getContext:()=>context});
+ const personalTasks=createPersonalTaskLink({account,getContext:()=>context,onTasksChanged});
  const w=()=>copy[context.language==='zh'?'zh':'en'];
  try{const theme=localStorage.getItem('campus-week:appearance');if(THEMES.includes(theme))preferences.theme=theme;}catch{}
  function applyTheme(){
@@ -90,7 +92,7 @@ export function createSettings({account,onSessionExpired=()=>{}}){
   const generation=epoch,initialRevision=revision;
   ready=next.liveMode?(async()=>{try{const result=await request('preferences');if(generation!==epoch)return;version=result.version;if(revision===initialRevision){preferences=normalizePreferences(result.preferences);applyTheme();rememberTheme();renderControls();if(HANZI_WIDGET_AVAILABLE&&preferences.hanziEnabled)void loadWidget();}}catch(e){if(generation===epoch)stateMessage(e.message||w().saveFailed,true);}})():Promise.resolve();
  }
- function update(next){bind(next);for(const element of document.querySelectorAll('[data-settings-copy]'))element.textContent=w()[element.dataset.settingsCopy]||element.textContent;
+ function update(next){bind(next);personalTasks.update();for(const element of document.querySelectorAll('[data-settings-copy]'))element.textContent=w()[element.dataset.settingsCopy]||element.textContent;
   $('account-id').textContent=next.student?.id||'—';$('account-name').textContent=next.liveMode?w().liveAccount:w().previewAccount;$('settings-account-status').textContent=next.liveMode?w().connected:w().preview;
   $('settings-installed').hidden=!(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true);renderStats();renderControls();applyTheme();notificationSettings.render();
   if(!next.liveMode){$('live-timetable-settings-status').textContent=w().sampleSchedule;$('live-cool-settings-status').textContent=w().preview;}
