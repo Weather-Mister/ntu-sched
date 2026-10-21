@@ -15,6 +15,16 @@ import {cleanRichHtml,normalizeRevision,PART_BYTES} from '../public/mail-rich.mj
 import {revisionIsCurrent,QUICK_COMMANDS} from '../public/skeleton/mail-composer.mjs';
 import {refreshMailNotifications} from '../src/mail-store.mjs';
 const APP='https://campus.example',KEY='ab'.repeat(32),realFetch=globalThis.fetch;
+function fastMailWaits(t,onWait=()=>{}){
+ const started=Date.now(),realTimeout=globalThis.setTimeout,waits=[];let elapsed=0;
+ t.mock.method(Date,'now',()=>started+elapsed);
+ t.mock.method(globalThis,'setTimeout',(callback,delay,...args)=>{
+  // Advance retry/poll delays only; preserve upstream abort deadlines.
+  if(delay>1000)return realTimeout(callback,delay,...args);
+  waits.push(delay);elapsed+=delay;onWait();return realTimeout(callback,0,...args);
+ });
+ return waits;
+}
 let calls=[],mime='',latest=20,sendMode='ok',pushStatus=201,failListOnce=0,failMarkOnce=0,virtualMessages=0,failLoginCount=0,missingComposeAttachments=false,unavailableAction='',unavailableCount=0,interruptedAction='';
 beforeEach(()=>{calls=[];mime='';latest=20;sendMode='ok';pushStatus=201;failListOnce=0;failMarkOnce=0;virtualMessages=0;failLoginCount=0;missingComposeAttachments=false;unavailableAction='';unavailableCount=0;interruptedAction='';});
 after(()=>{globalThis.fetch=realFetch;});
@@ -149,19 +159,22 @@ test('mail list is scoped to the authenticated student; session and metadata reu
  const record=e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id);assert.ok(!record.upstream.includes('nonce'));assert.ok(!record.upstream.includes('test-password'));
  await request(e,a,'list?folder=sent');assert.equal(calls.filter(c=>c.action==='login').length,2);
 });
-test('first-load NTU login not confirmed once is recovered without refreshing or signing out',async()=>{
+test('first-load NTU login not confirmed once is recovered without refreshing or signing out',async t=>{
  const e=env(),a=await identity(e);
+ const waits=fastMailWaits(t);
  failLoginCount=1;
  const response=await request(e,a,'list?folder=sent&limit=25');
  assert.equal(response.status,200);assert.equal((await response.json()).messages.length,1);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
+ assert.equal(waits.length,1,'one delayed retry, without a real sleep');
  assert.ok(e.sqlite.prepare('SELECT upstream FROM mail_state WHERE student_id=?').get(a.student_id).upstream);
  assert.equal((await request(e,a,'list?folder=sent&limit=25')).status,200);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
  e.sqlite.close();
 });
-test('two unconfirmed NTU logins show a temporary error, not false reauthorization',async()=>{
+test('two unconfirmed NTU logins show a temporary error, not false reauthorization',async t=>{
  const e=env(),a=await identity(e);
+ const waits=fastMailWaits(t);
  failLoginCount=2;
  const response=await request(e,a,'list?folder=sent&limit=25');
  assert.equal(response.status,502);
@@ -169,6 +182,7 @@ test('two unconfirmed NTU logins show a temporary error, not false reauthorizati
  assert.equal(body.error.code,'ntu_login_unconfirmed');
  assert.doesNotMatch(body.error.message,/sign in again/i);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
+ assert.equal(waits.length,1,'the failed login retries only once');
  // A later request can recover using the retained verified connection.
  assert.equal((await request(e,a,'list?folder=sent&limit=25')).status,200);
  e.sqlite.close();
@@ -361,20 +375,30 @@ test('a lost delivery confirmation is uncertain; retries only inspect status and
 test('reply headers are fetched from NTU, and header injection is rejected',async()=>{
  const e=env(),a=await identity(e);const body={...sendBody(),reply:{mailbox:'INBOX',uid:'20'}};await request(e,a,'send','POST',body);assert.match(mime,/In-Reply-To: <original@ntu.edu.tw>/);assert.match(mime,/References: <earlier@ntu.edu.tw> <original@ntu.edu.tw>/);assert.throws(()=>validateSend({...sendBody(),to:'x@y.example\r\nBcc: victim@example.com'}));assert.throws(()=>validateSend({...sendBody(),subject:'hello\r\nBcc: victim@example.com'}));assert.match(buildMime(sendBody(),'b12345678@ntu.edu.tw','id@host'),/Content-Transfer-Encoding: base64/);
 });
-test('initial inbox request waits for a running notification check instead of requiring a refresh',async()=>{
+test('initial inbox request waits for a running notification check instead of requiring a refresh',async t=>{
  const e=env(),a=await identity(e);
  e.sqlite.prepare('INSERT INTO mail_state(student_id,lease,lease_until) VALUES(?,?,?)').run(a.student_id,'background-check',Date.now()+10000);
- const release=setTimeout(()=>e.sqlite.prepare('UPDATE mail_state SET lease=NULL,lease_until=0 WHERE student_id=? AND lease=?').run(a.student_id,'background-check'),250);
+ const waits=fastMailWaits(t,()=>{
+  assert.equal(calls.length,0,'NTU is not contacted while the mailbox is locked');
+  e.sqlite.prepare('UPDATE mail_state SET lease=NULL,lease_until=0 WHERE student_id=? AND lease=?').run(a.student_id,'background-check');
+ });
  try{
   const response=await request(e,a,'list?folder=inbox&limit=25');
   assert.equal(response.status,200);
   assert.equal((await response.json()).messages.length,1);
   assert.equal(calls.filter(x=>x.action==='list').length,1);
+  assert.equal(waits.length,1,'the first poll observes the released lock');
   assert.equal(e.sqlite.prepare('SELECT lease FROM mail_state WHERE student_id=?').get(a.student_id).lease,null);
- }finally{clearTimeout(release);e.sqlite.close();}
+ }finally{e.sqlite.close();}
 });
-test('mail lease prevents simultaneous provider searches from corrupting shared NTU session state',async()=>{
- const e=env(),a=await identity(e);e.sqlite.prepare('INSERT INTO mail_state(student_id,lease,lease_until) VALUES(?,?,?)').run(a.student_id,'other',Date.now()+100000);assert.equal((await request(e,a,'list')).status,429);assert.equal(calls.length,0);
+test('mail lease prevents simultaneous provider searches from corrupting shared NTU session state',async t=>{
+ const e=env(),a=await identity(e),waits=fastMailWaits(t);
+ try{
+  e.sqlite.prepare('INSERT INTO mail_state(student_id,lease,lease_until) VALUES(?,?,?)').run(a.student_id,'other',Date.now()+100000);
+  const response=await request(e,a,'list');assert.equal(response.status,429);assert.equal(calls.length,0);
+  assert.ok(waits.length>0&&waits.length<30,'polling is bounded before returning a retryable error');
+  assert.equal(e.sqlite.prepare('SELECT lease FROM mail_state').get().lease,'other','another worker retains its lock');
+ }finally{e.sqlite.close();}
 });
 test('invalid folders, UIDs and oversized messages fail without reaching NTU',async()=>{
  const e=env(),a=await identity(e);for(const path of ['list?folder=other','list?page=-1','message?mailbox=INBOX&uid=0','attachment?mailbox=INBOX&uid=20&part=../../evil'])assert.equal((await request(e,a,path)).status,400);assert.equal((await request(e,a,'send','POST',{...sendBody(),text:'x'.repeat(50001)})).status,400);assert.equal(calls.length,0);

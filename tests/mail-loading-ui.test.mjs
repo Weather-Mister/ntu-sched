@@ -11,16 +11,16 @@ const page=(uid='1')=>({messages:[row(uid)],count:1,nextCursor:null});
 const message=(uid='1')=>({...row(uid),headers:'From: Professor',attachments:[],html:'<html><body><p>Message body '+uid+'</p></body></html>'});
 async function fixture(run,withBadges=false){
  const {window,document}=parseHTML(readFileSync(new URL('../public/index.html',import.meta.url),'utf8'));
- let owner='b12345678',handler=async()=>page();const calls=[],timers=[];
+ let owner='b12345678',locale='en',handler=async()=>page();const calls=[],timers=[];
  const globals={window,document,DOMParser,navigator:{onLine:true},sessionStorage:{getItem:()=>null,removeItem(){},setItem(){}},
   getSelection:()=>null,MutationObserver:undefined,setInterval:()=>0,setTimeout:callback=>{timers.push(callback);return timers.length;}};
  const previous={};for(const[k,v]of Object.entries(globals)){previous[k]=Object.getOwnPropertyDescriptor(globalThis,k);Object.defineProperty(globalThis,k,{value:v,writable:true,configurable:true});}
  const dialog=document.getElementById('mail-dialog');dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;};
  const account={request:async path=>{calls.push(path);const studentNumber=owner;return {studentNumber,...await handler(path)};}};
- const badges=withBadges?createMailBadges({account,isLive:()=>true,language:()=> 'en'}):undefined;
- const ui=createMailUI({account,isLive:()=>true,language:()=> 'en',badges});ui.bind({studentNumber:owner});
+ const badges=withBadges?createMailBadges({account,isLive:()=>true,language:()=>locale}):undefined;
+ const ui=createMailUI({account,isLive:()=>true,language:()=>locale,badges});ui.bind({studentNumber:owner});
  const click=selector=>document.querySelector(selector).click();
- try{await run({ui,dialog,document,calls,click,handle(fn){handler=fn;},changeOwner(value){owner=value;ui.bind({studentNumber:owner});},async retry(){const callback=timers.shift();assert.ok(callback,'a bounded retry was scheduled');callback();await tick();}});}
+ try{await run({ui,dialog,document,calls,click,handle(fn){handler=fn;},setLanguage(value){locale=value;ui.locale();},changeOwner(value){owner=value;ui.bind({studentNumber:owner});},async retry(){const callback=timers.shift();assert.ok(callback,'a bounded retry was scheduled');callback();await tick();}});}
  finally{ui.bind(null);for(const[k,v]of Object.entries(previous)){if(v)Object.defineProperty(globalThis,k,v);else delete globalThis[k];}}
 }
 
@@ -81,6 +81,21 @@ test('a failed read offers an inline retry and recovers without reopening the ap
  ui.open();await tick();handle(()=>{throw new Error('NTU Mail is temporarily unavailable.');});
  click('.campus-mail-open');await tick();assert.match(document.querySelector('.mailx-reader').textContent,/Try again/);
  handle(()=>message());click('.campus-mail-retry');await tick();assert.ok(document.querySelector('.mail-frame'));
+}));
+test('external images stay opt-in and the reader reloads them only after the images control is clicked',async()=>fixture(async({ui,document,calls,handle,click})=>{
+ handle(path=>path.includes('message?')?message():page());ui.open();await tick();
+ click('.campus-mail-open');await tick();
+ assert.equal(new URLSearchParams(calls.find(path=>path.includes('message?')).split('?')[1]).has('images'),false);
+ const control=document.querySelector('.campus-mail-images');assert.ok(control);assert.equal(control.getAttribute('aria-label'),'Load external images');
+ control.click();await tick();
+ assert.equal(new URLSearchParams(calls.at(-1).split('?')[1]).get('images'),'1');assert.ok(document.querySelector('.mail-frame'));
+}));
+test('compact mail controls retain full accessible labels when the language changes',async()=>fixture(async({document,setLanguage})=>{
+ const push=document.querySelector('.campus-mail-push'),official=document.querySelector('.mailx-official-link');
+ assert.equal(push.getAttribute('aria-label'),'Enable notifications');assert.equal(push.querySelector('.mailx-label-mobile').textContent,'Alerts off');
+ assert.equal(official.getAttribute('aria-label'),'Official NTU Mail ↗');
+ setLanguage('zh');assert.equal(push.getAttribute('aria-label'),'啟用通知');assert.equal(push.querySelector('.mailx-label-mobile').textContent,'通知關閉');
+ assert.equal(official.getAttribute('aria-label'),'臺大官方信箱 ↗');
 }));
 
 test('manual Refresh bypasses inbox cache and keeps acknowledged messages during failure',async()=>fixture(async({ui,document,calls,handle,click})=>{

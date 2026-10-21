@@ -22,6 +22,9 @@ test('the main URL serves the full application with resolving local assets and p
   assert.ok(url.startsWith('/'),url+' must resolve from the main URL');
   assert.ok(existsSync(new URL('../public'+url,import.meta.url)),url+' must exist');
  }
+ for(const use of document.querySelectorAll('svg use[href^="#"]')){
+  const reference=use.getAttribute('href');assert.ok(document.querySelector(reference),'missing local icon '+reference);
+ }
 });
 test('all legacy app entry URLs redirect to the main URL while preserving queries',async()=>{
  for(const path of ['/skeleton','/skeleton/','/skeleton/index.html']){
@@ -74,12 +77,16 @@ test('clock updates preserve schedule nodes and focus targets while updating les
  const day=86400000,iso=d=>d.toISOString().slice(0,10),offset=(s,n)=>iso(new Date(Date.parse(s+'T00:00:00Z')+n*day));
  const words={days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],shortDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],live:'Now',completed:'Finished'};
  const row=[4,'09:00','10:00','Math','數學','Room A','M',null,'math'];
- const context={document,$:id=>document.getElementById(id),student:{id:'a',courses:[row]},language:'en',selectedDate:'2026-10-16',timetableView:'day',liveTimetable:null,liveSnapshotsLoading:false,academicWeek,eventUI:{events:()=>[]},courseOffering:()=>null,taipeiToday:()=> '2026-10-16',offset,monday:s=>offset(s,-4),weekday:()=>4,dateFor:s=>new Date(s+'T00:00:00Z'),pretty:s=>s,longDate:s=>s,scheduleOn:()=>[row],eventsOn:()=>[],t:key=>words[key]||key,liveMode:false,scheduleAccent:()=>1,lessonState:()=> 'Now',lessonPeriod:()=>'',renderWeekTimetable(){},requestAnimationFrame(){},fitLessonCards(){},node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;}};
- vm.createContext(context);vm.runInContext(source.slice(source.indexOf("let calendarSignature='';"),source.indexOf('const announcements=')),context);
+ const context={document,$:id=>document.getElementById(id),student:{id:'a',courses:[row]},language:'en',selectedDate:'2026-10-16',timetableView:'day',liveTimetable:null,liveSnapshotsLoading:false,academicWeek,eventUI:{events:()=>[]},courseOffering:()=>null,taipeiToday:()=> '2026-10-16',offset,monday:s=>offset(s,-4),weekday:()=>4,dateFor:s=>new Date(s+'T00:00:00Z'),pretty:s=>s,longDate:s=>s,scheduleOn:()=>[row],eventsOn:()=>[],t:key=>words[key]||key,liveMode:false,scheduleAccent:()=>1,lessonState:()=> 'Now',lessonPeriod:()=>'',renderWeekTimetable(){},requestAnimationFrame(){},fitLessonCards(){}};
+ vm.createContext(context);
+ const nodeStart=source.indexOf('function node(');vm.runInContext(source.slice(nodeStart,source.indexOf('\n',nodeStart)),context);
+ vm.runInContext(source.slice(source.indexOf("let calendarSignature='';"),source.indexOf('const announcements=')),context);
  vm.runInContext('renderCalendar()',context);const button=document.querySelector('.lesson'),dayButton=document.querySelector('.day-button');assert.ok(button.classList.contains('live'));assert.equal(document.getElementById('week-range').textContent,'Week 6');assert.match(document.getElementById('week-range').title,/Oct 12–18/);
  context.lessonState=()=> 'Finished';vm.runInContext('renderCalendar()',context);
  assert.equal(document.querySelector('.lesson'),button);assert.equal(document.querySelector('.day-button'),dayButton);assert.equal(button.classList.contains('live'),false);assert.equal(button.classList.contains('completed'),true);
  row[3]='Renamed';vm.runInContext('renderCalendar()',context);assert.notEqual(document.querySelector('.lesson'),button);assert.match(document.querySelector('.lesson').textContent,/Renamed/);
+ row[3]='<img src=x onerror=alert(1)>';vm.runInContext('renderCalendar()',context);
+ assert.ok(document.querySelector('.lesson').textContent.includes(row[3]));assert.equal(document.querySelector('.lesson img'),null,'course names stay text in the actual renderer');
 });
 
 test('academic weeks use NTU semester starts, Monday navigation, and vacation fallbacks',()=>{

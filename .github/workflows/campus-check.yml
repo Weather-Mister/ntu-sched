@@ -6,6 +6,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      check_upstream:
+        description: Check live NTU services
+        type: boolean
+        required: false
+        default: false
+concurrency:
+  group: campus-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,19 +31,6 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - run: npm run check
-      - name: Verify real public NTU course lookup and syllabus plans
-        if: github.event_name == 'pull_request' && (github.head_ref == 'feat/automatic-course-syllabus' || github.head_ref == 'feat/cool-exam-fallback' || github.head_ref == 'feat/cool-primary-exams' || github.head_ref == 'fix/cool-exam-source-stop' || github.head_ref == 'feat/upcoming-exams')
-        run: node scripts/check-ntu-syllabus.mjs
-      - name: Test public NTU syllabus retrieval on experiment branch
-        if: github.event_name == 'pull_request' && github.head_ref == 'experiment/ntu-course-exam-source'
-        run: |
-          node --input-type=module <<'NODE'
-          import { readNtuCourseExams } from './src/ntu-course-exams.mjs';
-          for (const url of ['https://course.ntu.edu.tw/courses/115-1/23006']) {
-            try {
-              const result=await readNtuCourseExams(url);
-              console.log(JSON.stringify({source:result.sourceUrl,term:result.term,courseCode:result.courseCode,serial:result.serial,exams:result.exams.map(x=>({kind:x.kind,date:x.date,certainty:x.certainty}))}));
-              if(result.courseCode !== 'CSIE5734' || !result.exams.some(x=>x.kind==='midterm'))process.exitCode=1;
-            } catch(error) { console.log('Public NTU smoke check failed:', error.code || 'request_error'); process.exitCode=1; }
-          }
-          NODE
+      - name: Verify real public NTU services (manual only)
+        if: github.event_name == 'workflow_dispatch' && inputs.check_upstream
+        run: npm run test:upstream
