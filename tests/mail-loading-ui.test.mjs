@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parseHTML,DOMParser} from 'linkedom';
 import {createMailUI} from '../public/skeleton/mail.mjs';
+import {createMailBadges} from '../public/skeleton/mail-badges.mjs';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const row=(uid='1')=>({mailbox:'INBOX',uid,subject:'Message '+uid,from:'Professor',unread:true});
 const page=(uid='1')=>({messages:[row(uid)],count:1,nextCursor:null});
 const message=(uid='1')=>({...row(uid),headers:'From: Professor',attachments:[],html:'<html><body><p>Message body '+uid+'</p></body></html>'});
-async function fixture(run){
+async function fixture(run,withBadges=false){
  const {window,document}=parseHTML(readFileSync(new URL('../public/index.html',import.meta.url),'utf8'));
  let owner='b12345678',handler=async()=>page();const calls=[],timers=[];
  const globals={window,document,DOMParser,navigator:{onLine:true},sessionStorage:{getItem:()=>null,removeItem(){},setItem(){}},
@@ -16,7 +17,8 @@ async function fixture(run){
  const previous={};for(const[k,v]of Object.entries(globals)){previous[k]=Object.getOwnPropertyDescriptor(globalThis,k);Object.defineProperty(globalThis,k,{value:v,writable:true,configurable:true});}
  const dialog=document.getElementById('mail-dialog');dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;};
  const account={request:async path=>{calls.push(path);const studentNumber=owner;return {studentNumber,...await handler(path)};}};
- const ui=createMailUI({account,isLive:()=>true,language:()=> 'en'});ui.bind({studentNumber:owner});
+ const badges=withBadges?createMailBadges({account,isLive:()=>true,language:()=> 'en'}):undefined;
+ const ui=createMailUI({account,isLive:()=>true,language:()=> 'en',badges});ui.bind({studentNumber:owner});
  const click=selector=>document.querySelector(selector).click();
  try{await run({ui,dialog,document,calls,click,handle(fn){handler=fn;},changeOwner(value){owner=value;ui.bind({studentNumber:owner});},async retry(){const callback=timers.shift();assert.ok(callback,'a bounded retry was scheduled');callback();await tick();}});}
  finally{ui.bind(null);for(const[k,v]of Object.entries(previous)){if(v)Object.defineProperty(globalThis,k,v);else delete globalThis[k];}}
@@ -30,6 +32,16 @@ test('reopening Mail during its first load joins one request and keeps its resul
  assert.equal(calls.length,1);assert.match(document.querySelector('.mailx-list').textContent,/Message 1/);
  ui.open();assert.equal(calls.length,1,'fresh inbox remains visible on reopen');
 }));
+test('mail controls update badges after successful reads and preserve badges through locale updates',async()=>fixture(async({ui,document,handle,click})=>{
+ handle(path=>path.includes('message?')?message():path.includes('list?')?page():{});
+ ui.open();await tick();const badge=()=>document.querySelector('[data-open-mail] .campus-mail-badge');
+ assert.equal(badge().textContent,'1');assert.equal(badge().hidden,false);
+ ui.locale();assert.equal(document.querySelector('[data-mail-folder="inbox"] .campus-mail-badge').textContent,'1');
+ click('.campus-mail-open');await tick();assert.equal(badge().hidden,true);
+ click('.campus-mail-icon[aria-label="Mark unread"]');await tick();assert.equal(badge().textContent,'1');assert.equal(badge().hidden,false);
+ click('.campus-mail-mark-all');await tick();assert.equal(badge().hidden,true);
+ ui.bind(null);assert.equal(badge().hidden,true);
+},true));
 
 test('rapid folder changes discard the old list and load only the latest folder',async()=>fixture(async({ui,document,calls,handle,click})=>{
  const pending=deferred();handle(()=>pending.promise);ui.open();

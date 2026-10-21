@@ -87,6 +87,14 @@ function readMailPageCursor(value){
  if(!data||!Number.isInteger(data.page)||data.page<1||data.page>1000||!Number.isInteger(data.offset)||data.offset<0||data.offset>1000)throw new ApiError(400,'invalid_mail','Invalid mailbox cursor.');
  return data;
 }
+export async function unreadMailCount(env,owner){
+ return withMailbox(env,owner,async s=>{
+  // The filtered total covers the whole inbox, including unloaded pages.
+  const result=await s.list('INBOX',1,'','UNSEEN');
+  if(!Number.isSafeInteger(result.count)||result.count<0)throw new ApiError(502,'ntu_unavailable','NTU did not return an unread count.');
+  return {unreadCount:result.count};
+ },{retryRead:true});
+}
 export async function listMail(env,owner,url){
  const folder=url.searchParams.get('folder')||'inbox',query=(url.searchParams.get('q')||'').trim(),page=Number(url.searchParams.get('page')||1);
  const progressive=url.searchParams.has('limit')||url.searchParams.has('cursor'),limit=Number(url.searchParams.get('limit'));

@@ -9,6 +9,7 @@ import { eventsOn, nextEventDates } from '/event-model.mjs';
 import { createEventUI } from './custom-events.mjs';
 import {createExamEditor} from './exam-editor.mjs';
 import { createMailUI } from './mail.mjs';
+import { createMailBadges } from './mail-badges.mjs';
 import {withListFocus,loadingCard} from './ui-state.mjs';
 import { examCompletionKey } from '/exam-completion.mjs';
 import { createSettings } from './settings.mjs';
@@ -1131,7 +1132,8 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&
 window.addEventListener('focus',checkLiveSources);
 window.addEventListener('online',()=>{updateSyncDots();checkLiveSources();});
 window.addEventListener('offline',updateSyncDots);
-const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language});
+const mailBadges=createMailBadges({account,isLive:()=>liveMode,language:()=>language});
+const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language,badges:mailBadges});
 
 const settingsUI=createSettings({account,onSessionExpired:sessionExpired});
 setRetroBoundaryReader(()=>{const next=nextScheduleEvent();return next?{target:next.live?next.end:next.start,live:next.live}:null;});
