@@ -5,7 +5,7 @@ import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } f
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 import {listCustomExams,createCustomExam,changeCustomExam} from './custom-exams.mjs';
-import { listMail, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications, checkNewMailNow } from './mail-store.mjs';
+import { listMail, unreadMailCount, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications, checkNewMailNow } from './mail-store.mjs';
 import { mailReference } from './mail-content.mjs';
 import { translateMail } from './mail-translation.mjs';
 import {reviseDraft} from './mail-compose-ai.mjs';
@@ -140,6 +140,7 @@ export default {
         if(path==='/api/mail/outbox'&&request.method==='GET')return json({...owner,...await listComposeJobs(env,current)});
         if(path==='/api/mail/outbox'&&request.method==='POST')return json({...owner,...await queueComposeMail(env,current,await readJson(request))});
         if(path==='/api/mail/outbox/action'&&request.method==='POST')return json({...owner,...await changeComposeJob(env,current,await readJson(request))});
+        if(path==='/api/mail/unread'&&request.method==='GET')return json({...owner,...await unreadMailCount(env,current)});
         if(path==='/api/mail/list'&&request.method==='GET')return json({...owner,...await listMail(env,current,url)});
         if(path==='/api/mail/message'&&request.method==='GET')return json({...owner,...await readMail(env,current,url)});
         if(path==='/api/mail/attachment'&&request.method==='GET')return await attachment(env,current,url);

@@ -31,7 +31,7 @@ globalThis.fetch=async(url,init={})=>{
  if(!action)return new Response('<input type="hidden" name="_token" value="nonce">');
  if(['list','search'].includes(action)){
   if(failListOnce>0){failListOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
-  if(virtualMessages&&action==='list'){
+  if(virtualMessages&&(action==='list'||fields.get('_filter')==='UNSEEN')){
    const page=Number(fields.get('_page')||1),perPage=40,rows=[];
    const start=(page-1)*perPage,end=Math.min(virtualMessages,start+perPage);
    for(let i=start;i<end;i++)rows.push('this.add_message_row('+JSON.stringify(String(virtualMessages-i))+','+JSON.stringify({subject:'Message '+(virtualMessages-i),from:'Professor',date:'Today 12:00',snippet:'Sample message preview'})+','+JSON.stringify({seen:false})+');');
@@ -297,6 +297,19 @@ test('opening mailbox loads only the requested metadata batch and no unopened me
  assert.equal(pageReads[0].url.includes('_page=1'),true);
  assert.equal(calls.some(call=>['show','get','viewsource'].includes(call.action)),false);
  e.sqlite.close();
+});
+test('unread badge count covers unloaded inbox pages without fetching message bodies',async()=>{
+ const e=env(),a=await identity(e);virtualMessages=125;
+ const response=await request(e,a,'unread');assert.equal(response.status,200);
+ const result=await response.json();assert.equal(result.unreadCount,125);assert.equal(result.studentNumber,a.student_number);
+ assert.equal(result.messages,undefined);
+ const search=calls.find(c=>c.action==='search');assert.ok(search);assert.match(search.url,/_filter=UNSEEN/);assert.match(search.url,/_mbox=INBOX/);
+ assert.equal(calls.some(c=>['show','get','viewsource','mark','move'].includes(c.action)),false);e.sqlite.close();
+});
+test('unread badge endpoint rejects unauthenticated and cross-origin reads before NTU access',async()=>{
+ const e=env(),a=await identity(e);assert.equal((await request(e,null,'unread')).status,401);
+ assert.equal((await request(e,a,'unread','GET',undefined,{Origin:'https://evil.example'})).status,403);
+ assert.equal(calls.length,0);e.sqlite.close();
 });
 test('progressive mailbox batches return newest 25 then 50 then 50 without duplicate UIDs',async()=>{
  const e=env(),a=await identity(e);virtualMessages=125;
