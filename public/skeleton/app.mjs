@@ -1135,7 +1135,7 @@ window.addEventListener('offline',updateSyncDots);
 const mailBadges=createMailBadges({account,isLive:()=>liveMode,language:()=>language});
 const mailUI=createMailUI({account,isLive:()=>liveMode,language:()=>language,badges:mailBadges});
 
-const settingsUI=createSettings({account,onSessionExpired:sessionExpired});
+const settingsUI=createSettings({account,onSessionExpired:sessionExpired,onTasksChanged:()=>void taskStore.refresh()});
 setRetroBoundaryReader(()=>{const next=nextScheduleEvent();return next?{target:next.live?next.end:next.start,live:next.live}:null;});
 renderTranslations();
 // Explicit design-preview links always use the labelled fictional profile.

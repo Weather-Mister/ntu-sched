@@ -3,6 +3,7 @@ import { verifyNtuMail } from './ntu-mail.mjs';
 import { savedTimetable, syncTimetable, refreshDueTimetables, changeCourseDetails, saveStudentExamPlan, saveStudentSectionOptions } from './timetable-store.mjs';
 import { savedCoolCalendar, syncCoolCalendar, refreshDueCoolCalendars, limit } from './cool-store.mjs';
 import { listTasks, createTask, changeTask } from './manual-tasks.mjs';
+import {personalTaskBridge,personalTaskStatus,personalTaskOptions,linkPersonalTasks} from './personal-tasks.mjs';
 import { listEvents, createEvent, changeEvent } from './custom-events.mjs';
 import {listCustomExams,createCustomExam,changeCustomExam} from './custom-exams.mjs';
 import { listMail, unreadMailCount, readMail, attachment, sendMail, checkSend, withMailbox, refreshMailNotifications, checkNewMailNow } from './mail-store.mjs';
@@ -104,6 +105,7 @@ export default {
         return new Response(null, { status: 308, headers: { ...responseSecurityHeaders, Location: destination.href } });
       }
       if (!path.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : json({ error: { code: 'not_found', message: 'Not found.' } }, 404);
+      if(path==='/api/personal-tasks/bridge')return personalTaskBridge(request,env);
       sameOrigin(request, env);
       const authorizationStorageReady = typeof env.NTU_CREDENTIAL_KEY === 'string' && /^[0-9a-f]{64}$/i.test(env.NTU_CREDENTIAL_KEY);
       // Report only the setup issue, never the secret or any part of its value.
@@ -120,6 +122,11 @@ export default {
       if (path === '/api/connections' && request.method === 'GET') {
         const current = await session(request, env);
         return json({ connections: await connections(env, current.student_id) });
+      }
+      if(path==='/api/personal-tasks/link'){
+        const current=await session(request,env,request.method!=='GET'),owner={studentNumber:current.student_number};
+        if(request.method==='GET')return json({...owner,...await personalTaskStatus(env,current)});
+        if(request.method==='POST')return json({...owner,...await linkPersonalTasks(env,current,await readJson(request))});
       }
       if(path==='/api/preferences'){
         const current=await session(request,env,request.method!=='GET'),owner={studentNumber:current.student_number};
@@ -192,13 +199,14 @@ export default {
       }
       if (path === '/api/tasks' || path.startsWith('/api/tasks/')) {
         const current = await session(request, env, request.method !== 'GET');
+        const taskOptions=await personalTaskOptions(env,current);
         const owner = { studentNumber: current.student_number };
         // Ownership always comes from the authenticated session, never a URL or body ID.
         if (new URL(request.url).search) throw new ApiError(400, 'invalid_task', 'Task requests do not accept query parameters.');
-        if (path === '/api/tasks' && request.method === 'GET') return json({ ...owner, tasks: await listTasks(env, current.student_id) });
-        if (path === '/api/tasks' && request.method === 'POST') return json({ ...owner, task: await createTask(env, current.student_id, await readJson(request)) }, 201);
-        const id = /^\/api\/tasks\/([^/]+)$/.exec(path)?.[1];
-        if (id && ['PATCH', 'DELETE'].includes(request.method)) return json({ ...owner, task: await changeTask(env, current.student_id, id, await readJson(request), request.method === 'DELETE') });
+        if (path === '/api/tasks' && request.method === 'GET') return json({ ...owner, tasks: await listTasks(env, current.student_id,taskOptions) });
+        if (path === '/api/tasks' && request.method === 'POST') return json({ ...owner, task: await createTask(env, current.student_id, await readJson(request),taskOptions) }, 201);
+        let id;try{id=decodeURIComponent(/^\/api\/tasks\/([^/]+)$/.exec(path)?.[1]||'');}catch{throw new ApiError(400,'invalid_task','Invalid task ID.');}
+        if (id && ['PATCH', 'DELETE'].includes(request.method)) return json({ ...owner, task: await changeTask(env, current.student_id, id, await readJson(request), request.method === 'DELETE',taskOptions) });
         throw new ApiError(404, 'not_found', 'This task action is not available.');
       }
       if (path.startsWith('/api/timetable/courses/') && request.method === 'PATCH') {
