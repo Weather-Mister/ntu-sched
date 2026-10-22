@@ -6,6 +6,9 @@ assert.equal(statics.courseCode,'ME1005');assert.equal(statics.section,'01');ass
 assert.deepEqual(statics.exams.map(e=>[e.kind,e.week,e.date]),[['quiz',5,null],['midterm',8,null],['quiz',12,null],['final',16,null]]);
 const candidates=await searchNtuCourses('115-1',{code:'ME1005'});
 assert(candidates.some(c=>c.serial==='52528'&&c.section==='01'&&c.coolId==='66746'));
+const classroom=candidates.find(c=>c.serial==='52528').schedules[0];
+assert.equal(classroom.room,'繡山講堂');assert.equal(classroom.building,'機械系館/宗倬章館');
+assert.equal(classroom.location,'機械系館一樓');assert.match(classroom.detail,/Mechanical Engineering/);
 const software=await readNtuCourseExams('https://course.ntu.edu.tw/courses/115-1/23006');
 assert.equal(software.courseCode,'CSIE5734');assert(software.exams.some(e=>e.kind==='midterm'&&e.date==='2026-11-03'));
 const math=await readNtuCourseExams('https://course.ntu.edu.tw/en/courses/115-1/29671');

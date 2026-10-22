@@ -1,6 +1,7 @@
 import { ApiError } from './security.mjs';
 import { NTU_PERIODS } from '../public/ntu-periods.mjs';
 import { readPublicNtu, syllabusUrl } from './ntu-course-exams.mjs';
+import {catalogClassroom} from '../public/course-locations.mjs';
 
 const normal = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[\s:：()（）–—-]/g, '');
 const section = value => normal(value).replace(/^0+(?=\d)/, '');
@@ -25,7 +26,7 @@ export async function searchNtuCourses(term, selected) {
     for (const c of data.courses) {
       if(c.semester!==term || c.provider!=='NTU' || !/^\d{4,6}$/.test(c.serial) || c.status==='Canceled')continue;
       const schedules=(Array.isArray(c.schedules)?c.schedules:[]).slice(0,30).map(s=>({
-        day:Number(s.weekday)-1,periods:Array.isArray(s.intervals)?s.intervals.map(String):[],room:String(s.classroom?.name||'').slice(0,160)
+        day:Number(s.weekday)-1,periods:Array.isArray(s.intervals)?s.intervals.slice(0,20).map(String):[],...catalogClassroom(s.classroom)
       }));
       courses.push({term,serial:c.serial,courseCode:String(c.identifier||'').slice(0,24),courseIdentifier:String(c.code||'').slice(0,24),
         section:String(c.class||'').slice(0,4),title:String(c.name||'').slice(0,160),teacher:String(c.teacher?.name||'').slice(0,160),

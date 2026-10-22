@@ -654,6 +654,10 @@ body[data-theme=dark] .sync-dot.is-synced{background:#71877a}
 /* Account-specific class details use one shared editor for every meeting. */
 .detail-dialog{max-height:calc(100dvh - 30px);overflow:auto;border-radius:21px}
 .lesson-edit-form{margin-top:17px}.lesson-edit-form>label{display:block;margin:13px 0 6px;font-size:12px;font-weight:750}
+.lesson-locations{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-width:0;overflow-wrap:anywhere}
+.lesson-location-heading{margin:0 0 8px;font-size:12px}.lesson-location+.lesson-location{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.lesson-location-room{font-size:13px}.lesson-location-note{margin:4px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
+.lesson-location-links{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}.lesson-location-links a{display:inline-block;font-size:12px;font-weight:750;text-underline-offset:3px;padding:4px 0}
 .lesson-edit-form>input,.lesson-edit-form>textarea{display:block;width:100%;min-width:0;min-height:40px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:13px}
 .lesson-edit-form>textarea{resize:vertical;line-height:1.5}.lesson-edit-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:18px}.lesson-edit-actions>span{flex:1}.lesson-edit-actions .button{font-size:11px}.lesson-edit-message{font-size:12px;color:#a44d45;margin:12px 0 0}.lesson-edit-form .detail-note{margin:13px 0 0}
 @media(max-width:410px){.lesson-edit-actions #lesson-reset{flex-basis:100%;margin-bottom:3px}.lesson-edit-actions>span{display:none}.lesson-edit-actions #lesson-edit-cancel,.lesson-edit-actions #lesson-save{flex:1}}

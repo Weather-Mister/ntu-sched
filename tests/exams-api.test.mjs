@@ -4,9 +4,30 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../src/worker.mjs';
 import {digest,randomToken,encryptAuthorization} from '../src/security.mjs';
-import {savedTimetable} from '../src/timetable-store.mjs';
+import {savedTimetable,saveStudentSectionOptions,saveStudentExamPlan} from '../src/timetable-store.mjs';
 const APP='https://campus.example';
 const catalog=()=>Response.json({totalCount:2,courses:['52528','21570'].map((serial,i)=>({semester:'115-1',provider:'NTU',serial,identifier:'ME1005',code:'502 21130',class:i?'02':'01',teacher:i?'Teacher B':'Teacher A',name:'Statics',schedules:[],coolUrl:'https://cool.ntu.edu.tw/courses/66746'}))});
+test('legacy classroom caches upgrade once without reloading saved exams and remain isolated per account',async()=>{
+ const f=await fixture(),[a,b]=f.owners,previous=globalThis.fetch;let calls=0;
+ const examResult={selected:{serial:'52528'},course:{exams:[{kind:'midterm',week:8}]}};
+ await saveStudentExamPlan(f.env,a.id,a.courseId,'115-1','',examResult);
+ await saveStudentSectionOptions(f.env,a.id,a.courseId,'115-1',{selected:null,matching:{status:'not-found'},candidates:[]});
+ globalThis.fetch=async url=>{
+   calls++;assert.match(String(url),/\/search\/quick/);
+   return Response.json({totalCount:1,courses:[{semester:'115-1',provider:'NTU',serial:'52528',identifier:'ME1005',class:'01',name:'Statics',
+     schedules:[{weekday:2,intervals:['3','4'],classroom:{name:'繡山講堂',buildingName:'機械系館/宗倬章館',location:'機械系館一樓',detail:'Tsung Cho Chang Hall'}}]}]});
+ };
+ const post=path=>worker.fetch(new Request(APP+'/api/exams/'+path,{method:'POST',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+a.token,'X-CSRF-Token':a.csrf},body:JSON.stringify({courseId:a.courseId})}),f.env);
+ try{
+   const response=await post('options');assert.equal(response.status,200,await response.clone().text());
+   const result=await response.json();assert.equal(result.locationVersion,1);assert.equal(result.selected.schedules[0].location,'機械系館一樓');
+   assert.equal(calls,1);assert.equal((await post('options')).status,200);assert.equal(calls,1);
+   assert.deepEqual((await(await post('plan')).json()).course,examResult.course);assert.equal(calls,1);
+   const snapshot=await savedTimetable(f.env,a.id);assert.equal(snapshot.sectionOptions[a.courseId].locationVersion,1);
+   assert.deepEqual(snapshot.examPlans[a.courseId].result,examResult);
+   assert.deepEqual((await savedTimetable(f.env,b.id)).sectionOptions,{});
+ }finally{globalThis.fetch=previous;f.sqlite.close();}
+});
 test('saved course sections are catalog-validated, account-owned, versioned, and drive future exam plans without changing imported identity',async()=>{
  const f=await fixture({withSerial:false}),[a,b]=f.owners,previous=globalThis.fetch,calls=[];
  const mutate=(owner,body,csrf=owner.csrf)=>worker.fetch(new Request(APP+'/api/timetable/courses/'+owner.courseId,{method:'PATCH',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+owner.token,'X-CSRF-Token':csrf},body:JSON.stringify(body)}),f.env);
