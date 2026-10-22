@@ -2,6 +2,7 @@ import { ApiError, decryptAuthorization, encryptAuthorization, digest } from './
 import { courseIdentity } from '../public/course-model.mjs';
 import { readNtuTimetable } from './ntu-timetable.mjs';
 import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
+import {COURSE_LOCATION_VERSION} from '../public/course-locations.mjs';
 
 export const TIMETABLE_INTERVAL = 5 * 24 * 60 * 60 * 1000;
 async function connection(env, studentId, provider = 'timetable') {
@@ -47,6 +48,7 @@ async function updateRecord(env, studentId, transform, verifiedAt) {
   throw new ApiError(409,'course_busy','Your timetable is updating. Please try again.');
 }
 const candidatesForStudent=resolved=>({
+  locationVersion:COURSE_LOCATION_VERSION,
   selected:resolved.selected?Object.fromEntries(Object.entries(resolved.selected).filter(([key])=>key!=='coolId')):null,
   matching:resolved.matching,
   candidates:resolved.candidates.map(({coolId,...c})=>c)

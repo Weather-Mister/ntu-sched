@@ -18,6 +18,7 @@ import { readNtuCourseExams, syllabusUrl, matchImportedCourse } from './ntu-cour
 import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
 import {coolPlanForStudent} from './cool-course-plan.mjs';
 import {preferredExamPlan} from './exam-plan.mjs';
+import {COURSE_LOCATION_VERSION} from '../public/course-locations.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -257,7 +258,7 @@ export default {
         }
         if(optionsOnly){
           const cached=saved.sectionOptions?.[courseId];
-          if(cached)return json({studentNumber:current.student_number,selected:cached.selected,
+          if(cached?.locationVersion===COURSE_LOCATION_VERSION)return json({studentNumber:current.student_number,locationVersion:cached.locationVersion,selected:cached.selected,
             matching:cached.matching,candidates:cached.candidates,savedAt:cached.savedAt});
         }
         const bucket=Math.floor(Date.now()/600000);
@@ -281,7 +282,7 @@ export default {
             throw new ApiError(502,'exam_catalog_changed','The syllabus and catalog metadata disagree. No dates were imported.');
         }
         const {coolId:unused,...selected}=resolution.selected||{};
-        const sections={selected:resolution.selected?selected:null,matching:resolution.matching,
+        const sections={locationVersion:COURSE_LOCATION_VERSION,selected:resolution.selected?selected:null,matching:resolution.matching,
           candidates:resolution.candidates.map(({coolId,...c})=>c)};
         const result={...sections,course};
         if(path==='/api/exams/plan'){

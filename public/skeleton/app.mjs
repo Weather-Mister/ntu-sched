@@ -18,6 +18,8 @@ import { missingInitialSources, syncInitialSources } from './initial-sync.mjs';
 import { academicWeek } from '/academic-calendar.mjs';
 import { ForegroundRefresh } from './foreground-refresh.mjs';
 import { createCoolFeedScroll } from './cool-feed-scroll.mjs';
+import {COURSE_LOCATION_VERSION,sessionClassrooms} from '/course-locations.mjs';
+import {renderLessonLocations} from './lesson-locations.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
 const foregroundRefresh=new ForegroundRefresh();
@@ -93,6 +95,7 @@ let liveMode=false,liveAccount=null,liveCalendar=null,liveTimetable=null,liveEpo
 let liveSnapshotsLoading=false,liveSyncSource=null;
 const snapshotLoads=new Map();
 let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},liveExamPlans={},liveSectionOptions={},previewCourseOverrides={},lessonDraft=null,lessonSaving=false,liveDetailsRevision=0;
+let locationRefreshEpoch=null,locationAttemptEpoch=null,locationAttempts=new Set();
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
 const coolScroll=createCoolFeedScroll({list:$('cool-list')});
@@ -104,11 +107,14 @@ const announcementStore=new AccountAnnouncements(account,()=>{if(student&&liveMo
 const examStore=new AccountExams(account,()=>{if(student&&liveMode){
   for(const [courseId,entry] of examStore.entries){
     const result=entry.result;
-    if(result?.candidates&&result?.matching){
-      liveSectionOptions[courseId]={term:liveTimetable?.term||'',candidates:result.candidates,matching:result.matching,selected:result.selected||null,savedAt:result.savedAt||Date.now()};
+    if(result?.candidates&&result?.matching&&(result.locationVersion||0)>=(liveSectionOptions[courseId]?.locationVersion||0)){
+      liveSectionOptions[courseId]={term:liveTimetable?.term||'',locationVersion:result.locationVersion||0,candidates:result.candidates,matching:result.matching,selected:result.selected||null,savedAt:result.savedAt||Date.now()};
     }
   }
-  if(coolView==='exams')renderDeadlines();renderCalendar();
+  student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides,liveSectionOptions);
+  if(coolView==='exams')renderDeadlines();renderBanner();renderCalendar();
+  if(opened&&$('lesson-dialog').open)populateLesson(opened.c,opened.key);
+  if(!examStore.busy)void refreshCourseLocations();
 }},()=>sessionExpired());
 const eventUI=createEventUI({account,isLive:()=>liveMode,getLanguage:()=>language,getDate:()=>selectedDate,onChange(){if(student){renderBanner();renderCalendar();}},onSessionExpired:()=>sessionExpired()});
 const examEditor=createExamEditor({account,
@@ -657,6 +663,18 @@ function populateLesson(c,key){
   $('lesson-dialog-status').textContent=lessonState(c,key);
   $('lesson-name-label').textContent=t(lessonDraft?.language==='zh'?'lessonNameZh':'lessonNameEn');
   $('lesson-edit-help').textContent=t(!liveMode?'lessonPreview':lessonDraft?.language==='zh'?'lessonHelpZh':'lessonHelpEn');
+  showLessonLocations(current);
+}
+function showLessonLocations(c){
+  const container=$('lesson-locations');container.hidden=!liveMode;
+  if(!liveMode)return;
+  const source=liveTimetable?.sessions.find(s=>s.courseId===c[8]&&s.day===c[0]&&minutes(c[1])===s.start&&minutes(c[2])===s.end);
+  const options=liveSectionOptions[c[8]];
+  // A draft section choice previews its own room without saving the edit.
+  const serial=lessonDraft?.sectionsReady?$('lesson-section-input').value:liveCourseOverrides[c[8]]?.examOffering?.serial||'';
+  const places=source&&options?.term===liveTimetable?.term?sessionClassrooms(source,options,serial):[];
+  renderLessonLocations(container,places,language,{chooseSection:!serial&&(!options?.selected||options?.matching?.status==='student-selected')&&!!options?.candidates?.length,
+    loading:!options&&!lessonDraft?.sectionsFailed,loadError:!options&&lessonDraft?.sectionsFailed});
 }
 function lessonControls(){
   for(const control of $('lesson-edit-form').querySelectorAll('input,textarea,button'))control.disabled=lessonSaving;
@@ -681,7 +699,7 @@ function showLesson(c,key){
   if(liveMode){
     const cached=liveSectionOptions[lessonDraft.id];
     if(cached?.term===liveTimetable?.term)displayLessonSections(lessonDraft,cached);
-    else void loadLessonSections(lessonDraft,liveEpoch);
+    if(cached?.locationVersion!==COURSE_LOCATION_VERSION)void loadLessonSections(lessonDraft,liveEpoch);
   }
 }
 function displayLessonSections(draft,result){
@@ -695,6 +713,7 @@ function displayLessonSections(draft,result){
     const missing=node('option','',language==='zh'?'已儲存班別已無法使用 · 請重新選擇':'Saved class unavailable · choose again');missing.value=draft.initial.serial;$('lesson-section-input').append(missing);
   }
   $('lesson-section-input').value=draft.initial.serial;draft.sectionsReady=true;lessonControls();
+  if(opened)showLessonLocations(opened.c);
   $('lesson-section-status').textContent=result.candidates?.length?(language==='zh'?'選擇你實際修課的班別，儲存後更新考試。':'Choose your class. Save changes to update its exam plan.'):(language==='zh'?'本學期未找到符合的公開課程。':'No matching public course was found for this semester.');
 }
 async function loadLessonSections(draft,epoch){
@@ -702,11 +721,13 @@ async function loadLessonSections(draft,epoch){
     const result=await account.courseOptions(draft.id);
     if(lessonDraft!==draft||epoch!==liveEpoch)return;
     if(result.studentNumber!==liveAccount?.studentNumber){sessionExpired();return;}
-    liveSectionOptions[draft.id]={term:liveTimetable?.term||'',selected:result.selected,matching:result.matching,candidates:result.candidates,savedAt:result.savedAt||Date.now()};
+    liveSectionOptions[draft.id]={term:liveTimetable?.term||'',locationVersion:result.locationVersion,selected:result.selected,matching:result.matching,candidates:result.candidates,savedAt:result.savedAt||Date.now()};
+    student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides,liveSectionOptions);renderBanner();renderCalendar();
     displayLessonSections(draft,result);
   }catch(error){
     if(lessonDraft!==draft||epoch!==liveEpoch)return;
     if(error.status===401){sessionExpired();return;}
+    draft.sectionsFailed=true;if(opened)showLessonLocations(opened.c);
     $('lesson-section-status').textContent=language==='zh'?'無法載入班別，請關閉後重開再試。其他欄位仍可編輯。':'Could not load classes. Reopen this lesson to retry; other details can still be edited.';
   }
 }
@@ -879,8 +900,40 @@ function updateLiveStatus(){
 }
 function renderLiveAccount(){
   examStore.configure(liveTimetable,liveCourseOverrides,liveExamPlans);
-  student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides);
+  student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides,liveSectionOptions);
   renderAll();dashboardResize.place();
+  if(!examStore.busy)void refreshCourseLocations();
+}
+// Upgrade old saved catalog entries once, using the existing account-owned cache.
+// Wait for ordinary exam loading so new accounts can reuse its catalog response.
+async function refreshCourseLocations(){
+  if(!liveMode||!liveAccount||!liveTimetable||examStore.busy||locationRefreshEpoch===liveEpoch||document.hidden||!navigator.onLine)return;
+  const epoch=liveEpoch,term=liveTimetable.term,owner=liveAccount.studentNumber;
+  if(locationAttemptEpoch!==epoch){locationAttempts=new Set();locationAttemptEpoch=epoch;}
+  locationRefreshEpoch=epoch;
+  try{
+    for(const id of new Set(liveTimetable.sessions.map(s=>s.courseId))){
+      if(epoch!==liveEpoch||liveTimetable?.term!==term||document.hidden||!navigator.onLine)return;
+      if(liveSectionOptions[id]?.term===term&&liveSectionOptions[id]?.locationVersion===COURSE_LOCATION_VERSION||locationAttempts.has(id))continue;
+      locationAttempts.add(id);
+      try{
+        const result=await account.courseOptions(id);
+        if(epoch!==liveEpoch||liveTimetable?.term!==term)return;
+        if(result.studentNumber!==owner){sessionExpired();return;}
+        liveSectionOptions[id]={...result,term};
+        student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides,liveSectionOptions);
+        renderBanner();renderCalendar();
+        if(opened?.c[8]===id&&$('lesson-dialog').open){
+          if(lessonDraft&&!lessonDraft.sectionsReady)displayLessonSections(lessonDraft,result);
+          populateLesson(opened.c,opened.key);
+        }
+      }catch(error){
+        if(epoch!==liveEpoch)return;
+        if(error.status===401){sessionExpired();return;}
+        if(error.status===429)break;
+      }
+    }
+  }finally{if(locationRefreshEpoch===epoch)locationRefreshEpoch=null;}
 }
 function sessionExpired(){
   account.current=null;leavePreview();
@@ -1121,13 +1174,14 @@ $('close-lesson').addEventListener('click',()=>{if(!lessonSaving)$('lesson-dialo
 $('lesson-edit-cancel').addEventListener('click',()=>{if(!lessonSaving)$('lesson-dialog').close();});
 $('lesson-edit-form').addEventListener('submit',event=>{event.preventDefault();void saveLessonDetails();});
 $('lesson-reset').addEventListener('click',()=>void saveLessonDetails(true));
+$('lesson-section-input').addEventListener('change',()=>{if(opened)showLessonLocations(opened.c);});
 $('lesson-dialog').addEventListener('cancel',event=>{if(lessonSaving)event.preventDefault();});
 $('switch-account').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('log-out').addEventListener('click',()=>{if(liveMode)endLiveAccount();else leavePreview();});
 $('settings-dialog').addEventListener('close',()=>{if(student)$('open-settings').focus();});
 $('lesson-dialog').addEventListener('close',()=>{opened=null;lessonDraft=null;lessonSaving=false;lessonControls();});
 setInterval(()=>{if(student&&!document.hidden){renderBanner();renderCalendar();if(liveMode&&navigator.onLine!==false){void taskStore.refresh();eventUI.refresh();checkLiveSources();}}},30000);
-window.addEventListener('online',()=>{if(liveMode&&!document.hidden){void taskStore.refresh();eventUI.refresh();}});
+window.addEventListener('online',()=>{if(liveMode&&!document.hidden){void taskStore.refresh();eventUI.refresh();void refreshCourseLocations();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&liveMode&&!livePending)readLiveSnapshots();});
 window.addEventListener('focus',checkLiveSources);
 window.addEventListener('online',()=>{updateSyncDots();checkLiveSources();});

@@ -2,6 +2,7 @@
 // Credentials, cookies, CSRF and NTU scraping stay in the production client/Worker.
 import { applyCourseOverrides } from '../course-model.mjs';
 import { CampusAccount } from '../campus-account.mjs';
+import {sessionClassrooms,classroomLabel} from '../course-locations.mjs';
 
 export const account = new CampusAccount();
 const validDay = n => Number.isInteger(n) && n >= 0 && n <= 6;
@@ -28,7 +29,7 @@ const coolLink = v => {
       && !url.username && !url.password ? url.href : '';
   } catch { return ''; }
 };
-export function mapTimetable(snapshot,overrides={}) {
+export function mapTimetable(snapshot,overrides={},sectionOptions={}) {
   const sessions = snapshot?.sessions;
   if (!Array.isArray(sessions)) return [];
   const rows = sessions.filter(s => s && validDay(s.day) &&
@@ -39,7 +40,11 @@ export function mapTimetable(snapshot,overrides={}) {
       const english = englishPart(officialEn) || englishPart(original) ||
         officialEn || original || officialZh || 'Untitled class';
       const chinese = officialZh || (/[\u3400-\u9fff]/.test(original) ? original : '') || original || english;
-      return [s.day, hhmm(s.start), hhmm(s.end), english, chinese, label(s.room), label(s.code), null, label(s.courseId)];
+      const options=sectionOptions[s.courseId];
+      const places=options?.term===snapshot.term?sessionClassrooms(s,options,overrides[s.courseId]?.examOffering?.serial||''):[];
+      const row=[s.day, hhmm(s.start), hhmm(s.end), english, chinese, places.map(classroomLabel).filter(Boolean).join(' / ')||label(s.room), label(s.code), null, label(s.courseId)];
+      row[10]=places;
+      return row;
     });
   return applyCourseOverrides(rows,overrides);
 }
@@ -57,10 +62,10 @@ export function mapCalendar(snapshot) {
       dueAt: item.dueAt, allDay: item.allDay === true, url: coolLink(item.url)
     }));
 }
-export function studentFromAccount(current,timetable,overrides={}) {
+export function studentFromAccount(current,timetable,overrides={},sectionOptions={}) {
   return {
     name:['My NTU schedule','我的臺大課表'],
     id:current.studentNumber || '',tasks:[],deadlines:[],
-    courses:mapTimetable(timetable,overrides)
+    courses:mapTimetable(timetable,overrides,sectionOptions)
   };
 }
