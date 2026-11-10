@@ -88,16 +88,17 @@ export async function processComposeJob(env,owner,jobId){
  const time=clock();
  const job=await env.DB.prepare("UPDATE mail_jobs SET status='processing',lease_until=?,updated_at=? WHERE student_id=? AND id=? AND send_at<=? AND (status IN ('pending','scheduled') OR (status='processing' AND lease_until<?)) RETURNING *").bind(time+240000,time,owner.student_id,jobId,time,time).first();
  if(!job){const row=await env.DB.prepare('SELECT status FROM mail_jobs WHERE student_id=? AND id=?').bind(owner.student_id,jobId).first();return {id:jobId,status:row?.status||'uncertain'};}
- let status='failed';
+ let status='failed',message;
  try{
   const data=await unseal(env,owner,'job:'+jobId,job.encrypted_body),attachments=[];
   for(const file of data.attachments){let base64='';for(let offset=0;;offset+=8){const rows=await env.DB.prepare('SELECT * FROM mail_file_parts WHERE student_id=? AND draft_id=? AND file_id=? ORDER BY part LIMIT 8 OFFSET ?').bind(owner.student_id,data.draftId,file.id,offset).all();for(const row of rows.results)base64+=(await unseal(env,owner,'part:'+data.draftId+':'+file.id+':'+row.part,row.encrypted_data)).data;if(rows.results.length<8)break;}attachments.push({...file,data:base64});}
   const result=await sendMail(env,owner,{id:jobId,to:data.to,subject:data.subject,text:data.body,html:data.bodyHtml,attachments,...(data.reply?{reply:data.reply}:{})});
   status=['sent','failed'].includes(result.status)?result.status:'uncertain';
- }catch{
+ }catch(error){
+  message=error instanceof ApiError?error.message:'NTU could not send this message. Your draft is saved.';
   const send=await env.DB.prepare('SELECT status FROM mail_sends WHERE student_id=? AND id=?').bind(owner.student_id,jobId).first();status=send&&send.status!=='failed'?'uncertain':'failed';
  }
- await env.DB.prepare('UPDATE mail_jobs SET status=?,lease_until=0,updated_at=? WHERE student_id=? AND id=?').bind(status,clock(),owner.student_id,jobId).run();return {id:jobId,status};
+ await env.DB.prepare('UPDATE mail_jobs SET status=?,lease_until=0,updated_at=? WHERE student_id=? AND id=?').bind(status,clock(),owner.student_id,jobId).run();return {id:jobId,status,...(status==='failed'&&message?{message}:{})};
 }
 export async function listComposeJobs(env,owner){
  await ensureComposerSchema(env);const rows=await env.DB.prepare('SELECT * FROM mail_jobs WHERE student_id=? ORDER BY created_at DESC LIMIT 50').bind(owner.student_id).all(),jobs=[];

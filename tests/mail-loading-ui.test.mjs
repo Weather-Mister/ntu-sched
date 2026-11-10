@@ -73,8 +73,20 @@ test('one message click immediately shows its loading reader, coalesces extra cl
 
 test('message reads automatically wait for a busy mailbox without another click',async()=>fixture(async({ui,document,calls,handle,click,retry})=>{
  ui.open();await tick();let attempts=0;handle(()=>{if(attempts++===0)throw Object.assign(new Error('Busy'),{code:'mail_busy',retryAfterSeconds:2});return message();});
- click('.campus-mail-open');await tick();assert.match(document.querySelector('.mail-status').textContent,/Retrying/);
+ click('.campus-mail-open');await tick();assert.match(document.querySelector('.mail-status').textContent,/Loading/);
  await retry();assert.equal(attempts,2);assert.equal(calls.length,3);assert.ok(document.querySelector('.mail-frame'));
+}));
+test('first-load transient failures retry internally and leave only the loaded inbox',async()=>fixture(async({ui,document,handle,retry})=>{
+ let attempts=0;handle(()=>{if(attempts++<2)throw Object.assign(new Error('Temporary'),{code:attempts===1?'ntu_login_unconfirmed':'network_unavailable'});return page();});
+ ui.open();await tick();assert.equal(document.querySelector('.campus-mail-retry'),null);
+ await retry();await retry();assert.equal(attempts,3);assert.match(document.querySelector('.mailx-list').textContent,/Message 1/);assert.equal(document.querySelector('.mail-status').textContent,'');
+}));
+test('internal recovery stops after two retries and keeps the manual retry available',async()=>fixture(async({ui,document,handle,retry,calls})=>{
+ handle(()=>{throw Object.assign(new Error('NTU unavailable'),{code:'ntu_unavailable'});});ui.open();await tick();await retry();await retry();
+ assert.equal(calls.length,3);assert.ok(document.querySelector('.campus-mail-retry'));assert.equal(document.querySelector('.mailx-list').getAttribute('aria-busy'),'false');
+}));
+test('account switching cancels a waiting retry without loading the old mailbox',async()=>fixture(async({ui,calls,handle,retry,changeOwner})=>{
+ handle(()=>{throw Object.assign(new Error('Temporary'),{code:'ntu_session_expired'});});ui.open();await tick();changeOwner(null);await retry();assert.equal(calls.length,1);
 }));
 
 test('a failed read offers an inline retry and recovers without reopening the app',async()=>fixture(async({ui,document,handle,click})=>{

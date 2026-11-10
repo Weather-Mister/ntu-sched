@@ -219,6 +219,7 @@ export class Roundcube {
             }
             if (!r.ok) {
                 await r.body?.cancel();
+                if(r.status===401||r.status===403)throw new MailError(401, 'NTU Mail session expired.', 'ntu_session_expired');
                 throw new MailError(r.status === 404 ? 404 : 502, r.status === 404 ? 'Message no longer exists in NTU Mail.' : 'NTU Mail is temporarily unavailable.', 'ntu_unavailable');
             }
             if (limit === -1) return r;
@@ -477,15 +478,15 @@ export class Roundcube {
     }
 }
 export function roundcubeFormInputs(html) {
-    const inputs = {};
-    for (const tag of html.matchAll(/<input\b[^>]*>/gi)){
-        const attrs = Object.fromEntries([
-            ...tag[0].matchAll(/([\w-]+)\s*=\s*["']([^"']*)["']/g)
-        ].map((m)=>[
-                m[1].toLowerCase(),
-                cleanText(m[2])
-            ]));
-        if (attrs.name && attrs.type === 'hidden') inputs[attrs.name] = attrs.value || '';
+    const inputs = {},{document}=parseHTML(html);
+    const form=document.querySelector('input[name="_id"]')?.closest('form')||document;
+    for(const input of form.querySelectorAll('input[type="hidden"][name], select[name]')){
+        if(input.hasAttribute('disabled'))continue;
+        const name=input.getAttribute('name');
+        if(input.localName==='select'){
+            const option=input.querySelector('option[selected]')||input.querySelector('option');
+            if(option)inputs[name]=option.getAttribute('value')??option.textContent;
+        }else inputs[name]=input.getAttribute('value')||'';
     }
     return inputs;
 }

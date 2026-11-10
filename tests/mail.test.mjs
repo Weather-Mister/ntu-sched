@@ -5,7 +5,7 @@ import {readFileSync,readdirSync} from 'node:fs';
 import worker from '../src/worker.mjs';
 import {digest,randomToken,encryptAuthorization,decryptAuthorization,base64url} from '../src/security.mjs';
 import {sanitizeMail,buildMime,validateSend,rootHeaders,mailListText} from '../src/mail-content.mjs';
-import {parseRoundcubeCommands} from '../src/mail-roundcube.mjs';
+import {parseRoundcubeCommands,roundcubeFormInputs} from '../src/mail-roundcube.mjs';
 import {encryptedPush,validateSubscription,sendPush,PushDeliveryError} from '../src/mail-push.mjs';
 import {reviseDraft,AI_SYSTEM} from '../src/mail-compose-ai.mjs';
 import {processDueComposeJobs} from '../src/mail-composer-store.mjs';
@@ -54,8 +54,8 @@ globalThis.fetch=async(url,init={})=>{
  if(action==='viewsource')return new Response(mime||'From: Professor <prof@ntu.edu.tw>\r\nReply-To: reply@ntu.edu.tw\r\nMessage-ID: <original@ntu.edu.tw>\r\nReferences: <earlier@ntu.edu.tw>\r\n\r\nbody');
  if(action==='get')return new Response(new Uint8Array([1,2,3]),{headers:{'Content-Disposition':'attachment; filename="notes.pdf"'}});
  if(action==='import'){mime=await init.body.get('_file[]').text();return Response.json({ok:true});}
- if(action==='compose')return new Response('rcmail.set_env('+JSON.stringify({compose_id:'draft-nonce',draft_id:'88',attachments:missingComposeAttachments?{}:Object.fromEntries([...mime.matchAll(/Content-Disposition: attachment; filename="([^"]*)"/g)].map((m,i)=>[i,{name:m[1]}]))})+');<input type="hidden" name="_token" value="nonce">');
- if(action==='send'){if(sendMode==='disconnect')throw new Error('Network lost after delivery');return new Response('<script>parent.rcmail.sent_successfully("confirmation");</script>');}
+ if(action==='compose')return new Response('rcmail.set_env('+JSON.stringify({compose_id:'draft-nonce',draft_id:'88',attachments:missingComposeAttachments?{}:Object.fromEntries([...mime.matchAll(/Content-Disposition: attachment; filename="([^"]*)"/g)].map((m,i)=>[i,{name:m[1]}]))})+');<form><input type="hidden" name="_id" value="draft-nonce"><input type="hidden" name="_token" value="nonce"><select name="_from"><option value="1">Other</option><option selected value="42">NTU identity</option></select><select name="_store_target"><option value="">Do not save</option><option selected value="Sent">Sent</option></select></form>');
+ if(action==='send'){assert.equal(fields.get('_from'),'42');assert.equal(fields.get('_store_target'),'Sent');if(sendMode==='disconnect')throw new Error('Network lost after delivery');if(sendMode==='reject')return new Response('<script>parent.rcmail.display_message("SMTP rejected", "error");</script>');return new Response('<script>parent.rcmail.sent_successfully("confirmation");</script>');}
  if(['mark','move'].includes(action)){
   if(action==='mark'&&failMarkOnce>0){failMarkOnce--;return Response.json({action,exec:'this.display_message("Mailbox session rejected","error");'});}
   return Response.json({action,exec:''});
@@ -171,6 +171,30 @@ test('first-load NTU login not confirmed once is recovered without refreshing or
  assert.equal((await request(e,a,'list?folder=sent&limit=25')).status,200);
  assert.equal(calls.filter(c=>c.action==='login').length,2);
  e.sqlite.close();
+});
+test('send session establishment retries before transmitting, including for queued mail',async t=>{
+ fastMailWaits(t);
+ const e=env(),a=await identity(e),d=await saveDraft(e,a,composeDraft());failLoginCount=1;
+ const response=await request(e,a,'outbox','POST',{id:crypto.randomUUID(),draftId:d.id,version:d.version});
+ assert.equal((await response.json()).status,'sent');assert.equal(calls.filter(c=>c.action==='login').length,2);assert.equal(calls.filter(c=>c.action==='send').length,1);e.sqlite.close();
+});
+test('temporary failures during import or compose recover before one send',async t=>{
+ fastMailWaits(t);
+ for(const action of ['import','compose']){
+  const e=env(),a=await identity(e);calls=[];mime='';unavailableAction=action;unavailableCount=1;
+  const response=await request(e,a,'send','POST',sendBody());assert.equal(response.status,200,await response.clone().text());assert.equal((await response.json()).status,'sent');
+  assert.equal(calls.filter(c=>c.action===action).length,2);assert.equal(calls.filter(c=>c.action==='send').length,1);
+  if(action==='compose')assert.equal(calls.filter(c=>c.action==='import').length,1,'reuses the draft after reconnecting');e.sqlite.close();
+ }
+});
+test('permanent preparation failure stops without sending and keeps a restorable draft',async t=>{
+ fastMailWaits(t);const e=env(),a=await identity(e),d=await saveDraft(e,a,composeDraft()),id=crypto.randomUUID();unavailableAction='compose';unavailableCount=5;
+ const result=await(await request(e,a,'outbox','POST',{id,draftId:d.id,version:d.version})).json();
+ assert.equal(result.status,'failed');assert.match(result.message,/temporarily unavailable/);assert.equal(calls.filter(c=>c.action==='compose').length,2);assert.equal(calls.filter(c=>c.action==='send').length,0);
+ const restored=await(await request(e,a,'outbox/action','POST',{id,action:'restore'})).json();assert.equal(restored.draft.bodyHtml,d.bodyHtml);e.sqlite.close();
+});
+test('native compose form retains the selected identity, Sent destination and decoded tokens',()=>{
+ assert.deepEqual(roundcubeFormInputs('<form><input type="hidden" name="_id" value="compose"><input type="hidden" name="_token" value="a&amp;b"><select name="_from"><option value="1">Other</option><option selected="selected" value="7">Me</option></select><select name="_store_target"><option value="Sent &amp; saved">Sent</option></select><select disabled name="unwanted"><option value="x">x</option></select></form><input type="hidden" name="outside" value="no">'),{_id:'compose',_token:'a&b',_from:'7',_store_target:'Sent & saved'});
 });
 test('two unconfirmed NTU logins show a temporary error, not false reauthorization',async t=>{
  const e=env(),a=await identity(e);
