@@ -60,15 +60,23 @@ body[data-theme="retro"] #mail-dialog .mailx-list-placeholder{color:#6b604d;font
 body[data-theme="retro"] #mail-dialog .campus-compose{position:absolute!important;inset:55px 7px 5px auto!important;width:min(640px,calc(100% - 72px))!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border:1px solid #776c58!important;border-radius:6px!important;background:#c3b79e!important;box-shadow:0 6px #837760,12px 16px 13px #190a0357!important;color:#29251e}
 body[data-theme="retro"] #mail-dialog .campus-compose[hidden]{display:none!important}
 body[data-theme="retro"] #mail-dialog>.campus-compose:not([hidden]){display:flex!important}
-body[data-theme="retro"] #mail-dialog .campus-compose-scroll{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto}
+body[data-theme="retro"] #mail-dialog .campus-compose-scroll{flex:1 1 0;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:auto}
+/* The imported personal-site skin gave the editor 100% of the scroll area,
+   in addition to its fields and AI controls. Let only this area scroll. */
+body[data-theme="retro"] #mail-dialog .campus-compose-scroll>*{flex-shrink:0!important;max-width:100%;min-width:0}
+body[data-theme="retro"] #mail-dialog .campus-compose-scroll .mailx-email-body{height:auto!important;flex:1 0 185px!important;overflow-wrap:anywhere}
 body[data-theme="retro"] #mail-dialog .mailx-compose-head{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:none;min-height:40px!important;padding:6px 9px!important;background:#b2a68c!important}
 body[data-theme="retro"] #mail-dialog .mailx-compose-close{margin-left:auto!important;flex:none}
 body[data-theme="retro"] #mail-dialog .mailx-compose-fields{flex:none;padding:3px 14px 0!important;background:#c2b69d!important}
 body[data-theme="retro"] #mail-dialog .mailx-field-row{min-height:32px!important;height:32px!important}
 body[data-theme="retro"] #mail-dialog .mailx-ai-wrap{flex:1 0 175px;min-height:175px!important}
 body[data-theme="retro"] #mail-dialog .mailx-email-body{flex:1 0 185px;min-height:185px!important;margin:0 14px 9px!important;background:repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 3px),radial-gradient(circle at 78% 20%,#85997a09,transparent 26%),#252821!important;color:#d8dccf!important}
-body[data-theme="retro"] #mail-dialog .mailx-compose-foot{flex:none;min-height:45px;padding:8px 14px!important;background:#b8ac92!important;border-color:#887d67}
+body[data-theme="retro"] #mail-dialog .campus-compose .mailx-compose-foot{flex:none;height:auto!important;min-height:50px;padding:8px 14px!important;background:#b8ac92!important;border-color:#887d67;flex-wrap:wrap}
+body[data-theme="retro"] #mail-dialog .campus-compose .mailx-attachment-list{max-height:none!important;padding:0!important}
 body[data-theme="retro"] #mail-dialog .mailx-format-toolbar{flex:none;overflow-x:auto!important;flex-wrap:nowrap!important;min-height:40px}
+@media(max-width:400px){
+ body[data-theme="retro"] #mail-dialog .campus-compose .mailx-compose-note{flex:1 0 100%;max-width:none}
+}
 body[data-theme="retro"] #mail-dialog,body[data-theme="retro"] #mail-dialog *{scrollbar-width:none!important}
 body[data-theme="retro"] #mail-dialog *::-webkit-scrollbar{display:none!important}
 @media(max-width:859px){

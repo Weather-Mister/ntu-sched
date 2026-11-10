@@ -8,17 +8,18 @@ async function fixture(run){
  const globals={window,document,sessionStorage:{values:new Map(),setItem(k,v){this.values.set(k,v);},getItem(k){return this.values.get(k)||null;},removeItem(k){this.values.delete(k);}},getSelection:()=>null};
  const previous={};for(const[k,v]of Object.entries(globals)){previous[k]=Object.getOwnPropertyDescriptor(globalThis,k);Object.defineProperty(globalThis,k,{value:v,writable:true,configurable:true});}
  window.HTMLElement.prototype.focus=()=>{};
- let owner='b12345678',pendingAi,failAi=false,version=0,requests=[];
+ let owner='b12345678',pendingAi,failAi=false,version=0,requests=[],sendStatus='sent';
  const request=async(path,options={})=>{const data=options.body?JSON.parse(options.body):null;requests.push({path,data});
   if(path==='ai'){if(failAi)throw new Error('Gemini unavailable');return new Promise(resolve=>{pendingAi=resolve;});}
   if(path==='drafts'&&options.method==='POST')return {id:data.id,version:++version};
   if(path.startsWith('drafts?id=')){const error=new Error('Not found');error.status=404;throw error;}
-  if(path==='outbox')return {status:'sent'};
+  if(path==='outbox')return {status:sendStatus,message:'NTU could not prepare this message.'};
+  if(path==='outbox/action')return {draft:{version:++version}};
   return {};
  };
  const composer=createComposer({host:document.getElementById('mail'),request,getOwner:()=>owner,tell:()=>{}});composer.bind(owner);
  const find=selector=>document.querySelector(selector),click=selector=>find(selector).click(),input=(selector,value)=>{const node=find(selector);if(node.hasAttribute('contenteditable'))node.innerHTML=value;else node.value=value;node.dispatchEvent(new window.Event('input'));};
- try{await run({composer,document,find,click,input,requests,resolveAi:result=>pendingAi(result),changeOwner(value){owner=value;composer.bind(value);},failAi(){failAi=true;}});}
+ try{await run({composer,document,find,click,input,requests,resolveAi:result=>pendingAi(result),changeOwner(value){owner=value;composer.bind(value);},failAi(){failAi=true;},setSendStatus(value){sendStatus=value;}});}
  finally{composer.bind(null);for(const[k,v]of Object.entries(previous)){if(v)Object.defineProperty(globalThis,k,v);else delete globalThis[k];}}
 }
 test('composer revises the actual manual draft and Undo AI/Redo preserve its rich HTML',async()=>fixture(async({composer,find,click,input,resolveAi,requests})=>{
@@ -38,4 +39,15 @@ test('account switching clears the editor and ignores a late Gemini response',as
 }));
 test('Gemini errors leave the current editor writable and intact',async()=>fixture(async({composer,find,click,input,failAi})=>{
  await composer.open();input('.mailx-email-body','<p>Keep this <u>draft</u></p>');input('.mailx-ai-prompt','revise');failAi();click('.mailx-ai-generate');await tick();assert.equal(find('.mailx-email-body').innerHTML,'<p>Keep this <u>draft</u></p>');assert.equal(String(find('.mailx-email-body').contentEditable),'true');assert.match(find('.mailx-inline-error').textContent,/Gemini unavailable/);await composer.close();
+}));
+test('a confirmed failed send restores the editable draft in place and a new send gets a fresh identity',async()=>fixture(async({composer,find,click,input,requests,setSendStatus})=>{
+ await composer.open();input('#campus-compose-to','friend@ntu.edu.tw');input('.mailx-email-body','<p>Keep this <strong>message</strong></p>');setSendStatus('failed');click('.mailx-send');await tick();await tick();
+ assert.equal(composer.active,true);assert.equal(String(find('.mailx-email-body').contentEditable),'true');assert.match(find('.mailx-email-body').innerHTML,/<strong>message<\/strong>/);assert.match(find('.mailx-inline-error').textContent,/could not prepare/);
+ assert.equal(requests.find(r=>r.path==='outbox/action').data.action,'restore');
+ setSendStatus('sent');click('.mailx-send');await tick();await tick();assert.equal(composer.active,false);
+ const sends=requests.filter(r=>r.path==='outbox');assert.equal(sends.length,2);assert.notEqual(sends[0].data.id,sends[1].data.id);
+}));
+test('unconfirmed delivery is never automatically restored or transmitted twice',async()=>fixture(async({composer,click,input,requests,setSendStatus})=>{
+ await composer.open();input('#campus-compose-to','friend@ntu.edu.tw');input('.mailx-email-body','A message');setSendStatus('uncertain');click('.mailx-send');await tick();await tick();
+ assert.equal(composer.active,false);assert.equal(requests.filter(r=>r.path==='outbox').length,1);assert.equal(requests.some(r=>r.path==='outbox/action'),false);
 }));

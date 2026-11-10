@@ -1,7 +1,10 @@
 /* The personal-site composer, using Campus Week's existing sage palette. */
 .campus-compose[hidden],.campus-compose [hidden]{display:none!important}
 .campus-compose{position:absolute;inset:12px 12px 12px auto;width:min(610px,calc(100% - 24px));z-index:20;background:#fffdfa;border:1px solid #dce1d2;border-radius:16px;box-shadow:0 12px 40px #252f2326;display:flex;flex-direction:column;overflow:hidden;color:#292d32;font-size:13px;text-align:left}
-.campus-compose-scroll{display:flex;flex-direction:column;overflow:auto;flex:1;min-height:0;overscroll-behavior:contain}
+.campus-compose-scroll{display:flex;flex-direction:column;overflow:auto;flex:1;min-height:0;min-width:0;overscroll-behavior:contain}
+.campus-compose,.campus-compose *{box-sizing:border-box}
+.campus-compose-scroll>*,.campus-compose .mailx-compose-foot>*{min-width:0}
+.campus-compose-scroll>*{flex-shrink:0}
 .campus-compose button,.campus-compose select{font-family:inherit;cursor:pointer}
 .campus-compose button:disabled{opacity:.5;cursor:default}
 .campus-compose button:focus-visible,.campus-compose select:focus-visible{outline:2px solid #7c9470;outline-offset:2px}
@@ -43,8 +46,9 @@
 .campus-compose .mailx-attachment-info{display:flex;flex-direction:column;min-width:0}.campus-compose .mailx-attachment-info strong{font-size:11px;overflow-wrap:anywhere}.campus-compose .mailx-attachment-info small{font-size:10px;color:#8a8c80}
 .campus-compose .mailx-attachment-chip button{border:0;background:transparent;color:#81796f;font-size:16px;padding:3px}.campus-compose .mailx-attachment-chip.is-error{border-color:#d6aaa1;background:#fff3f0}
 .campus-compose .mailx-inline-error{font-size:12px;color:#964333;line-height:1.5;padding:0 14px;margin:0 0 10px;overflow-wrap:anywhere}.campus-compose .mailx-inline-error:empty{display:none}
-.campus-compose .mailx-compose-foot{display:flex;align-items:center;gap:8px;padding:10px 14px 14px;border-top:1px solid #ede8e0;flex-shrink:0;background:#fffdfa}
-.campus-compose .mailx-compose-note{font-size:9px;color:#938c82;flex:1;line-height:1.4}
+.campus-compose .mailx-compose-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px 14px;border-top:1px solid #ede8e0;flex-shrink:0;background:#fffdfa}
+.campus-compose .mailx-compose-note{font-size:9px;color:#938c82;flex:1;line-height:1.4;overflow-wrap:anywhere}
+.campus-compose .mailx-compose-foot button{flex-shrink:0}
 .campus-compose .mailx-send,.campus-compose .mailx-schedule,.campus-compose .campus-save-draft{height:38px;border-radius:10px;padding:0 15px;font-size:11px;font-weight:750;border:1px solid #ded8cf;background:#fffdfa;color:#4c4945}
 .campus-compose .campus-save-draft{font-size:18px;padding:0 10px}.campus-compose .mailx-send{border:0;background:#30372c;color:#fff}
 .campus-compose .campus-schedule{margin:0 14px 14px;padding:12px;background:#f3f5ed;border:1px solid #dce1d2;border-radius:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11px}

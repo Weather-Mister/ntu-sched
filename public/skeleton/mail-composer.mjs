@@ -23,6 +23,7 @@ export function createComposer({host,request,getOwner,tell,onChange=()=>{}}){
   generate.disabled=disabled||busyAi;generate.textContent=busyAi?'Revising…':'Generate';generate.setAttribute('aria-busy',String(busyAi));
   $('[data-undo]').disabled=disabled||!history.length;$('[data-redo]').disabled=disabled||!redo.length;
   $('.mailx-compose-close').disabled=busySend;
+  $('.mailx-send').textContent=busySend?'Sending…':'Send';
  }
  function changed(){if(!draft||locked||busySend)return;editVersion++;redo=[];draft.dirty=true;keep();clearTimeout(timer);note.textContent='Saving draft…';timer=setTimeout(()=>void save().catch(e=>{if(draft)note.textContent=e.code==='draft_conflict'?e.message:'Offline · draft kept on this tab';}),1200);controls();}
  function save(){
@@ -98,7 +99,8 @@ export function createComposer({host,request,getOwner,tell,onChange=()=>{}}){
   const address=reply?.replyTo?.match(/[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig)?.[0]||'';
   to.value=existing?.to||address;subject.value=existing?.subject||(reply?(/^re:/i.test(reply.subject)?reply.subject:'Re: '+reply.subject):'');setEditor(existing||{});prompt.value='';error.textContent=locked?'A send is unresolved. Use Outbox to check delivery before sending again.':'';note.textContent='Saved on this tab as you type';
   $('.mailx-compose-title').textContent=draft.reply?'Reply':'New message';$('.mailx-compose-context').textContent=draft.reply?'Replying in the original NTU Mail thread':'AI revises the current editable draft below';
-  const from=$('#campus-compose-from');from.replaceChildren(el('option',{},owner+'@ntu.edu.tw'));schedule.hidden=true;pane.hidden=false;renderFiles();controls();keep();body.focus();
+  const from=$('#campus-compose-from');from.replaceChildren(el('option',{},owner+'@ntu.edu.tw'));schedule.hidden=true;pane.hidden=false;renderFiles();controls();keep();
+  (draft.reply?body:to).focus({preventScroll:true});$('.campus-compose-scroll').scrollTop=0;
  }
  async function send(sendAt=null){
   if(!draft||busySend||locked)return;const start=generation;clearTimeout(timer);error.textContent='';
@@ -109,6 +111,11 @@ export function createComposer({host,request,getOwner,tell,onChange=()=>{}}){
    await save();if(start!==generation)return;
    draft.requestId=draft.requestId||crypto.randomUUID();locked=true;keep();controls();
    const result=await request('outbox',{method:'POST',body:JSON.stringify({id:draft.requestId,draftId:draft.id,version:draft.version,sendAt})});if(start!==generation)return;
+   if(result.status==='failed'){
+    const restored=await request('outbox/action',{method:'POST',body:JSON.stringify({id:draft.requestId,action:'restore'})});if(start!==generation)return;
+    draft.version=restored.draft.version;draft.requestId=null;locked=false;draft.dirty=false;keep();
+    error.textContent=result.message||'NTU did not send this message. Your draft is ready to edit or retry.';note.textContent='Draft saved securely';return;
+   }
    clearTab();draft=null;pane.hidden=true;generation++;busyAi=false;busySend=false;locked=false;tell(result.status==='sent'?'Message sent.':result.status==='scheduled'?'Scheduled on the server. You can close this tab.':result.status==='failed'?'Message was not sent. Restore it from Outbox.':'Delivery is unconfirmed. Check Outbox before trying again.');onChange();
   }catch(e){if(start===generation){
    // A rejected request is safe to edit. Network/5xx failures keep the exact

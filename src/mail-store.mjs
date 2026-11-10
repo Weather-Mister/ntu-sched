@@ -41,23 +41,24 @@ export async function withMailbox(env,owner,work,{retryRead=false}={}){
     s.cookies=new Map(saved.cookies);s.env=saved.env;s.folders=saved.folders;issuedAt=saved.issuedAt;
    }
   }catch{}
-  if(!s.env.request_token){
+  const reconnect=async()=>{
+   s?.close();s=newSession();
    try{await s.login();}
    catch(error){
-    // Only repeat the safe session establishment for read operations.
-    // An initial Roundcube login-page response does not mean the user's
-    // verified Campus Week or saved NTU connection has expired.
-    if(!retryRead||!['ntu_login_unconfirmed','ntu_unavailable'].includes(error?.code))throw error;
+    // Login is safe to repeat even before a mutation: no mail action has run.
+    if(!['ntu_login_unconfirmed','ntu_unavailable','ntu_session_expired'].includes(error?.code))throw error;
     s.close();await wait(650);s=newSession();await s.login();
    }
    issuedAt=clock();
-  }
+   return s;
+  };
+  if(!s.env.request_token)await reconnect();
   let result;
-  try{result=await work(s,row);}
+  try{result=await work(s,row,reconnect);}
   catch(error){
    // Retry only idempotent reads: moving mail or sending may have succeeded upstream.
    if(!retryRead||!['ntu_session_expired','ntu_action_failed','ntu_unavailable'].includes(error?.code)||error.status===404)throw error;
-   s.close();s=newSession();await s.login();issuedAt=clock();
+   await reconnect();
    result=await work(s,row);
   }
   success=true;return result;
@@ -176,23 +177,39 @@ export async function sendMail(env,owner,body){
  let job=await env.DB.prepare('SELECT * FROM mail_sends WHERE student_id=? AND id=?').bind(owner.student_id,id).first();
  if(job){if(job.payload_hash!==payloadHash)throw new ApiError(409,'send_changed','This send request has changed. Start a new message.');return {id,status:job.status};}
  const cap=await env.DB.prepare('SELECT COUNT(*) AS n FROM mail_sends WHERE student_id=? AND created_at>?').bind(owner.student_id,clock()-3600000).first();if(cap.n>=30)throw new ApiError(429,'send_limit','Please wait before sending more mail.');
- return withMailbox(env,owner,async s=>{
+ return withMailbox(env,owner,async (s,state,reconnect)=>{
   // Claim before provider calls. A retry can inspect this job but can never send it again.
   const messageId=crypto.randomUUID()+'@campus-week.local',time=clock();
   await env.DB.prepare("INSERT INTO mail_sends(student_id,id,payload_hash,message_id,status,created_at,updated_at) VALUES(?,?,?,?,'preparing',?,?)").bind(owner.student_id,id,payloadHash,messageId,time,time).run();
   let mayHaveSent=false;
   try{
-   const reply=body.reply?await rootHeaders(s,mailReference(body.reply.mailbox,body.reply.uid)):null;
-   const mime=buildMime(body,owner.student_number+'@ntu.edu.tw',messageId,reply,true),form=new FormData();
-   for(const [key,value]of Object.entries({_task:'mail',_action:'import',_mbox:s.folders.drafts,_remote:'1',_token:s.env.request_token}))form.append(key,value);
-   form.append('_file[]',mime,'campus-week.eml');
-   await s.fetch('?_task=mail&_action=import&_mbox='+encodeURIComponent(s.folders.drafts),{method:'POST',body:form,headers:{'X-Requested-With':'XMLHttpRequest','X-Roundcube-Request':s.env.request_token}});
-   const draft=await findMessage(s,s.folders.drafts,messageId);if(!draft)throw new ApiError(502,'send_prepare_failed','NTU could not prepare your message. Your text is still in the editor.');
-   const compose=await(await s.fetch('?'+new URLSearchParams({_task:'mail',_action:'compose',_draft_uid:draft.uid,_mbox:s.folders.drafts,_token:s.env.request_token}))).text(),config=roundcubeEnvironment(compose),fields=roundcubeFormInputs(compose);
-   if(!config.compose_id||String(config.draft_id)!==draft.uid||!fields._token)throw new ApiError(502,'send_prepare_failed','NTU could not open the prepared draft.');
-   const attachments=Object.values(config.attachments||{}),expected=body.attachments||[];
-   if(attachments.length!==expected.length||expected.some(file=>attachments.filter(a=>a.name===file.name).length!==expected.filter(a=>a.name===file.name).length))throw new ApiError(502,'send_attachment_missing','NTU did not load every attachment. Restore your draft and retry.');
-   Object.assign(fields,{_task:'mail',_action:'send',_id:String(config.compose_id),_from:owner.student_number+'@ntu.edu.tw',_to:body.to,_cc:'',_bcc:'',_subject:body.subject,_message:body.html||body.text,_is_html:body.html?'1':'0',_draft:'',_draft_saveid:draft.uid,_framed:'1',_charset:'UTF-8',_dsn:'',_mdn:''});
+   let fields;
+   for(let attempt=0;;attempt++)try{
+    // Reuse an imported draft after a lost response. Reconnection may repeat
+    // preparation, but the actual send POST below is never replayed.
+    let draft=attempt?await findMessage(s,s.folders.drafts,messageId):null;
+    if(!draft){
+     const reply=body.reply?await rootHeaders(s,mailReference(body.reply.mailbox,body.reply.uid)):null;
+     const mime=buildMime(body,owner.student_number+'@ntu.edu.tw',messageId,reply,true),form=new FormData();
+     for(const [key,value]of Object.entries({_task:'mail',_action:'import',_mbox:s.folders.drafts,_remote:'1',_token:s.env.request_token}))form.append(key,value);
+     form.append('_file[]',mime,'campus-week.eml');
+     await s.fetch('?_task=mail&_action=import&_mbox='+encodeURIComponent(s.folders.drafts),{method:'POST',body:form,headers:{'X-Requested-With':'XMLHttpRequest','X-Roundcube-Request':s.env.request_token}});
+     draft=await findMessage(s,s.folders.drafts,messageId);
+    }
+    if(!draft)throw new ApiError(502,'send_prepare_failed','NTU could not prepare your message. Your draft is saved.');
+    const compose=await(await s.fetch('?'+new URLSearchParams({_task:'mail',_action:'compose',_draft_uid:draft.uid,_mbox:s.folders.drafts,_token:s.env.request_token}))).text(),config=roundcubeEnvironment(compose);
+    fields=roundcubeFormInputs(compose);
+    if(!config.compose_id||String(config.draft_id)!==draft.uid||!fields._token)throw new ApiError(502,'send_prepare_failed','NTU could not open the prepared draft.');
+    const attachments=Object.values(config.attachments||{}),expected=body.attachments||[];
+    if(attachments.length!==expected.length||expected.some(file=>attachments.filter(a=>a.name===file.name).length!==expected.filter(a=>a.name===file.name).length))throw new ApiError(502,'send_attachment_missing','NTU did not load every attachment. Restore your draft and retry.');
+    // Preserve Roundcube's selected identity and Sent destination, which are
+    // select controls rather than hidden inputs in the native compose form.
+    Object.assign(fields,{_task:'mail',_action:'send',_id:String(config.compose_id),_from:fields._from||owner.student_number+'@ntu.edu.tw',_to:body.to,_cc:'',_bcc:'',_subject:body.subject,_message:body.html||body.text,_is_html:body.html?'1':'0',_draft:'',_draft_saveid:draft.uid,_framed:'1',_charset:'UTF-8',_dsn:'',_mdn:''});
+    break;
+   }catch(error){
+    if(attempt||!['ntu_session_expired','ntu_login_unconfirmed','ntu_unavailable','ntu_action_failed','send_prepare_failed'].includes(error?.code))throw error;
+    await wait(650);s=await reconnect();
+   }
    await env.DB.prepare("UPDATE mail_sends SET status='sending',updated_at=? WHERE student_id=? AND id=?").bind(clock(),owner.student_id,id).run();mayHaveSent=true;
    const result=roundcubeSendResult(await(await s.fetch('?_task=mail&_action=send',{method:'POST',body:new URLSearchParams(fields),headers:{'Content-Type':'application/x-www-form-urlencoded'}})).text());
    const status=result.accepted?'sent':result.rejected?'failed':'uncertain';
@@ -204,7 +221,7 @@ export async function sendMail(env,owner,body){
 export async function checkSend(env,owner,id){
  const job=await env.DB.prepare('SELECT * FROM mail_sends WHERE student_id=? AND id=?').bind(owner.student_id,id).first();if(!job)throw new ApiError(404,'not_found','Send request not found.');
  if(job.status==='sent'||job.status==='failed')return {id,status:job.status};
- return withMailbox(env,owner,async s=>{const found=await findMessage(s,s.folders.sent,job.message_id);if(found)await env.DB.prepare("UPDATE mail_sends SET status='sent',updated_at=? WHERE student_id=? AND id=?").bind(clock(),owner.student_id,id).run();return {id,status:found?'sent':job.status==='preparing'?'failed':'uncertain'};});
+ return withMailbox(env,owner,async s=>{const found=await findMessage(s,s.folders.sent,job.message_id);if(found)await env.DB.prepare("UPDATE mail_sends SET status='sent',updated_at=? WHERE student_id=? AND id=?").bind(clock(),owner.student_id,id).run();return {id,status:found?'sent':job.status==='preparing'?'failed':'uncertain'};},{retryRead:true});
 }
 
 const MANUAL_MAIL_CHECK_SCHEMA='CREATE TABLE IF NOT EXISTS mail_manual_checks (student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, checked_at INTEGER NOT NULL DEFAULT 0)';

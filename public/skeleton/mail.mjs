@@ -153,13 +153,13 @@ export function createMailUI({account,isLive,language,badges}){
   if(!next){dialog.close();void navigator.serviceWorker?.getRegistration('/').then(async r=>{await(await r?.pushManager.getSubscription())?.unsubscribe();}).catch(()=>{});}
   else if(dialog.open)void load(false);
  }
- // Only replay safe reads when a scheduled job temporarily owns the mailbox.
+ // Keep transient transport/session recovery inside the current loading state.
+ // Mutations and sends never pass through this retry loop.
  async function mailboxRead(path,isCurrent){
   for(let attempt=0;;attempt++){
    try{return await request(path);}
    catch(error){
-    if(error.code!=='mail_busy'||attempt>=2||!isCurrent())throw error;
-    tell(language()==='zh'?'信箱正在更新，正在重試…':'Mail is updating. Retrying…');
+    if(!['mail_busy','ntu_unavailable','ntu_login_unconfirmed','ntu_session_expired','ntu_action_failed','network_unavailable','temporarily_unavailable','mail_body_unavailable'].includes(error.code)||attempt>=2||!isCurrent())throw error;
     await new Promise(resolve=>setTimeout(resolve,Math.min(5000,Math.max(900,Number(error.retryAfterSeconds||0)*1000,900+attempt*900))));
     if(!isCurrent())return null;
    }
