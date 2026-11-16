@@ -19,6 +19,8 @@ import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
 import {coolPlanForStudent} from './cool-course-plan.mjs';
 import {preferredExamPlan} from './exam-plan.mjs';
 import {COURSE_LOCATION_VERSION} from '../public/course-locations.mjs';
+import {reportRoute,reportProtocol,reportAuthorization,authorizeReport,reportConnections,revokeReportConnections} from './report-connector.mjs';
+import {savedDailyReport} from './cool-report.mjs';
 const COOKIE = '__Host-campus_week';
 const SESSION_SECONDS = 30 * 24 * 3600;
 const now = () => Math.floor(Date.now() / 1000);
@@ -101,6 +103,7 @@ export default {
   async fetch(request, env) {
     try {
       const path = new URL(request.url).pathname;
+      if(reportRoute(path))return await reportProtocol(request,env);
       if (['/skeleton', '/skeleton/', '/skeleton/index.html'].includes(path)) {
         const destination = new URL(request.url); destination.pathname = '/';
         return new Response(null, { status: 308, headers: { ...responseSecurityHeaders, Location: destination.href } });
@@ -108,6 +111,15 @@ export default {
       if (!path.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : json({ error: { code: 'not_found', message: 'Not found.' } }, 404);
       if(path==='/api/personal-tasks/bridge')return personalTaskBridge(request,env);
       sameOrigin(request, env);
+      if(path.startsWith('/api/report/')){
+        const current=await session(request,env,request.method!=='GET');
+        if(path==='/api/report/authorization'&&request.method==='GET')return json(await reportAuthorization(env,current,new URL(request.url).searchParams.get('request')));
+        if(path==='/api/report/authorize'&&request.method==='POST')return json(await authorizeReport(env,current,await readJson(request)));
+        if(path==='/api/report/connections'&&request.method==='GET')return json(await reportConnections(env,current));
+        if(path==='/api/report/connections'&&request.method==='DELETE')return json(await revokeReportConnections(env,current));
+        if(path==='/api/report/latest'&&request.method==='GET')return json(await savedDailyReport(env,current));
+        throw new ApiError(404,'not_found','This report route does not exist.');
+      }
       const authorizationStorageReady = typeof env.NTU_CREDENTIAL_KEY === 'string' && /^[0-9a-f]{64}$/i.test(env.NTU_CREDENTIAL_KEY);
       // Report only the setup issue, never the secret or any part of its value.
       const authorizationStorageIssue = authorizationStorageReady ? null : env.NTU_CREDENTIAL_KEY ? 'invalid_format' : 'missing';

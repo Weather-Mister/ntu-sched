@@ -16,7 +16,9 @@
     "check": "node scripts/check-modules.mjs"
   },
   "dependencies": {
+    "fflate": "0.8.3",
     "ical.js": "2.2.1",
-    "linkedom": "0.18.12"
+    "linkedom": "0.18.12",
+    "unpdf": "2.2.1"
   }
 }
