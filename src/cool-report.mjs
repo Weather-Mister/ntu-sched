@@ -14,7 +14,7 @@ export function safeLinks(links){
   const u=new URL(item.url,COOL);if(u.protocol!=='https:'||u.username||u.password)continue;
   if(u.origin===COOL){if(!/^\/courses\/\d+\/(?:pages\/[^/]+|files\/\d+|modules\/items\/\d+|assignments\/\d+|quizzes\/\d+|discussion_topics\/\d+)$/.test(u.pathname))continue;u.search='';u.hash='';}
   else if(!['docs.google.com','drive.google.com'].includes(u.hostname))continue;
-  else {if(!/^\/(?:document|spreadsheets|presentation)\/d\/[A-Za-z0-9_-]+\//.test(u.pathname)&&!/^\/file\/d\/[A-Za-z0-9_-]+\//.test(u.pathname))continue;u.search='';u.hash='';}
+  else {if(!/^\/(?:document|spreadsheets|presentation)\/d\/[A-Za-z0-9_-]+\//.test(u.pathname)&&!/^\/file\/d\/[A-Za-z0-9_-]+\//.test(u.pathname)&&!/^\/drive\/(?:u\/\d+\/)?folders\/[A-Za-z0-9_-]+\/?$/.test(u.pathname))continue;u.search='';u.hash='';}
   result.set(u.href,{title:String(item.title||'Linked course document').slice(0,300),url:u.href});
  }catch{}}
  return [...result.values()];

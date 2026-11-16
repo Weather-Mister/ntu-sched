@@ -136,3 +136,5 @@ test('PDF extraction reads real text layers and marks image-only or unsupported 
  const result=await documentText(strToU8(pdf),'schedule.pdf','application/pdf');assert.match(result.text,/Exam November 20 pages 108-110/);assert.equal(result.needsVisualReview,false);
  const unsupported=await documentText(strToU8('fake'),'scan.jpg','image/jpeg');assert.equal(unsupported.needsVisualReview,true);assert.equal(unsupported.unsupported,true);
 });
+
+test('course material Drive folders remain discoverable without tracking queries',()=>{assert.deepEqual(safeLinks([{title:'Course Materials',url:'https://drive.google.com/drive/folders/coursefolder123?usp=sharing'}]),[{title:'Course Materials',url:'https://drive.google.com/drive/folders/coursefolder123'}]);});
