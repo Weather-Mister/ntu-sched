@@ -1,22 +1,6 @@
-import { instructorEmail } from '../course-contacts.mjs';
+import { instructorEmail, normalizeCourseText as normalize, courseSectionKey as sectionKey, academicCourseCode, coolCourseIdentity } from '../course-contacts.mjs';
 
 const COOL = 'https://cool.ntu.edu.tw';
-const normalize = value => String(value || '').normalize('NFKC').toUpperCase().replace(/[^\p{L}\p{N}]/gu, '');
-const sectionKey = value => normalize(value).replace(/^0+(?=\d)/, '');
-const academicCode = /^([A-Z]+\d{3,5}[A-Z]?)(?:-([A-Z0-9]{1,4}(?:[,、][A-Z0-9]{1,4})*))?$/;
-
-function coolIdentity(course) {
-  const code = String(course.code || '').normalize('NFKC').toUpperCase();
-  const suffix = /\(([^()]+)\)\s*$/.exec(code);
-  const match = academicCode.exec((suffix?.[1] || code).replace(/\s/g, ''));
-  const name = match && suffix ? code.slice(0, suffix.index) : '';
-  const bilingual = /\p{Script=Han}/u.test(course.title) && /\s+[A-Z]/i.test(course.title);
-  const english = bilingual ? course.title.match(/(?:\p{Script=Han}|\))\s+([A-Z][\s\S]*)$/iu)?.[1] : '';
-  return {
-    code: match?.[1] || '', sections: (match?.[2] || '').split(/[,、]/).map(sectionKey).filter(Boolean),
-    names: [course.title, name, english].map(normalize).filter(Boolean), englishTitle: english
-  };
-}
 
 function contacts(offering, course) {
   const listed = [{ name: offering?.teacher, email: offering?.teacherEmail }, ...(course?.teachers || [])];
@@ -40,14 +24,14 @@ function contacts(offering, course) {
 
 export function courseOverviewRows(rows, timetable, options = {}, overrides = {}, coolCourses = [], language = 'en') {
   const sessions = new Map((timetable?.sessions || []).map(session => [session.courseId, session]));
-  const provider = coolCourses.map(course => ({ course, ...coolIdentity(course) }));
+  const provider = coolCourses.map(course => ({ course, ...coolCourseIdentity(course) }));
   const used = new Set();
   const result = [...new Map(rows.filter(row => !row[7]).map(row => [row[8], row])).values()].map(row => {
     const id = row[8], imported = sessions.get(id), catalog = options[id]?.term === timetable?.term ? options[id] : null;
     const chosen = overrides[id]?.examOffering;
     const offering = chosen ? catalog?.candidates?.find(candidate => candidate.serial === chosen.serial) || chosen
       : catalog?.matching?.status === 'student-selected' ? null : catalog?.selected;
-    const code = [offering?.courseCode, imported?.code, imported?.courseIdentifier].map(normalize).find(value => academicCode.test(value));
+    const code = [offering?.courseCode, imported?.code, imported?.courseIdentifier].map(normalize).find(value => academicCourseCode.test(value));
     const section = sectionKey(offering?.section || imported?.section);
     const titles = [imported?.title, imported?.titleEn, imported?.titleZh, offering?.title].map(normalize).filter(Boolean);
     const eligible = provider.filter(item => !section || !item.sections.length || item.sections.includes(section));

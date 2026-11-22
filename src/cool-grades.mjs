@@ -1,6 +1,8 @@
 import { ApiError } from './security.mjs';
 import { withCoolCourseSession } from './cool-course-session.mjs';
-import { instructorEmail } from '../public/course-contacts.mjs';
+import { instructorEmail, coolCourseIdentity, courseSectionKey, normalizeCourseText } from '../public/course-contacts.mjs';
+import { savedTimetable } from './timetable-store.mjs';
+import { searchNtuCourses } from './ntu-course-catalog.mjs';
 
 const COOL = 'https://cool.ntu.edu.tw';
 const COURSES = '/api/v1/courses';
@@ -88,8 +90,27 @@ function publishedGrades(assignments, enrolled) {
   });
 }
 
-export function coolGradesForStudent(env, student, courseId) {
-  return withCoolCourseSession(env, student, courseId ? 'assignment-grades' : 'course-grades', async jar => {
+async function addUnscheduledContacts(env, student, courses) {
+  let saved;
+  try { saved = await savedTimetable(env, student.student_id); }
+  catch { return; }
+  const { timetable } = saved;
+  if (!timetable?.term) return;
+  const imported = new Set(timetable.sessions.flatMap(session => [session.code, session.courseIdentifier,
+    session.title, session.titleEn, session.titleZh, saved.sectionOptions[session.courseId]?.selected?.courseCode]).map(normalizeCourseText));
+  const missing = courses.map(course => ({ course, ...coolCourseIdentity(course) })).filter(({ course, code, names }) =>
+    code && !imported.has(code) && !names.some(name => imported.has(name)) && !course.teachers.some(teacher => teacher.email));
+  await Promise.allSettled(missing.slice(0, 6).map(async ({ course, code, sections }) => {
+    // A purely public catalog read, bound to the active COOL course and section.
+    const offerings = await searchNtuCourses(timetable.term, { code });
+    const matching = offerings.filter(offering => offering.coolId === course.id && (!sections.length || sections.includes(courseSectionKey(offering.section))));
+    const published = matching.filter(offering => offering.teacherEmail).map(offering => ({ name: offering.teacher, email: offering.teacherEmail }));
+    if (published.length) course.teachers = published;
+  }));
+}
+
+export async function coolGradesForStudent(env, student, courseId) {
+  const result = await withCoolCourseSession(env, student, courseId ? 'assignment-grades' : 'course-grades', async jar => {
     const signal = AbortSignal.timeout(25000);
     try {
       if (!courseId) {
@@ -109,4 +130,6 @@ export function coolGradesForStudent(env, student, courseId) {
       throw unavailable();
     }
   });
+  if (result.courses?.length) await addUnscheduledContacts(env, student, result.courses);
+  return result;
 }

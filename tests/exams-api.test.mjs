@@ -146,6 +146,13 @@ test('grades are private to enrolled students and only contain published results
   globalThis.fetch = async (input, options) => {
     const url = new URL(input), cookie = options.headers.Cookie;
     requests.push(url.pathname);
+    if (url.hostname === 'course.ntu.edu.tw') {
+      assert.equal(cookie, undefined);
+      assert.equal(options.credentials, 'omit');
+      assert.equal(JSON.parse(options.body).query.keyword, 'PHYS1039');
+      return Response.json({ totalCount: 1, courses: [{ semester: '115-1', provider: 'NTU', serial: '55555', identifier: 'PHYS1039',
+        name: 'International Companions for Learning', teacher: { name: 'Professor C', email: 'c@ntu.edu.tw' }, coolUrl: 'https://cool.ntu.edu.tw/courses/66750' }] });
+    }
     assert.equal(url.origin, 'https://cool.ntu.edu.tw');
     assert.equal(options.redirect, 'manual');
     if (url.pathname === '/api/v1/courses') {
@@ -154,7 +161,8 @@ test('grades are private to enrolled students and only contain published results
       if (cookie.includes('grades-1')) return Response.json([]);
       const base = { name: 'Statics', course_code: '靜力學 (ME1005-01)', enrollments: [{ type: 'student', user_id: 58,
         computed_current_score: 0, computed_current_grade: 'F', unposted_current_score: 99 }] };
-      return Response.json([{ id: 66746, ...base }, { id: 66749, ...base, hide_final_grades: true }, { id: 5, enrollments: [{ type: 'teacher' }] }]);
+      return Response.json([{ id: 66746, ...base }, { id: 66749, ...base, hide_final_grades: true }, { id: 5, enrollments: [{ type: 'teacher' }] },
+        { id: 66750, name: 'International Companions for Learning', course_code: 'Service learning (PHYS1039)', enrollments: [{ type: 'student' }] }]);
     }
     assert.equal(url.pathname, '/api/v1/courses/66746/assignments');
     assert.equal(url.searchParams.get('include[]'), 'submission');
@@ -177,10 +185,11 @@ test('grades are private to enrolled students and only contain published results
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('Cache-Control'), 'no-store, private');
     const overview = await response.json();
-    assert.deepEqual(overview.courses.map(c => [c.id, c.current]), [['66746', { score: 0, grade: 'F' }], ['66749', null]]);
+    assert.deepEqual(overview.courses.map(c => [c.id, c.current]), [['66746', { score: 0, grade: 'F' }], ['66749', null], ['66750', null]]);
+    assert.deepEqual(overview.courses[2].teachers, [{ name: 'Professor C', email: 'c@ntu.edu.tw' }]);
     assert.doesNotMatch(JSON.stringify(overview), /user_id|unposted/);
     assert.equal((await request(b, '/66746')).status, 404);
-    assert.equal(requests.length, 2);
+    assert.equal(requests.length, 3);
     const details = await (await request(a, '/66746')).json();
     assert.deepEqual(details.items.map(item => [item.title, item.score, item.pointsPossible]), [['Quiz', 0, 10], ['Exam', 92, 100]]);
     assert.doesNotMatch(JSON.stringify(details), /private text/);
