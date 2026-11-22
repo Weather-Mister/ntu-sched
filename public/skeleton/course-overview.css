@@ -1,0 +1,45 @@
+.course-overview {
+  width: min(650px, calc(100% - 22px));
+  max-height: calc(100dvh - 30px);
+  border-radius: 21px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.course-overview-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-inline-end: 40px;
+  margin-block-end: 14px;
+}
+.course-overview-heading h2 { margin: 0; font-size: 20px; }
+.course-overview-status { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.course-overview-status:empty { margin: 0; }
+.course-overview-list { display: grid; gap: 10px; }
+.course-overview-card, .lesson-course-overview {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  overflow-wrap: anywhere;
+}
+.lesson-course-overview { margin-top: 12px; }
+.course-overview-card h3 { margin: 0 0 9px; font-size: 15px; }
+.course-details { display: grid; gap: 8px; font-size: 14px; }
+.course-grade-summary, .course-score-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3px 12px;
+}
+.course-grade-summary > span, .course-instructors > span, .course-contact > span, .course-details p { color: var(--muted); }
+.course-details p { margin: 3px 0; }
+.course-contact { display: flex; flex-wrap: wrap; gap: 2px 9px; margin-top: 3px; }
+.course-details a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.course-grade-actions { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.course-score-list { list-style: none; padding: 0; margin: 4px 0 0; }
+.course-score-list li { border-top: 1px solid var(--line); padding: 6px 0; }
+.course-score-list strong { font-variant-numeric: tabular-nums; }

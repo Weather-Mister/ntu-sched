@@ -17,6 +17,7 @@ import {readPreferences,savePreferences,readHanziWidget} from './student-prefere
 import { readNtuCourseExams, syllabusUrl, matchImportedCourse } from './ntu-course-exams.mjs';
 import { searchNtuCourses, resolveNtuCourse } from './ntu-course-catalog.mjs';
 import {coolPlanForStudent} from './cool-course-plan.mjs';
+import {coolGradesForStudent} from './cool-grades.mjs';
 import {preferredExamPlan} from './exam-plan.mjs';
 import {COURSE_LOCATION_VERSION} from '../public/course-locations.mjs';
 import {reportRoute,reportProtocol,reportAuthorization,authorizeReport,reportConnections,revokeReportConnections} from './report-connector.mjs';
@@ -228,7 +229,13 @@ export default {
         if(body.offeringSerial!=null)await limit(env,current.student_id,'exam-catalog',30);
         return json({studentNumber:current.student_number,...await changeCourseDetails(env,current.student_id,courseId,body)});
       }
-      // Read-only NTU Course Information lab: no grade data, credentials or persistence.
+      const gradeRoute = /^\/api\/cool\/grades(?:\/(\d{1,12}))?$/.exec(path);
+      if (gradeRoute && request.method === 'GET') {
+        const current = await session(request, env);
+        if (new URL(request.url).search) throw new ApiError(400, 'invalid_grade_lookup', 'Choose a course from your NTU COOL enrollments.');
+        return json({ studentNumber: current.student_number, ...await coolGradesForStudent(env, current, gradeRoute[1]) });
+      }
+      // Read-only NTU Course Information lab.
       if(path==='/api/exams/cool-preview'&&request.method==='POST'){
         const current=await session(request,env,true),body=await readJson(request,2000);
         if(new URL(request.url).search||Object.keys(body).some(k=>!['courseId','serial'].includes(k))||

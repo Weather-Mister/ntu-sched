@@ -1,7 +1,5 @@
 import {ApiError} from './security.mjs';
-import {connection,limit,mergeCoolConnection} from './cool-store.mjs';
-import {discoverCoolCalendar} from './cool-login.mjs';
-import {sessionCookies,restoreCookies} from './cool-announcements.mjs';
+import {withCoolCourseSession} from './cool-course-session.mjs';
 import {documentFrom} from './portfolio-html.mjs';
 import {parseCoursePlan,parseExamEntry} from './ntu-course-exams.mjs';
 const COOL='https://cool.ntu.edu.tw';
@@ -91,28 +89,5 @@ export async function readCoolCoursePlan(jar,id,term) {
 
 export async function coolPlanForStudent(env,student,candidate) {
  if(!candidate?.coolId)throw new ApiError(404,'cool_course_link_missing','The official catalog does not link this offering to a COOL course.');
- await limit(env,student.student_id,'exam-plan',20);
- const previous=await connection(env,student.student_id);
- if(previous?.value.announcementsReconnect||previous?.status==='reconnect_required')throw new ApiError(409,'cool_credentials_required','Reconnect COOL in Campus Week to read its syllabus.');
- let jar=restoreCookies(previous?.value.announcementCookies),credentials;
- async function login(){
-  credentials=previous?.value.password?previous.value:(await connection(env,student.student_id,'timetable'))?.value||(await connection(env,student.student_id,'ntu_mail'))?.value;
-  if(credentials?.username!==student.student_number||!credentials.password)throw new ApiError(409,'cool_credentials_required','Connect COOL in Campus Week to read its syllabus.');
-  let cookies;
-  await discoverCoolCalendar(student.student_number,credentials.password,{skipCalendar:true,beforeCredentialSubmit:()=>limit(env,student.student_id,'login',3),onAuthenticated:authenticated=>{cookies=sessionCookies(authenticated);}});
-  jar.clear();jar=restoreCookies(cookies);
- }
- try{
-  const hadSession=!!jar.header(new URL(COOL+'/api/v1/courses'));
-  if(!hadSession)await login();
-  let result;
-  try{result=await readCoolCoursePlan(jar,candidate.coolId,candidate.term);}
-  catch(error){if(error.code!=='cool_session_expired'||!hadSession)throw error;await login();result=await readCoolCoursePlan(jar,candidate.coolId,candidate.term);}
-  // Retain only the existing encrypted provider session; never save syllabus content or exam dates.
-  await mergeCoolConnection(env,student.student_id,{announcementCookies:sessionCookies(jar)});
-  return result;
- }catch(error){
-  if(['cool_credentials_required','cool_verification_required'].includes(error.code))await mergeCoolConnection(env,student.student_id,{announcementsReconnect:true});
-  throw error;
- }finally{jar.clear();if(credentials)credentials.password='';}
+ return withCoolCourseSession(env,student,'exam-plan',jar=>readCoolCoursePlan(jar,candidate.coolId,candidate.term));
 }

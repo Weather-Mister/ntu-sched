@@ -20,6 +20,7 @@ import { ForegroundRefresh } from './foreground-refresh.mjs';
 import { createCoolFeedScroll } from './cool-feed-scroll.mjs';
 import {COURSE_LOCATION_VERSION,sessionClassrooms} from '/course-locations.mjs';
 import {renderLessonLocations} from './lesson-locations.mjs';
+import {createCourseOverview} from './course-overview.mjs';
 const $ = id => document.getElementById(id);
 const DAY = 86400000;
 const foregroundRefresh=new ForegroundRefresh();
@@ -98,6 +99,13 @@ let liveTimetableOk=false,liveCalendarOk=false,liveCourseOverrides={},liveExamPl
 let locationRefreshEpoch=null,locationAttemptEpoch=null,locationAttempts=new Set();
 let coolDone=new Set(),coolDoneStorageKey='',previewCoolDone=new Set();
 const t = key => dict[language][key]===undefined?key:dict[language][key];
+const courseOverview = createCourseOverview({
+  dialog: $('course-overview'), list: $('course-overview-list'), status: $('course-overview-status'), refresh: $('course-overview-refresh'),
+  lesson: $('lesson-course-overview'), lessonDialog: $('lesson-dialog'), account,
+  getContext: () => ({ rows: liveMode ? student?.courses || [] : [], timetable: liveTimetable, options: liveSectionOptions,
+    overrides: liveCourseOverrides, language, lessonId: opened?.c[8] }),
+  onExpired: () => sessionExpired()
+});
 const coolScroll=createCoolFeedScroll({list:$('cool-list')});
 const taskStore = new AccountTasks(account, {
   onChange(state){if(liveMode){tasks=state.items;renderTasks();}},
@@ -114,6 +122,7 @@ const examStore=new AccountExams(account,()=>{if(student&&liveMode){
   student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides,liveSectionOptions);
   if(coolView==='exams')renderDeadlines();renderBanner();renderCalendar();
   if(opened&&$('lesson-dialog').open)populateLesson(opened.c,opened.key);
+  courseOverview.render();
   if(!examStore.busy)void refreshCourseLocations();
 }},()=>sessionExpired());
 const eventUI=createEventUI({account,isLive:()=>liveMode,getLanguage:()=>language,getDate:()=>selectedDate,onChange(){if(student){renderBanner();renderCalendar();}},onSessionExpired:()=>sessionExpired()});
@@ -654,7 +663,9 @@ function showPanel(which){
 
 function renderAll(){
   renderTranslations();if(!student)return;renderBanner();renderCalendar();renderDeadlines();renderTasks();updateLiveStatus();showPanel(activePanel);
+  $('open-course-overview').hidden=!liveMode;
   if(opened&&$('lesson-dialog').open)populateLesson(opened.c,opened.key);
+  courseOverview.render();
 }
 function populateLesson(c,key){
   const current=student?.courses.find(row=>row[8]===c[8]&&row[0]===c[0]&&row[1]===c[1]&&row[2]===c[2])||c;
@@ -664,6 +675,7 @@ function populateLesson(c,key){
   $('lesson-name-label').textContent=t(lessonDraft?.language==='zh'?'lessonNameZh':'lessonNameEn');
   $('lesson-edit-help').textContent=t(!liveMode?'lessonPreview':lessonDraft?.language==='zh'?'lessonHelpZh':'lessonHelpEn');
   showLessonLocations(current);
+  $('lesson-course-overview').hidden=!liveMode;
 }
 function showLessonLocations(c){
   const container=$('lesson-locations');container.hidden=!liveMode;
@@ -697,6 +709,7 @@ function showLesson(c,key){
   $('lesson-description-input').value=lessonDraft.initial.description;$('lesson-edit-message').hidden=true;
   lessonSaving=false;lessonControls();populateLesson(c,key);$('lesson-dialog').showModal();
   if(liveMode){
+    courseOverview.showLesson();
     const cached=liveSectionOptions[lessonDraft.id];
     if(cached?.term===liveTimetable?.term)displayLessonSections(lessonDraft,cached);
     if(cached?.locationVersion!==COURSE_LOCATION_VERSION)void loadLessonSections(lessonDraft,liveEpoch);
@@ -724,6 +737,7 @@ async function loadLessonSections(draft,epoch){
     liveSectionOptions[draft.id]={term:liveTimetable?.term||'',locationVersion:result.locationVersion,selected:result.selected,matching:result.matching,candidates:result.candidates,savedAt:result.savedAt||Date.now()};
     student=studentFromAccount(liveAccount,liveTimetable,liveCourseOverrides,liveSectionOptions);renderBanner();renderCalendar();
     displayLessonSections(draft,result);
+    courseOverview.render();
   }catch(error){
     if(lessonDraft!==draft||epoch!==liveEpoch)return;
     if(error.status===401){sessionExpired();return;}
@@ -764,6 +778,7 @@ async function saveLessonDetails(reset=false){
 }
 function previewCourseRows(profile){return profile.courses.map(c=>{const row=[...c];row[8]='preview:'+(c[6]||c[3]);return row;});}
 function leavePreview(){
+  courseOverview.reset();
   liveSnapshotsLoading=false;liveSyncSource=null;snapshotLoads.clear();
   foregroundRefresh.reset();calendarSignature='';
   liveEpoch++;liveMode=false;livePending=false;initialSyncBusy=false;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};liveTimetableInfo='';liveCoolInfo='';coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
@@ -927,6 +942,7 @@ async function refreshCourseLocations(){
           if(lessonDraft&&!lessonDraft.sectionsReady)displayLessonSections(lessonDraft,result);
           populateLesson(opened.c,opened.key);
         }
+        courseOverview.render();
       }catch(error){
         if(epoch!==liveEpoch)return;
         if(error.status===401){sessionExpired();return;}
@@ -1032,6 +1048,7 @@ async function initializeLiveSources(needed,epoch,detailsRevision){
 }
 function startLive(current,{firstSignIn=false}={}){
   if(!current?.studentNumber||!current?.csrfToken)throw Error('Campus Week returned an invalid session.');
+  courseOverview.reset();
   foregroundRefresh.reset();
   liveSnapshotsLoading=true;liveSyncSource=null;snapshotLoads.clear();
   liveMode=true;liveEpoch++;initialSyncBusy=false;liveAccount=current;liveTimetable=null;liveCalendar=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();
@@ -1114,6 +1131,7 @@ async function endLiveAccount(){
 }
 
 function enterPreview(){
+  courseOverview.reset();
   liveSnapshotsLoading=false;liveSyncSource=null;snapshotLoads.clear();
   foregroundRefresh.reset();
   liveMode=false;liveEpoch++;liveAccount=null;liveCalendar=null;liveTimetable=null;liveCourseOverrides={};liveExamPlans={};liveSectionOptions={};previewCourseOverrides={};coolDone.clear();coolDoneStorageKey='';previewCoolDone.clear();account.current=null;
@@ -1168,6 +1186,8 @@ $('task-form').addEventListener('submit',async e=>{
 });
 $('tasks-retry').addEventListener('click',()=>{if(liveMode)void taskStore.refresh();});
 $('open-settings').addEventListener('click',()=>{showPanel('account');settingsUI.open();$('settings-dialog').showModal();});
+$('open-course-overview').addEventListener('click',()=>courseOverview.open());
+$('course-overview-close').addEventListener('click',()=>$('course-overview').close());
 $('settings-close-desktop').addEventListener('click',()=>$('settings-dialog').close());
 $('settings-close-mobile').addEventListener('click',()=>$('settings-dialog').close());
 $('close-lesson').addEventListener('click',()=>{if(!lessonSaving)$('lesson-dialog').close();});
