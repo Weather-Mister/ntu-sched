@@ -1,6 +1,7 @@
 import {NTU_PERIODS} from './ntu-periods.mjs';
 
-export const COURSE_LOCATION_VERSION=1;
+// The cached catalog offerings also carry the instructor's public contact.
+export const COURSE_LOCATION_VERSION=2;
 const text=(value,max=200)=>typeof value==='string'?value.replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max):'';
 
 // The public catalog supplies text, never an executable or provider-supplied URL.

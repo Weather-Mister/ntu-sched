@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../src/worker.mjs';
-import {digest,randomToken,encryptAuthorization} from '../src/security.mjs';
+import {digest,randomToken,encryptAuthorization,decryptAuthorization} from '../src/security.mjs';
+import {COURSE_LOCATION_VERSION} from '../public/course-locations.mjs';
 import {savedTimetable,saveStudentSectionOptions,saveStudentExamPlan} from '../src/timetable-store.mjs';
 const APP='https://campus.example';
 const catalog=()=>Response.json({totalCount:2,courses:['52528','21570'].map((serial,i)=>({semester:'115-1',provider:'NTU',serial,identifier:'ME1005',code:'502 21130',class:i?'02':'01',teacher:i?'Teacher B':'Teacher A',name:'Statics',schedules:[],coolUrl:'https://cool.ntu.edu.tw/courses/66746'}))});
@@ -11,19 +12,20 @@ test('legacy classroom caches upgrade once without reloading saved exams and rem
  const f=await fixture(),[a,b]=f.owners,previous=globalThis.fetch;let calls=0;
  const examResult={selected:{serial:'52528'},course:{exams:[{kind:'midterm',week:8}]}};
  await saveStudentExamPlan(f.env,a.id,a.courseId,'115-1','',examResult);
- await saveStudentSectionOptions(f.env,a.id,a.courseId,'115-1',{selected:null,matching:{status:'not-found'},candidates:[]});
+ await saveStudentSectionOptions(f.env,a.id,a.courseId,'115-1',{locationVersion:1,selected:null,matching:{status:'not-found'},candidates:[]});
  globalThis.fetch=async url=>{
    calls++;assert.match(String(url),/\/search\/quick/);
-   return Response.json({totalCount:1,courses:[{semester:'115-1',provider:'NTU',serial:'52528',identifier:'ME1005',class:'01',name:'Statics',
+   return Response.json({totalCount:1,courses:[{semester:'115-1',provider:'NTU',serial:'52528',identifier:'ME1005',class:'01',name:'Statics',teacher:{name:'Professor A',email:'a@ntu.edu.tw'},
      schedules:[{weekday:2,intervals:['3','4'],classroom:{name:'繡山講堂',buildingName:'機械系館/宗倬章館',location:'機械系館一樓',detail:'Tsung Cho Chang Hall'}}]}]});
  };
  const post=path=>worker.fetch(new Request(APP+'/api/exams/'+path,{method:'POST',headers:{Origin:APP,'Content-Type':'application/json',Cookie:'__Host-campus_week='+a.token,'X-CSRF-Token':a.csrf},body:JSON.stringify({courseId:a.courseId})}),f.env);
  try{
    const response=await post('options');assert.equal(response.status,200,await response.clone().text());
-   const result=await response.json();assert.equal(result.locationVersion,1);assert.equal(result.selected.schedules[0].location,'機械系館一樓');
+   const result=await response.json();assert.equal(result.locationVersion,COURSE_LOCATION_VERSION);assert.equal(result.selected.schedules[0].location,'機械系館一樓');
+   assert.equal(result.selected.teacherEmail,'a@ntu.edu.tw');
    assert.equal(calls,1);assert.equal((await post('options')).status,200);assert.equal(calls,1);
    assert.deepEqual((await(await post('plan')).json()).course,examResult.course);assert.equal(calls,1);
-   const snapshot=await savedTimetable(f.env,a.id);assert.equal(snapshot.sectionOptions[a.courseId].locationVersion,1);
+   const snapshot=await savedTimetable(f.env,a.id);assert.equal(snapshot.sectionOptions[a.courseId].locationVersion,COURSE_LOCATION_VERSION);
    assert.deepEqual(snapshot.examPlans[a.courseId].result,examResult);
    assert.deepEqual((await savedTimetable(f.env,b.id)).sectionOptions,{});
  }finally{globalThis.fetch=previous;f.sqlite.close();}
@@ -124,8 +126,77 @@ test('COOL fallback reuses only the owner session, verifies live enrollment and 
   assert.equal((await post(b)).status,403);
   const stored=f.sqlite.prepare("SELECT encrypted_authorization FROM student_connections WHERE student_id=? AND provider='cool'").get(a.id);
   assert.doesNotMatch(stored.encrypted_authorization,/Midterm|Week 10/);
-  const {decryptAuthorization}=await import('../src/security.mjs');const saved=await decryptAuthorization(f.env.NTU_CREDENTIAL_KEY,a.id,'cool',stored.encrypted_authorization);assert.equal(saved.plan,undefined);assert.equal(saved.exams,undefined);assert.deepEqual(saved.calendar,{assignments:[]});
+  const saved=await decryptAuthorization(f.env.NTU_CREDENTIAL_KEY,a.id,'cool',stored.encrypted_authorization);assert.equal(saved.plan,undefined);assert.equal(saved.exams,undefined);assert.deepEqual(saved.calendar,{assignments:[]});
  }finally{globalThis.fetch=previous;f.sqlite.close();}
+});
+
+test('grades are private to enrolled students and only contain published results', async () => {
+  const f = await fixture(), [a, b] = f.owners, previous = globalThis.fetch;
+  const request = (owner, path = '') => worker.fetch(new Request(APP + '/api/cool/grades' + path, {
+    headers: owner ? { Cookie: '__Host-campus_week=' + owner.token } : {}
+  }), f.env);
+  for (const [i, owner] of f.owners.entries()) {
+    const cookies = [[JSON.stringify(['cool.ntu.edu.tw', '/', 'canvas_session']), {
+      domain: 'cool.ntu.edu.tw', hostOnly: true, path: '/', pair: 'canvas_session=grades-' + i, expires: null
+    }]];
+    f.sqlite.prepare('INSERT INTO student_connections VALUES(?,?,?,?,?)').run(owner.id, 'cool',
+      await encryptAuthorization(f.env.NTU_CREDENTIAL_KEY, owner.id, 'cool', { announcementCookies: cookies }), 'authorized', Date.now());
+  }
+  const requests = [];
+  globalThis.fetch = async (input, options) => {
+    const url = new URL(input), cookie = options.headers.Cookie;
+    requests.push(url.pathname);
+    if (url.hostname === 'course.ntu.edu.tw') {
+      assert.equal(cookie, undefined);
+      assert.equal(options.credentials, 'omit');
+      assert.equal(JSON.parse(options.body).query.keyword, 'PHYS1039');
+      return Response.json({ totalCount: 1, courses: [{ semester: '115-1', provider: 'NTU', serial: '55555', identifier: 'PHYS1039',
+        name: 'International Companions for Learning', teacher: { name: 'Professor C', email: 'c@ntu.edu.tw' }, coolUrl: 'https://cool.ntu.edu.tw/courses/66750' }] });
+    }
+    assert.equal(url.origin, 'https://cool.ntu.edu.tw');
+    assert.equal(options.redirect, 'manual');
+    if (url.pathname === '/api/v1/courses') {
+      assert.equal(url.searchParams.get('enrollment_type'), 'student');
+      assert.equal(url.searchParams.get('enrollment_state'), 'active');
+      if (cookie.includes('grades-1')) return Response.json([]);
+      const base = { name: 'Statics', course_code: '靜力學 (ME1005-01)', enrollments: [{ type: 'student', user_id: 58,
+        computed_current_score: 0, computed_current_grade: 'F', unposted_current_score: 99 }] };
+      return Response.json([{ id: 66746, ...base }, { id: 66749, ...base, hide_final_grades: true }, { id: 5, enrollments: [{ type: 'teacher' }] },
+        { id: 66750, name: 'International Companions for Learning', course_code: 'Service learning (PHYS1039)', enrollments: [{ type: 'student' }] }]);
+    }
+    assert.equal(url.pathname, '/api/v1/courses/66746/assignments');
+    assert.equal(url.searchParams.get('include[]'), 'submission');
+    assert.equal(url.searchParams.has('student_ids[]'), false);
+    assert.equal(cookie, 'canvas_session=grades-0');
+    const published = { user_id: 58, posted_at: '2026-11-12T10:00:00Z', score: 0, grade: '0', body: 'private text' };
+    if (url.searchParams.has('page')) return Response.json([{ id: 5, name: 'Exam', points_possible: 100, submission: { ...published, score: 92, grade: '92' } }]);
+    return Response.json([
+      { id: 1, name: 'Quiz', points_possible: 10, submission: published },
+      { id: 2, name: 'Hidden', submission: { ...published, posted_at: null } },
+      { id: 3, name: 'Wrong student', submission: { ...published, user_id: 70 } },
+      { id: 4, name: 'Unpublished', published: false, submission: published }
+    ], { headers: { Link: '<https://cool.ntu.edu.tw/api/v1/courses/66746/assignments?page=2&student_ids[]=other>; rel="next"' } });
+  };
+  try {
+    assert.equal((await request(null)).status, 401);
+    assert.equal((await request(a, '?student=other')).status, 400);
+    assert.equal(requests.length, 0);
+    const response = await request(a);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store, private');
+    const overview = await response.json();
+    assert.deepEqual(overview.courses.map(c => [c.id, c.current]), [['66746', { score: 0, grade: 'F' }], ['66749', null], ['66750', null]]);
+    assert.deepEqual(overview.courses[2].teachers, [{ name: 'Professor C', email: 'c@ntu.edu.tw' }]);
+    assert.doesNotMatch(JSON.stringify(overview), /user_id|unposted/);
+    assert.equal((await request(b, '/66746')).status, 404);
+    assert.equal(requests.length, 3);
+    const details = await (await request(a, '/66746')).json();
+    assert.deepEqual(details.items.map(item => [item.title, item.score, item.pointsPossible]), [['Quiz', 0, 10], ['Exam', 92, 100]]);
+    assert.doesNotMatch(JSON.stringify(details), /private text/);
+    const stored = f.sqlite.prepare("SELECT encrypted_authorization FROM student_connections WHERE student_id=? AND provider='cool'").get(a.id);
+    const authorization = await decryptAuthorization(f.env.NTU_CREDENTIAL_KEY, a.id, 'cool', stored.encrypted_authorization);
+    assert.deepEqual(Object.keys(authorization), ['announcementCookies']);
+  } finally { globalThis.fetch = previous; f.sqlite.close(); }
 });
 
 test('exam plans and section catalogs persist per student and only refresh on force or a section change',async()=>{

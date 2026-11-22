@@ -47,6 +47,9 @@ export class CampusAccount {
   }
   async changeCourseDetails(id,details) { return this.request('timetable/courses/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(details)}); }
   async courseOptions(courseId) { return this.request('exams/options',{method:'POST',body:JSON.stringify({courseId})}); }
+  async courseGrades(courseId = '', signal) {
+    return this.request('cool/grades' + (courseId ? '/' + encodeURIComponent(courseId) : ''), { signal });
+  }
   async courseExamPlan(courseId,force=false) { return this.request('exams/plan',{method:'POST',body:JSON.stringify({courseId,...(force?{force:true}:{})})}); }
   async customExams() { return this.request('custom-exams'); }
   async createCustomExam(id,values) { return this.request('custom-exams',{method:'POST',body:JSON.stringify({id,...values})}); }

@@ -92,8 +92,8 @@ export async function changeCourseDetails(env,studentId,courseId,body) {
         const resolved=resolveNtuCourse(value.timetable,rows,candidates,{serial:body.offeringSerial});
         const selected=resolved.selected;
         if(!selected)throw invalid();
-        const {term,serial,section,teacher,courseCode,courseIdentifier,sourceUrl}=selected;
-        next.examOffering={term,serial,section,teacher,courseCode,courseIdentifier,sourceUrl};
+        const {term,serial,section,teacher,teacherEmail,courseCode,courseIdentifier,sourceUrl}=selected;
+        next.examOffering={term,serial,section,teacher,teacherEmail,courseCode,courseIdentifier,sourceUrl};
         const safe=candidatesForStudent(resolved);
         value={...value,sectionOptions:{...(value.sectionOptions||{}),[courseId]:{term, ...safe,savedAt:Date.now()}}};
       }

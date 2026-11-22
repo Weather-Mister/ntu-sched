@@ -2,10 +2,18 @@ import { ApiError } from './security.mjs';
 import { NTU_PERIODS } from '../public/ntu-periods.mjs';
 import { readPublicNtu, syllabusUrl } from './ntu-course-exams.mjs';
 import {catalogClassroom} from '../public/course-locations.mjs';
+import {instructorEmail} from '../public/course-contacts.mjs';
 
 const normal = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[\s:：()（）–—-]/g, '');
 const section = value => normal(value).replace(/^0+(?=\d)/, '');
 const unavailable = () => new ApiError(502,'exam_catalog_unavailable','NTU course search is unavailable. Try again later.');
+// Public NTU contacts for instructors whose catalog email is blank. Keys are
+// catalog instructor IDs, so a course or section change cannot misroute email.
+const directoryEmails = new Map([
+  ['502188', 'yipingho@ntu.edu.tw'], // https://www.me.ntu.edu.tw/web/admission/admission_in.jsp?fp_id=FP1786417924667
+  ['002134', 'zejing@ntu.edu.tw'], // https://bpisa.ntu.edu.tw/cp_n_176254.html
+  ['H02110', 'elui8499@gmail.com'] // https://cbe.ntu.edu.tw/focus/265
+]);
 
 // Only return bounded public metadata. No NTU authorization ever reaches this host.
 export async function searchNtuCourses(term, selected) {
@@ -30,6 +38,7 @@ export async function searchNtuCourses(term, selected) {
       }));
       courses.push({term,serial:c.serial,courseCode:String(c.identifier||'').slice(0,24),courseIdentifier:String(c.code||'').slice(0,24),
         section:String(c.class||'').slice(0,4),title:String(c.name||'').slice(0,160),teacher:String(c.teacher?.name||'').slice(0,160),
+        teacherEmail:instructorEmail(c.teacher?.email) || directoryEmails.get(c.teacher?.id) || '',
         coolId:/^https:\/\/cool\.ntu\.edu\.tw\/courses\/(\d+)\/?$/.exec(c.coolUrl||'')?.[1]||null,
         schedules,sourceUrl:syllabusUrl(`https://course.ntu.edu.tw/en/courses/${term}/${c.serial}`)});
     }

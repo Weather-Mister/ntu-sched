@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="/skins/retro-mail.css">
 <link rel="stylesheet" href="/skeleton/ui-polish.css">
 <link rel="stylesheet" href="/skeleton/mail-badges.css">
+<link rel="stylesheet" href="/skeleton/course-overview.css">
 <script type="module" src="/skeleton/app.mjs"></script>
 </head>
 <body>
@@ -122,7 +123,7 @@
 <main class="workspace">
 <section class="schedule-column" aria-labelledby="selected-day">
 <span id="timetable-sync-dot" class="sync-dot" role="img" hidden></span>
-<div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><div class="section-action"><span id="class-count" class="section-side"></span><button id="add-event" type="button" class="button primary small">＋ Add event</button></div></div>
+<div class="section-head"><div><p id="selected-date" class="eyebrow"></p><h2 id="selected-day"></h2></div><div class="section-action"><span id="class-count" class="section-side"></span><button id="open-course-overview" type="button" class="button small" aria-haspopup="dialog" hidden>Courses</button><button id="add-event" type="button" class="button primary small">＋ Add event</button></div></div>
 <div id="schedule-list" class="schedule-list" aria-live="polite"></div>
 <div class="personal-event-status"><p id="events-status" class="preview-footnote" role="status"></p><button id="events-retry" class="button small" type="button" hidden>Retry</button></div>
 <section id="week-timetable" class="week-timetable" aria-labelledby="week-timetable-heading" hidden>
@@ -228,6 +229,7 @@
 <div class="detail-line"><span data-i18n="time">Time</span><strong id="lesson-dialog-time"></strong></div>
 <div class="detail-line"><span data-i18n="status">Status</span><strong id="lesson-dialog-status"></strong></div>
 <section id="lesson-locations" class="lesson-locations" aria-live="polite" hidden></section>
+<div id="lesson-course-overview" class="lesson-course-overview" hidden></div>
 <form id="lesson-edit-form" class="lesson-edit-form">
 <label id="lesson-name-label" for="lesson-name-input">Name (English)</label><input id="lesson-name-input" type="text" maxlength="160" autocomplete="off">
 <label for="lesson-room-input" data-i18n="location">Location</label><input id="lesson-room-input" type="text" maxlength="200" autocomplete="off">
@@ -238,6 +240,17 @@
 <p id="lesson-edit-message" class="lesson-edit-message" role="status" hidden></p>
 <div class="lesson-edit-actions"><button id="lesson-reset" type="button" class="button small" data-i18n="lessonReset">Restore original details</button><span></span><button id="lesson-edit-cancel" type="button" class="button" data-i18n="lessonCancel">Cancel</button><button id="lesson-save" type="submit" class="button primary" data-i18n="lessonSave">Save changes</button></div>
 </form>
+</div>
+</dialog>
+<dialog id="course-overview" class="dialog course-overview" aria-labelledby="course-overview-title">
+<div class="detail-sheet">
+<button id="course-overview-close" class="icon-button dialog-close" type="button" aria-label="Close courses"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+<header class="course-overview-heading">
+<h2 id="course-overview-title">Grades &amp; contacts</h2>
+<button id="course-overview-refresh" class="button small" type="button">Refresh grades</button>
+</header>
+<p id="course-overview-status" class="course-overview-status" role="status"></p>
+<div id="course-overview-list" class="course-overview-list"></div>
 </div>
 </dialog>
 <dialog id="settings-dialog" class="dialog settings-dialog settings-hub" aria-labelledby="settings-heading">
